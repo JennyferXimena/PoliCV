@@ -3,6 +3,7 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
+const pool = require("./config/database"); 
 
 const app = express();
 
@@ -24,6 +25,19 @@ app.get("/api/health", (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-  console.log(`Servidor PoliCV ejecutándose en http://localhost:${PORT}`);
-}); 
+async function iniciarServidor(){
+  try{
+    await pool.query("SELECT 1");
+    console.log("Conexion exitosa con MySQL");
+    app.listen(PORT, () => {
+      console.log(
+        `Servidor PoliCV ejecutandose en http://localhost:${PORT}` 
+      );
+    });
+  } catch (error){
+    console.error("Error al conectar con MySQL:", error.message);
+    process.exit(1);
+  }
+}
+
+iniciarServidor(); 
