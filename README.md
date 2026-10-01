@@ -1,10 +1,10 @@
 # PoliCV
 Plataforma web inteligente basado en IA para la generación de currículums vitae y recomendación de ofertas laborales mediante un asistente conversacional para estudiantes de la ESFOT. 
 
-# Instalacion del proyecto 
+# Instalación del proyecto 
 
 ## 1. Programas necesarios 
-Antes de ejecutar el proyecto se debe verificar que este instaldo:
+Antes de ejecutar el proyecto se debe verificar que este instalado:
 - Git 
 - Node.js
 - MySQL Workbench
@@ -12,7 +12,7 @@ Antes de ejecutar el proyecto se debe verificar que este instaldo:
 - Postman 
 
 ## 2. Descargar el proyecto 
-Clonar el repositorio y entrar al protecto cd PoliCV 
+Clonar el repositorio y entrar al proyecto cd PoliCV 
 
 ## 3. Instalar las dependencias del backend 
 Entrar a la carpeta backend e instalar:
@@ -22,7 +22,7 @@ Entrar a la carpeta backend e instalar:
 Dentro de la carpeta backend crear la carpeta 
 - .env 
 Tomar como referencia el archivo .env.example 
-(La configuracion actual es:)
+(La configuración actual es:)
 PORT=3000
 
 DB_HOST=localhost
@@ -33,7 +33,7 @@ DB_NAME=policv
 
 ## 5. Crear la base de datos 
 Se encuentran en la carpeta database la estructura real de la base de datos
-- Tambien se puede ejecutar desde el terminal con el comando 
+- También se puede ejecutar desde el terminal con el comando 
 mysql -u root -p < database/policv.sql
 
 ## 6. Ejecutar el backend 
