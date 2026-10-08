@@ -19,7 +19,26 @@ async function crearUsuario(idRol, email, passwordHash, db = pool) {
   return resultado.insertId;
 }
 
+async function buscarPorEmailConRol(email, db = pool) {
+  const [rows] = await db.execute(
+    `SELECT 
+        u.id_usuario,
+        u.id_rol,
+        u.email,
+        u.password_hash,
+        u.estado,
+        r.nombre AS rol
+     FROM usuarios u
+     INNER JOIN roles r ON u.id_rol = r.id_rol
+     WHERE u.email = ?`,
+    [email]
+  );
+
+  return rows[0];
+}
+
 module.exports = {
   buscarPorEmail,
+  buscarPorEmailConRol,
   crearUsuario
 };
