@@ -9,7 +9,7 @@ const crypto = require("crypto");
 
 //REGISTRAR
 async function registrar(req, res) {
-  const { email, password } = req.body || {};
+  const { nombres, apellidos, email, password } = req.body || {};
 
   if (!email || !password) {
     return res.status(400).json({
@@ -76,6 +76,8 @@ async function registrar(req, res) {
 
     await perfilModel.crearPerfil(
       idUsuario,
+      nombres.trim(),
+      apellidos.trim(),
       connection
     );
 
@@ -105,7 +107,7 @@ async function registrar(req, res) {
 
 // LOGIN 
 async function login(req, res) {
-  const { email, password } = req.body;
+  const { email, password } = req.body || {};
 
   if (!email || !password) {
     return res.status(400).json({

@@ -39,3 +39,23 @@ mysql -u root -p < database/policv.sql
 ## 6. Ejecutar el backend 
 npm run dev 
 
+## Configurar JWT
+
+PoliCV utiliza JWT para la autenticación de usuarios.
+
+El archivo `.env` no se encuentra en GitHub por motivos de seguridad, por lo que
+en cada computadora se debe configurar una clave JWT propia.
+
+Desde la carpeta `backend`, se puede generar una clave segura ejecutando:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+
+
+Clonar proyecto
+→ npm install
+→ crear .env
+→ configurar MySQL
+→ generar JWT_SECRET
+→ importar policv.sql
+→ npm run dev

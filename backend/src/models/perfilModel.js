@@ -1,11 +1,12 @@
 const pool = require("../config/database");
 
-async function crearPerfil(idUsuario, db = pool) {
+async function crearPerfil(idUsuario, nombres = null, apellidos = null, db = pool) {
   await db.execute(
-    "INSERT INTO perfiles (id_usuario) VALUES (?)",
-    [idUsuario]
+    `INSERT INTO perfiles (id_usuario, nombres, apellidos)
+     VALUES (?, ?, ?)`,
+    [idUsuario, nombres, apellidos]
   );
-}
+} 
 
 
 async function obtenerPorUsuario(idUsuario) {

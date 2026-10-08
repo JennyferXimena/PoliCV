@@ -1,0 +1,306 @@
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.home-page {
+  background: #eff9f8;
+  color: #242828;
+}
+
+.navbar {
+  max-width: 1200px;
+  margin: auto;
+  height: 90px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 35px;
+}
+
+.logo {
+  font-size: 28px;
+  font-weight: 700;
+  color: #176ab6;
+}
+
+.logo span {
+  color: #735bff;
+}
+
+.navbar nav {
+  display: flex;
+  gap: 32px;
+}
+
+.navbar a {
+  color: #242828;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.nav-actions {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+.register-link {
+  color: #008c89 !important;
+  font-weight: 600;
+}
+
+.login-button {
+  background: #23b8b7;
+  padding: 14px 22px;
+  border-radius: 3px;
+}
+
+.section {
+  max-width: 1200px;
+  margin: auto;
+  padding: 90px 50px;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 60px;
+}
+
+.hero h1 {
+  font-size: 58px;
+  line-height: 1.04;
+  margin: 0 0 30px;
+}
+
+.hero p,
+.section-text p {
+  line-height: 1.75;
+  color: #5f6464;
+  font-size: 17px;
+}
+
+.hero-buttons {
+  display: flex;
+  gap: 25px;
+  margin-top: 35px;
+}
+
+.primary-home-button,
+.secondary-home-button,
+.outline-button {
+  text-decoration: none;
+  padding: 16px 30px;
+}
+
+.primary-home-button {
+  background: #008f8c;
+  color: white;
+}
+
+.secondary-home-button,
+.outline-button {
+  border: 2px solid #008f8c;
+  color: #222;
+}
+
+.hero-image img,
+.section-image img,
+.cta img {
+  width: 100%;
+  display: block;
+}
+
+.services-bar {
+  max-width: 1000px;
+  margin: auto;
+
+  display: flex;
+  justify-content: space-between;
+  gap: 25px;
+
+  padding: 30px;
+  color: #888;
+  font-weight: 600;
+}
+
+.split-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 70px;
+  align-items: center;
+}
+
+.section-label {
+  color: #008f8c;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.section-text h2,
+.how-section h2 {
+  font-size: 37px;
+  line-height: 1.15;
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+  margin-top: 30px;
+}
+
+.feature-grid h3 {
+  margin-bottom: 5px;
+}
+
+.feature-grid p {
+  font-size: 14px;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 50px;
+  margin: 50px 0 80px;
+}
+
+.steps article {
+  border: 1px solid #c8d7d5;
+  padding: 25px;
+  min-height: 190px;
+}
+
+.steps article > span {
+  font-weight: bold;
+}
+
+.steps .active-step {
+  background: #008f8c;
+  color: white;
+}
+
+.steps .active-step p {
+  color: white;
+}
+
+.more-title {
+  margin-top: 30px;
+}
+
+.extra-features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 50px;
+}
+
+.extra-features p {
+  color: #5f6464;
+  line-height: 1.6;
+}
+
+.cta {
+  max-width: 1100px;
+  margin: 40px auto 100px;
+  padding: 45px;
+
+  border-radius: 20px;
+  background: #008f8c;
+  color: white;
+
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+}
+
+.cta h2 {
+  font-size: 34px;
+}
+
+.cta-buttons {
+  display: flex;
+  gap: 15px;
+  margin-top: 30px;
+}
+
+.cta-buttons a {
+  padding: 14px 22px;
+  background: #0da6a3;
+  color: white;
+  text-decoration: none;
+}
+
+.cta-buttons a:last-child {
+  background: #18cecb;
+  color: #111;
+}
+
+footer {
+  background: #008f8c;
+  color: white;
+
+  padding: 60px max(40px, calc((100% - 1100px) / 2));
+
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 50px;
+}
+
+footer a,
+footer span {
+  color: white;
+  opacity: 0.95;
+  text-decoration: none;
+  display: block;
+  margin: 13px 0;
+}
+
+footer p {
+  line-height: 1.6;
+}
+
+.copyright {
+  grid-column: 1 / -1;
+  border-top: 1px solid rgba(255,255,255,.5);
+  padding-top: 25px;
+}
+
+@media (max-width: 850px) {
+  .navbar nav {
+    display: none;
+  }
+
+  .hero,
+  .split-section,
+  .cta {
+    grid-template-columns: 1fr;
+  }
+
+  .hero h1 {
+    font-size: 42px;
+  }
+
+  .steps,
+  .extra-features {
+    grid-template-columns: 1fr;
+  }
+
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .services-bar {
+    flex-wrap: wrap;
+  }
+
+  footer {
+    grid-template-columns: 1fr 1fr;
+  }
+}
