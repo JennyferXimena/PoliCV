@@ -208,3 +208,22 @@ body {
   color: #1478da;
   text-decoration: none;
 }
+
+.reset-link-button {
+  display: block;
+  width: 100%;
+
+  margin-top: 16px;
+  padding: 14px;
+
+  text-align: center;
+  text-decoration: none;
+
+  background: #e4f7f5;
+  color: #008f8c;
+
+  border: 1px solid #008f8c;
+  border-radius: 24px;
+
+  font-weight: 600;
+}

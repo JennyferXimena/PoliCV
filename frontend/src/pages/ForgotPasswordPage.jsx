@@ -8,15 +8,19 @@ function ForgotPasswordPage() {
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
+  const [tokenTemporal, setTokenTemporal] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     setMensaje("");
     setError("");
+    setTokenTemporal("");
 
     if (!email.toLowerCase().endsWith("@epn.edu.ec")) {
-      setError("Debe utilizar un correo institucional @epn.edu.ec");
+      setError(
+        "Debe utilizar un correo institucional @epn.edu.ec"
+      );
       return;
     }
 
@@ -25,15 +29,22 @@ function ForgotPasswordPage() {
 
       const response = await api.post(
         "/auth/recuperar-password",
-        { email }
+        {
+          email,
+        }
       );
 
       setMensaje(response.data.mensaje);
 
+      // Guardamos el token que devuelve el backend
+      setTokenTemporal(
+        response.data.token_temporal || ""
+      );
+
     } catch (error) {
       setError(
         error.response?.data?.mensaje ||
-        "No se pudo solicitar la recuperación"
+          "No se pudo solicitar la recuperación"
       );
 
     } finally {
@@ -48,7 +59,9 @@ function ForgotPasswordPage() {
         <div>
           <h1>PoliCV</h1>
 
-          <h2>Recupera el acceso a tu cuenta</h2>
+          <h2>
+            Recupera el acceso a tu cuenta
+          </h2>
 
           <p>
             Utiliza tu correo institucional para recuperar
@@ -63,8 +76,8 @@ function ForgotPasswordPage() {
           <h1>Recuperar contraseña</h1>
 
           <p className="subtitle">
-            Ingresa tu correo institucional y te enviaremos
-            un enlace para restablecer tu contraseña.
+            Ingresa tu correo institucional para restablecer
+            tu contraseña.
           </p>
 
           <form onSubmit={handleSubmit}>
@@ -75,7 +88,9 @@ function ForgotPasswordPage() {
               type="email"
               placeholder="usuario@epn.edu.ec"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) =>
+                setEmail(e.target.value)
+              }
               required
             />
 
@@ -97,11 +112,22 @@ function ForgotPasswordPage() {
               disabled={cargando}
             >
               {cargando
-                ? "Enviando..."
+                ? "Procesando..."
                 : "Enviar enlace"}
             </button>
 
           </form>
+
+          {tokenTemporal && (
+            <Link
+              className="reset-link-button"
+              to={`/restablecer-password?token=${encodeURIComponent(
+                tokenTemporal
+              )}`}
+            >
+              Continuar para cambiar contraseña
+            </Link>
+          )}
 
           <p className="bottom-text">
             <Link to="/iniciar-sesion">

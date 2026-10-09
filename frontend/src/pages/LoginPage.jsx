@@ -38,7 +38,7 @@ function LoginPage() {
         );
       }
 
-      navigate("/");
+      navigate("/perfil");
 
     } catch (error) {
       setError(

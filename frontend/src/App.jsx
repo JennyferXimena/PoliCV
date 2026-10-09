@@ -4,6 +4,8 @@ import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ProfilePage from "./pages/ProfilePage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 function App() {
   return (
@@ -25,6 +27,15 @@ function App() {
           path="/recuperar-password"
           element={<ForgotPasswordPage />}
         />
+
+        <Route
+          path="/perfil"
+          element={<ProfilePage />}
+        /> 
+        <Route
+          path="/restablecer-password"
+          element={<ResetPasswordPage />}
+        /> 
       </Routes>
     </BrowserRouter>
   );
