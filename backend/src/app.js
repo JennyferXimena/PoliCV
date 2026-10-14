@@ -6,15 +6,31 @@ const cors = require("cors");
 const pool = require("./config/database"); 
 const authRoutes = require("./routes/authRoutes"); 
 const perfilRoutes = require("./routes/perfilRoutes");
-
+const adminUsuarioRoutes = require("./routes/adminUsuarioRoutes");
 const app = express();
+const adminSeccionRoutes = require("./routes/adminSeccionRoutes");
+const adminPlantillaRoutes = require("./routes/adminPlantillaRoutes");
+const propuestaRoutes = require("./routes/propuestaRoutes");
+const adminPropuestaRoutes = require("./routes/adminPropuestaRoutes");
+const adminEstadisticaRoutes = require("./routes/adminEstadisticaRoutes");
+const curriculumRoutes = require("./routes/curriculumRoutes");
 
+// Middlewares generales
 app.use(cors());
 app.use(express.json());
 
+// Rutas
 app.use("/api/auth", authRoutes);
 app.use("/api/perfil", perfilRoutes);
+app.use("/api/admin/usuarios", adminUsuarioRoutes);
+app.use("/api/admin/secciones",adminSeccionRoutes);
+app.use("/api/admin/plantillas",adminPlantillaRoutes);
+app.use("/api/propuestas",propuestaRoutes);
+app.use("/api/admin/propuestas",adminPropuestaRoutes);
+app.use("/api/admin/estadisticas",adminEstadisticaRoutes);
+app.use("/api/curriculums",curriculumRoutes);
 
+// Rutas principales 
 app.get("/", (req, res) => {
   res.status(200).json({
     nombre: "PoliCV API",
@@ -22,6 +38,7 @@ app.get("/", (req, res) => {
   });
 });
 
+// Rutas de comprobacion 
 app.get("/api/health", (req, res) => {
   res.status(200).json({
     mensaje: "Servidor PoliCV funcionando correctamente"

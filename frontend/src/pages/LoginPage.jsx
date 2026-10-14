@@ -37,8 +37,13 @@ function LoginPage() {
           JSON.stringify(usuario)
         );
       }
-
-      navigate("/perfil");
+      if (usuario.rol === "Administrador") {
+        navigate("/admin");
+      } else if (usuario.rol === "Estudiante") {
+        navigate("/estudiante");
+      } else {
+        setError("El usuario no tiene un rol válido");
+      }
 
     } catch (error) {
       setError(

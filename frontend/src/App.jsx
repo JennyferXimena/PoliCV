@@ -6,6 +6,16 @@ import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ProfilePage from "./pages/ProfilePage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
+import StudentDashboardPage from "./pages/StudentDashboardPage";
+import ProtectedRoute from "./components/ProtectedRoute";
+import AdminUsersPage from "./pages/AdminUsersPage";
+import AdminSectionsPage from "./pages/AdminSectionsPage";
+import AdminTemplatesPage from "./pages/AdminTemplatesPage";
+import StudentProposalsPage from "./pages/StudentProposalsPage";
+import AdminProposalsPage from "./pages/AdminProposalsPage";
+import AdminStatisticsPage from "./pages/AdminStatisticsPage";
+import StudentCVPage from "./pages/StudentCVPage";
 
 function App() {
   return (
@@ -36,6 +46,87 @@ function App() {
           path="/restablecer-password"
           element={<ResetPasswordPage />}
         /> 
+        <Route
+          path="/estudiante"
+          element={
+            <ProtectedRoute allowedRoles={["Estudiante"]}>
+              <StudentDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute allowedRoles={["Administrador"]}>
+              <AdminDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/usuarios"
+          element={
+            <ProtectedRoute allowedRoles={["Administrador"]}>
+              <AdminUsersPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/secciones"
+          element={
+            <ProtectedRoute allowedRoles={["Administrador"]}>
+              <AdminSectionsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/plantillas"
+          element={
+            <ProtectedRoute allowedRoles={["Administrador"]}>
+              <AdminTemplatesPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/estudiante/propuestas"
+          element={
+            <ProtectedRoute allowedRoles={["Estudiante"]}>
+              <StudentProposalsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/propuestas"
+          element={
+            <ProtectedRoute allowedRoles={["Administrador"]}>
+              <AdminProposalsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/estadisticas"
+          element={
+            <ProtectedRoute allowedRoles={["Administrador"]}>
+              <AdminStatisticsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/estudiante/curriculums"
+          element={
+            <ProtectedRoute allowedRoles={["Estudiante"]}>
+              <StudentCVPage />
+            </ProtectedRoute>
+          }
+        />
+
       </Routes>
     </BrowserRouter>
   );
