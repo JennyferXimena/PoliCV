@@ -11,6 +11,9 @@ const {
   verificarRol
 } = require("../middlewares/roleMiddleware");
 
+const detalleCurriculumController =
+  require("../controllers/detalleCurriculumController");
+
 const router = express.Router();
 
 router.use(verificarToken);
@@ -39,6 +42,26 @@ router.put(
 router.delete(
   "/:id",
   curriculumController.eliminar
+);
+
+router.get(
+  "/:idCurriculum/secciones/:seccion",
+  detalleCurriculumController.listar
+);
+
+router.post(
+  "/:idCurriculum/secciones/:seccion",
+  detalleCurriculumController.crear
+);
+
+router.put(
+  "/:idCurriculum/secciones/:seccion/:idItem",
+  detalleCurriculumController.actualizar
+);
+
+router.delete(
+  "/:idCurriculum/secciones/:seccion/:idItem",
+  detalleCurriculumController.eliminar
 );
 
 module.exports = router;

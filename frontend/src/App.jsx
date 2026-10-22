@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -16,12 +15,19 @@ import StudentProposalsPage from "./pages/StudentProposalsPage";
 import AdminProposalsPage from "./pages/AdminProposalsPage";
 import AdminStatisticsPage from "./pages/AdminStatisticsPage";
 import StudentCVPage from "./pages/StudentCVPage";
+import StudentCVDetailPage from "./pages/StudentCVDetailPage";
+import StudentAIAssistantPage from "./pages/StudentAIAssistantPage";
+import StudentAICreateCVPage from "./pages/StudentAICreateCVPage";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<HomePage />} />
+
+        <Route
+          path="/"
+          element={<HomePage />}
+        />
 
         <Route
           path="/iniciar-sesion"
@@ -39,13 +45,15 @@ function App() {
         />
 
         <Route
-          path="/perfil"
-          element={<ProfilePage />}
-        /> 
-        <Route
           path="/restablecer-password"
           element={<ResetPasswordPage />}
-        /> 
+        />
+
+        <Route
+          path="/perfil"
+          element={<ProfilePage />}
+        />
+
         <Route
           path="/estudiante"
           element={
@@ -92,15 +100,6 @@ function App() {
         />
 
         <Route
-          path="/estudiante/propuestas"
-          element={
-            <ProtectedRoute allowedRoles={["Estudiante"]}>
-              <StudentProposalsPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
           path="/admin/propuestas"
           element={
             <ProtectedRoute allowedRoles={["Administrador"]}>
@@ -119,6 +118,15 @@ function App() {
         />
 
         <Route
+          path="/estudiante/propuestas"
+          element={
+            <ProtectedRoute allowedRoles={["Estudiante"]}>
+              <StudentProposalsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/estudiante/curriculums"
           element={
             <ProtectedRoute allowedRoles={["Estudiante"]}>
@@ -127,6 +135,31 @@ function App() {
           }
         />
 
+        <Route
+          path="/estudiante/curriculums/:id"
+          element={
+            <ProtectedRoute allowedRoles={["Estudiante"]}>
+              <StudentCVDetailPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/estudiante/asistente-ia"
+          element={
+            <ProtectedRoute allowedRoles={["Estudiante"]}>
+              <StudentAIAssistantPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/estudiante/crear-cv-ia"
+          element={
+            <ProtectedRoute allowedRoles={["Estudiante"]}>
+              <StudentAICreateCVPage />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );

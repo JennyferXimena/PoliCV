@@ -26,14 +26,12 @@ function StudentDashboardPage() {
       <h1>Dashboard del estudiante</h1>
 
       <p>
-        Sesión iniciada como:
-        {" "}
+        Sesión iniciada como:{" "}
         <strong>{usuario?.email}</strong>
       </p>
 
       <p>
-        Rol:
-        {" "}
+        Rol:{" "}
         <strong>{usuario?.rol}</strong>
       </p>
 
@@ -47,20 +45,29 @@ function StudentDashboardPage() {
         </Link>
       </p>
 
+      <p>
+        <Link to="/estudiante/curriculums">
+          Mis currículums
+        </Link>
+      </p>
+
+      <p>
+        <Link to="/estudiante/asistente-ia">
+          Asistente IA
+        </Link>
+      </p>
+
+      <p>
+        <Link to="/estudiante/propuestas">
+          Propuestas de mejora
+        </Link>
+      </p>
+
+      <br />
+
       <button onClick={cerrarSesion}>
         Cerrar sesión
       </button>
-      <p>
-        <Link to="/estudiante/propuestas">
-        Propuestas de mejora
-        </Link>
-        </p>
-        <p>
-            <Link to="/estudiante/curriculums">
-            Mis currículums
-            </Link>
-        </p>    
-
     </main>
   );
 }

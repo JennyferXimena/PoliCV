@@ -14,6 +14,7 @@ const propuestaRoutes = require("./routes/propuestaRoutes");
 const adminPropuestaRoutes = require("./routes/adminPropuestaRoutes");
 const adminEstadisticaRoutes = require("./routes/adminEstadisticaRoutes");
 const curriculumRoutes = require("./routes/curriculumRoutes");
+const aiRoutes = require("./routes/aiRoutes");
 
 // Middlewares generales
 app.use(cors());
@@ -29,6 +30,7 @@ app.use("/api/propuestas",propuestaRoutes);
 app.use("/api/admin/propuestas",adminPropuestaRoutes);
 app.use("/api/admin/estadisticas",adminEstadisticaRoutes);
 app.use("/api/curriculums",curriculumRoutes);
+app.use("/api/ia", aiRoutes);
 
 // Rutas principales 
 app.get("/", (req, res) => {

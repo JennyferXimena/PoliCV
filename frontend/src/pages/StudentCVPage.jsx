@@ -323,6 +323,13 @@ function StudentCVPage() {
                 </td>
 
                 <td>
+                  <Link
+                    to={`/estudiante/curriculums/${curriculum.id_curriculum}`}
+                  >
+                    Gestionar contenido
+                  </Link>
+
+                  {" "}
 
                   <button
                     type="button"
