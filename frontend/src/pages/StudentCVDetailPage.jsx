@@ -83,6 +83,13 @@ function StudentCVDetailPage() {
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
 
+  // IA
+  const [mejorandoIA, setMejorandoIA] = useState(false);
+  const [sugerenciaIA, setSugerenciaIA] = useState("");
+  const [textoOriginalIA, setTextoOriginalIA] = useState("");
+  const [tipoExperienciaIA, setTipoExperienciaIA] =
+    useState("experiencia");
+
   const config = useMemo(
     () => CONFIGURACION[seccionActual],
     [seccionActual]
@@ -108,7 +115,6 @@ function StudentCVDetailPage() {
       );
 
       setRegistros(response.data.datos);
-
     } catch (error) {
       setError(
         error.response?.data?.mensaje ||
@@ -155,28 +161,62 @@ function StudentCVDetailPage() {
     };
   }, [id]);
 
+  const limpiarIA = () => {
+    setSugerenciaIA("");
+    setTextoOriginalIA("");
+    setMejorandoIA(false);
+  };
+
   const cambiarSeccion = async (seccion) => {
     setSeccionActual(seccion);
     setIdEdicion(null);
-    setForm(crearFormularioVacio(seccion));
+
+    setForm(
+      crearFormularioVacio(seccion)
+    );
+
     setMensaje("");
     setError("");
+    limpiarIA();
+
+    if (seccion === "experiencias") {
+      setTipoExperienciaIA("experiencia");
+    }
 
     await cargarRegistros(seccion);
   };
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const {
+      name,
+      value,
+      type,
+      checked
+    } = e.target;
 
     setForm({
       ...form,
-      [name]: type === "checkbox" ? checked : value
+      [name]:
+        type === "checkbox"
+          ? checked
+          : value
     });
+
+    if (name === "descripcion") {
+      setSugerenciaIA("");
+    }
   };
 
   const limpiar = () => {
     setIdEdicion(null);
-    setForm(crearFormularioVacio(seccionActual));
+
+    setForm(
+      crearFormularioVacio(
+        seccionActual
+      )
+    );
+
+    limpiarIA();
   };
 
   const guardar = async (e) => {
@@ -200,10 +240,15 @@ function StudentCVDetailPage() {
         );
       }
 
-      setMensaje(response.data.mensaje);
+      setMensaje(
+        response.data.mensaje
+      );
 
       limpiar();
-      await cargarRegistros(seccionActual);
+
+      await cargarRegistros(
+        seccionActual
+      );
 
     } catch (error) {
       setError(
@@ -219,40 +264,57 @@ function StudentCVDetailPage() {
     config.campos.forEach((campo) => {
       if (campo.tipo === "checkbox") {
         datos[campo.nombre] =
-          Boolean(registro[campo.nombre]);
+          Boolean(
+            registro[campo.nombre]
+          );
+
       } else if (
         campo.tipo === "date" &&
         registro[campo.nombre]
       ) {
         datos[campo.nombre] =
-          String(registro[campo.nombre]).slice(0, 10);
+          String(
+            registro[campo.nombre]
+          ).slice(0, 10);
+
       } else {
         datos[campo.nombre] =
           registro[campo.nombre] ?? "";
       }
     });
 
-    setIdEdicion(registro[config.id]);
+    setIdEdicion(
+      registro[config.id]
+    );
+
     setForm(datos);
     setMensaje("");
     setError("");
+
+    limpiarIA();
   };
 
   const eliminar = async (registro) => {
-    const confirmar = window.confirm(
-      "¿Deseas eliminar este registro?"
-    );
+    const confirmar =
+      window.confirm(
+        "¿Deseas eliminar este registro?"
+      );
 
     if (!confirmar) return;
 
     try {
-      const response = await api.delete(
-        `/curriculums/${id}/secciones/${seccionActual}/${registro[config.id]}`
+      const response =
+        await api.delete(
+          `/curriculums/${id}/secciones/${seccionActual}/${registro[config.id]}`
+        );
+
+      setMensaje(
+        response.data.mensaje
       );
 
-      setMensaje(response.data.mensaje);
-
-      await cargarRegistros(seccionActual);
+      await cargarRegistros(
+        seccionActual
+      );
 
     } catch (error) {
       setError(
@@ -262,22 +324,135 @@ function StudentCVDetailPage() {
     }
   };
 
+  const mejorarDescripcionIA =
+    async () => {
+      const descripcion =
+        form.descripcion?.trim();
+
+      if (!descripcion) {
+        setError(
+          "Primero escribe una descripción."
+        );
+
+        return;
+      }
+
+      setError("");
+      setMensaje("");
+      setMejorandoIA(true);
+
+      try {
+        let tipo;
+
+        if (
+          seccionActual ===
+          "proyectos"
+        ) {
+          tipo = "proyecto";
+
+        } else {
+          tipo =
+            tipoExperienciaIA;
+        }
+
+        const response =
+          await api.post(
+            "/ia/mejorar-texto",
+            {
+              tipo,
+              texto:
+                descripcion
+            }
+          );
+
+        setTextoOriginalIA(
+          response.data.original
+        );
+
+        setSugerenciaIA(
+          response.data.sugerencia
+        );
+
+      } catch (error) {
+        setError(
+          error.response?.data?.mensaje ||
+          "No se pudo mejorar el texto con IA"
+        );
+
+      } finally {
+        setMejorandoIA(false);
+      }
+    };
+
+  const aplicarSugerenciaIA = () => {
+    if (!sugerenciaIA) {
+      return;
+    }
+
+    setForm(
+      (anterior) => ({
+        ...anterior,
+        descripcion:
+          sugerenciaIA
+      })
+    );
+
+    setSugerenciaIA("");
+    setTextoOriginalIA("");
+
+    setMensaje(
+      "Sugerencia aplicada al formulario. Ahora guarda los cambios."
+    );
+  };
+
+  const conservarOriginal = () => {
+    setForm(
+      (anterior) => ({
+        ...anterior,
+        descripcion:
+          textoOriginalIA
+      })
+    );
+
+    setSugerenciaIA("");
+    setTextoOriginalIA("");
+
+    setMensaje(
+      "Se conservó tu texto original."
+    );
+  };
+
   if (!curriculum) {
     return (
-      <main style={{ padding: "40px" }}>
-        <p>{error || "Cargando currículum..."}</p>
+      <main
+        style={{
+          padding: "40px"
+        }}
+      >
+        <p>
+          {error ||
+            "Cargando currículum..."}
+        </p>
       </main>
     );
   }
 
   return (
-    <main style={{ padding: "40px" }}>
+    <main
+      style={{
+        padding: "40px"
+      }}
+    >
 
-      <Link to="/estudiante/curriculums">
+      <Link
+        to="/estudiante/curriculums"
+      >
         ← Volver a mis currículums
       </Link>
 
-      <h1>{curriculum.nombre}</h1>
+      <h1>
+        {curriculum.nombre}
+      </h1>
 
       <p>
         {curriculum.titulo_profesional ||
@@ -286,15 +461,27 @@ function StudentCVDetailPage() {
 
       <hr />
 
-      <h2>Información del currículum</h2>
+      <h2>
+        Información del currículum
+      </h2>
 
-      <div style={{ marginBottom: "25px" }}>
-        {Object.entries(CONFIGURACION).map(
+      <div
+        style={{
+          marginBottom: "25px"
+        }}
+      >
+        {Object.entries(
+          CONFIGURACION
+        ).map(
           ([clave, seccion]) => (
             <button
               key={clave}
               type="button"
-              onClick={() => cambiarSeccion(clave)}
+              onClick={() =>
+                cambiarSeccion(
+                  clave
+                )
+              }
               style={{
                 marginRight: "8px",
                 marginBottom: "8px"
@@ -306,67 +493,248 @@ function StudentCVDetailPage() {
         )}
       </div>
 
-      <h2>{config.titulo}</h2>
+      <h2>
+        {config.titulo}
+      </h2>
 
       <form
         onSubmit={guardar}
-        style={{ marginBottom: "30px" }}
+        style={{
+          marginBottom: "30px"
+        }}
       >
 
-        {config.campos.map((campo) => (
-          <div
-            key={campo.nombre}
-            style={{ marginBottom: "15px" }}
-          >
+        {config.campos.map(
+          (campo) => (
+            <div
+              key={campo.nombre}
+              style={{
+                marginBottom: "15px"
+              }}
+            >
 
-            {campo.tipo === "checkbox" ? (
-              <label>
-                <input
-                  type="checkbox"
-                  name={campo.nombre}
-                  checked={Boolean(
-                    form[campo.nombre]
-                  )}
-                  onChange={handleChange}
-                />
-
-                {" "}
-                {campo.etiqueta}
-              </label>
-            ) : (
-              <>
+              {campo.tipo ===
+              "checkbox" ? (
                 <label>
+                  <input
+                    type="checkbox"
+                    name={
+                      campo.nombre
+                    }
+                    checked={Boolean(
+                      form[
+                        campo.nombre
+                      ]
+                    )}
+                    onChange={
+                      handleChange
+                    }
+                  />
+
+                  {" "}
                   {campo.etiqueta}
                 </label>
 
-                <br />
+              ) : (
+                <>
+                  <label>
+                    {campo.etiqueta}
+                  </label>
 
-                {campo.tipo === "textarea" ? (
-                  <textarea
-                    name={campo.nombre}
-                    value={
-                      form[campo.nombre] || ""
-                    }
-                    onChange={handleChange}
-                    rows="4"
-                  />
-                ) : (
-                  <input
-                    type={campo.tipo}
-                    name={campo.nombre}
-                    value={
-                      form[campo.nombre] || ""
-                    }
-                    onChange={handleChange}
-                  />
-                )}
-              </>
-            )}
+                  <br />
 
-          </div>
-        ))}
+                  {campo.tipo ===
+                  "textarea" ? (
+                    <>
+                      <textarea
+                        name={
+                          campo.nombre
+                        }
+                        value={
+                          form[
+                            campo.nombre
+                          ] || ""
+                        }
+                        onChange={
+                          handleChange
+                        }
+                        rows="5"
+                      />
 
-        <button type="submit">
+                      {campo.nombre ===
+                        "descripcion" &&
+                        seccionActual ===
+                          "experiencias" && (
+                          <div
+                            style={{
+                              marginTop:
+                                "10px"
+                            }}
+                          >
+                            <label>
+                              Tipo:
+                            </label>
+
+                            {" "}
+
+                            <select
+                              value={
+                                tipoExperienciaIA
+                              }
+                              onChange={
+                                (e) =>
+                                  setTipoExperienciaIA(
+                                    e.target.value
+                                  )
+                              }
+                            >
+                              <option
+                                value="experiencia"
+                              >
+                                Experiencia laboral
+                              </option>
+
+                              <option
+                                value="practica"
+                              >
+                                Práctica / Pasantía
+                              </option>
+                            </select>
+                          </div>
+                        )}
+
+                      {campo.nombre ===
+                        "descripcion" &&
+                        (
+                          seccionActual ===
+                            "experiencias" ||
+                          seccionActual ===
+                            "proyectos"
+                        ) && (
+                          <div
+                            style={{
+                              marginTop:
+                                "10px"
+                            }}
+                          >
+                            <button
+                              type="button"
+                              onClick={
+                                mejorarDescripcionIA
+                              }
+                              disabled={
+                                mejorandoIA
+                              }
+                            >
+                              {mejorandoIA
+                                ? "Mejorando..."
+                                : "Mejorar descripción con IA"}
+                            </button>
+                          </div>
+                        )}
+                    </>
+
+                  ) : (
+                    <input
+                      type={
+                        campo.tipo
+                      }
+                      name={
+                        campo.nombre
+                      }
+                      value={
+                        form[
+                          campo.nombre
+                        ] || ""
+                      }
+                      onChange={
+                        handleChange
+                      }
+                    />
+                  )}
+                </>
+              )}
+
+            </div>
+          )
+        )}
+
+        {sugerenciaIA && (
+          <section
+            style={{
+              border:
+                "1px solid #ccc",
+
+              padding:
+                "15px",
+
+              marginBottom:
+                "20px"
+            }}
+          >
+            <h3>
+              Sugerencia de PoliCV IA
+            </h3>
+
+            <p>
+              <strong>
+                Tu texto:
+              </strong>
+            </p>
+
+            <p>
+              {textoOriginalIA}
+            </p>
+
+            <p>
+              <strong>
+                Sugerencia:
+              </strong>
+            </p>
+
+            <textarea
+              rows="5"
+              value={
+                sugerenciaIA
+              }
+              onChange={
+                (e) =>
+                  setSugerenciaIA(
+                    e.target.value
+                  )
+              }
+              style={{
+                width: "100%"
+              }}
+            />
+
+            <br />
+
+            <button
+              type="button"
+              onClick={
+                aplicarSugerenciaIA
+              }
+            >
+              Aplicar sugerencia
+            </button>
+
+            {" "}
+
+            <button
+              type="button"
+              onClick={
+                conservarOriginal
+              }
+            >
+              Conservar mi texto
+            </button>
+          </section>
+        )}
+
+        <button
+          type="submit"
+        >
           {idEdicion
             ? "Guardar cambios"
             : "Agregar"}
@@ -388,93 +756,142 @@ function StudentCVDetailPage() {
       </form>
 
       {error && (
-        <p style={{ color: "red" }}>
+        <p
+          style={{
+            color: "red"
+          }}
+        >
           {error}
         </p>
       )}
 
       {mensaje && (
-        <p style={{ color: "green" }}>
+        <p
+          style={{
+            color: "green"
+          }}
+        >
           {mensaje}
         </p>
       )}
 
-      <h3>Registros guardados</h3>
+      <h3>
+        Registros guardados
+      </h3>
 
       {registros.length === 0 ? (
         <p>
-          Todavía no existen registros en esta sección.
+          Todavía no existen registros
+          en esta sección.
         </p>
+
       ) : (
         <table
           border="1"
           cellPadding="8"
           style={{
             width: "100%",
-            borderCollapse: "collapse"
+            borderCollapse:
+              "collapse"
           }}
         >
           <thead>
             <tr>
-              {config.campos.map((campo) => (
-                <th key={campo.nombre}>
-                  {campo.etiqueta}
-                </th>
-              ))}
+              {config.campos.map(
+                (campo) => (
+                  <th
+                    key={
+                      campo.nombre
+                    }
+                  >
+                    {campo.etiqueta}
+                  </th>
+                )
+              )}
 
-              <th>Acciones</th>
+              <th>
+                Acciones
+              </th>
             </tr>
           </thead>
 
           <tbody>
-            {registros.map((registro) => (
-              <tr key={registro[config.id]}>
+            {registros.map(
+              (registro) => (
+                <tr
+                  key={
+                    registro[
+                      config.id
+                    ]
+                  }
+                >
 
-                {config.campos.map((campo) => (
-                  <td key={campo.nombre}>
+                  {config.campos.map(
+                    (campo) => (
+                      <td
+                        key={
+                          campo.nombre
+                        }
+                      >
 
-                    {campo.tipo === "checkbox"
-                      ? registro[campo.nombre]
-                        ? "Sí"
-                        : "No"
+                        {campo.tipo ===
+                        "checkbox"
+                          ? registro[
+                              campo.nombre
+                            ]
+                            ? "Sí"
+                            : "No"
 
-                      : campo.tipo === "date" &&
-                        registro[campo.nombre]
+                          : campo.tipo ===
+                              "date" &&
+                            registro[
+                              campo.nombre
+                            ]
 
-                      ? new Date(
-                          registro[campo.nombre]
-                        ).toLocaleDateString()
+                          ? new Date(
+                              registro[
+                                campo.nombre
+                              ]
+                            ).toLocaleDateString()
 
-                      : registro[campo.nombre] || "-"
-                    }
+                          : registro[
+                              campo.nombre
+                            ] || "-"
+                        }
 
+                      </td>
+                    )
+                  )}
+
+                  <td>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        editar(
+                          registro
+                        )
+                      }
+                    >
+                      Editar
+                    </button>
+
+                    {" "}
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        eliminar(
+                          registro
+                        )
+                      }
+                    >
+                      Eliminar
+                    </button>
                   </td>
-                ))}
 
-                <td>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      editar(registro)
-                    }
-                  >
-                    Editar
-                  </button>
-
-                  {" "}
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      eliminar(registro)
-                    }
-                  >
-                    Eliminar
-                  </button>
-                </td>
-
-              </tr>
-            ))}
+                </tr>
+              )
+            )}
           </tbody>
         </table>
       )}

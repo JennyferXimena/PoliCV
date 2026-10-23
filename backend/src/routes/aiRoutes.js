@@ -29,6 +29,11 @@ const {
   "../controllers/aiCvController"
 );
 
+const {
+  mejorarTexto
+} = require(
+  "../controllers/aiTextController"
+);
 
 router.post(
   "/chat",
@@ -63,6 +68,13 @@ router.post(
   verificarToken,
   verificarRol("Estudiante"),
   generarResumenBorrador
+);
+
+router.post(
+  "/mejorar-texto",
+  verificarToken,
+  verificarRol("Estudiante"),
+  mejorarTexto
 );
 
 module.exports = router;
