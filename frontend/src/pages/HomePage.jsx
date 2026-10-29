@@ -5,293 +5,771 @@ function HomePage() {
   return (
     <div className="home-page">
 
-      <header className="navbar">
-        <div className="logo">
-          Poli<span>CV</span>
-        </div>
+      {/* HEADER */}
+      <header className="home-header">
+        <div className="home-header-container">
 
-        <nav>
-          <a href="#inicio">Inicio</a>
-          <a href="#beneficios">Beneficios</a>
-          <a href="#funciones">Funciones</a>
-          <a href="#como-funciona">Cómo funciona</a>
-        </nav>
+          <Link to="/" className="home-brand">
+            <span className="home-brand-title">
+              PoliCV
+            </span>
 
-        <div className="nav-actions">
-          <Link className="register-link" to="/registrarse">
-            Registrarse
+            <span className="home-brand-subtitle">
+              Escuela Politécnica Nacional
+            </span>
           </Link>
 
-          <Link className="login-button" to="/iniciar-sesion">
-            Iniciar sesión
-          </Link>
-        </div>
-      </header>
+          <nav className="home-nav">
+            <a href="#inicio">
+              Inicio
+            </a>
 
-      <main>
+            <a href="#como-funciona">
+              Cómo funciona
+            </a>
 
-        <section id="inicio" className="hero section">
-          <div className="hero-content">
-            <h1>
-              Construye un CV que muestre tu potencial
-            </h1>
+            <a href="#plantillas">
+              Plantillas
+            </a>
 
-            <p>
-              Crea, organiza y mejora tu currículum vitae con apoyo
-              de inteligencia artificial. Presenta tus habilidades,
-              experiencia y formación de manera clara y profesional.
-            </p>
+            <a href="#funciones">
+              Funciones
+            </a>
 
-            <div className="hero-buttons">
-              <Link to="/registrarse" className="primary-home-button">
-                Crear mi CV
-              </Link>
+            <a href="#acerca">
+              Acerca de
+            </a>
+          </nav>
 
-              <a href="#beneficios" className="secondary-home-button">
-                Conocer PoliCV
-              </a>
-            </div>
-          </div>
+          <div className="home-header-actions">
+            <Link
+              to="/iniciar-sesion"
+              className="btn-header-login"
+            >
+              Iniciar sesión
+            </Link>
 
-          <div className="hero-image">
-            <img
-              src="/images/hero-cv.png"
-              alt="Representación del currículum profesional en PoliCV"
-            />
-          </div>
-        </section>
-
-        <section className="services-bar">
-          <span>CV Inteligente</span>
-          <span>Plantillas</span>
-          <span>PDF</span>
-          <span>Landing Profesional</span>
-          <span>Ofertas laborales</span>
-          <span>IA</span>
-        </section>
-
-        <section id="beneficios" className="section split-section">
-          <div className="section-text">
-            <span className="section-label">BENEFICIOS</span>
-
-            <h2>
-              Convierte tu experiencia en un perfil profesional
-            </h2>
-
-            <p>
-              Registra tu formación académica, experiencia,
-              proyectos, prácticas, cursos, habilidades e idiomas.
-              PoliCV te ayuda a organizar esta información para
-              construir un perfil profesional completo.
-            </p>
-
-            <p>
-              Con ayuda del asistente de inteligencia artificial
-              podrás mejorar la redacción de tu información sin
-              agregar conocimientos o experiencias que no hayas
-              proporcionado.
-            </p>
-
-            <Link to="/registrarse" className="outline-button">
-              Conoce al asistente IA
+            <Link
+              to="/registrarse"
+              className="btn-header-register"
+            >
+              Crear cuenta
             </Link>
           </div>
 
-          <div className="section-image">
-            <img
-              src="/images/beneficios.png"
-              alt="Perfil profesional y asistente de inteligencia artificial"
-            />
-          </div>
-        </section>
+        </div>
+      </header>
 
-        <section id="funciones" className="section split-section reverse">
-          <div className="section-image">
-            <img
-              src="/images/funciones.png"
-              alt="Funciones disponibles en PoliCV"
-            />
+
+      {/* HERO */}
+      <section
+        className="hero-section"
+        id="inicio"
+      >
+        <div className="hero-container">
+
+          <div className="hero-content">
+
+            <span className="hero-eyebrow">
+              TU PERFIL PROFESIONAL, MÁS CERCA
+              DE TUS OPORTUNIDADES
+            </span>
+
+            <h1>
+              Construye un currículum
+              que represente tu perfil
+              profesional
+            </h1>
+
+            <p className="hero-description">
+              Organiza tu experiencia, formación,
+              habilidades y logros en un solo lugar.
+              PoliCV te ayuda a crear, mejorar y
+              presentar tu currículum de manera
+              profesional.
+            </p>
+
+            <div className="hero-buttons">
+
+              <Link
+                to="/registrarse"
+                className="btn-primary"
+              >
+                Crear mi currículum
+                <span>→</span>
+              </Link>
+
+              <a
+                href="#como-funciona"
+                className="btn-secondary"
+              >
+                Ver cómo funciona
+              </a>
+
+            </div>
+
+            <div className="hero-small-info">
+              <span>
+                Creación estructurada
+              </span>
+
+              <span>
+                Sugerencias inteligentes
+              </span>
+
+              <span>
+                Plantillas profesionales
+              </span>
+            </div>
+
           </div>
 
-          <div className="section-text">
-            <span className="section-label">FUNCIONES</span>
+
+          <div className="hero-visual">
+
+            <div className="hero-photo-wrapper">
+              <img
+                src="/images/portada2.png"
+                alt="Estudiante preparando su perfil profesional"
+                className="hero-photo"
+              />
+            </div>
+
+            <div className="hero-cv-preview">
+              <img
+                src="/images/plantilla1.png"
+                alt="Ejemplo de currículum profesional"
+              />
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+
+      {/* BARRA DE BENEFICIOS */}
+      <section className="quick-benefits">
+        <div className="quick-benefits-container">
+
+          <article className="quick-benefit">
+            <img
+              src="/images/icon1.png"
+              alt=""
+            />
+
+            <div>
+              <h3>
+                Organiza tu perfil
+              </h3>
+
+              <p>
+                Toda tu información en un solo lugar.
+              </p>
+            </div>
+          </article>
+
+
+          <article className="quick-benefit">
+            <img
+              src="/images/icon2.png"
+              alt=""
+            />
+
+            <div>
+              <h3>
+                Mejora tu redacción
+              </h3>
+
+              <p>
+                Recibe sugerencias para presentar
+                mejor tu experiencia.
+              </p>
+            </div>
+          </article>
+
+
+          <article className="quick-benefit">
+            <img
+              src="/images/icon3.png"
+              alt=""
+            />
+
+            <div>
+              <h3>
+                Elige una plantilla
+              </h3>
+
+              <p>
+                Diseños profesionales para
+                diferentes perfiles.
+              </p>
+            </div>
+          </article>
+
+
+          <article className="quick-benefit">
+            <img
+              src="/images/icon4.png"
+              alt=""
+            />
+
+            <div>
+              <h3>
+                Comparte tu CV
+              </h3>
+
+              <p>
+                Prepara tu información para
+                compartirla profesionalmente.
+              </p>
+            </div>
+          </article>
+
+        </div>
+      </section>
+
+
+      {/* FUNCIONES */}
+      <section
+        className="features-section"
+        id="funciones"
+      >
+        <div className="section-container">
+
+          <div className="section-heading">
+            <span className="section-label">
+              FUNCIONALIDADES
+            </span>
 
             <h2>
-              Todo lo que necesitas para fortalecer tu perfil profesional
+              Tu perfil, mejor presentado
             </h2>
 
             <p>
-              Desde la creación de tu currículum hasta la búsqueda
-              de oportunidades relacionadas con tus conocimientos,
-              PoliCV reúne diferentes herramientas en una sola
-              plataforma.
+              Herramientas para organizar,
+              mejorar y presentar tu información
+              profesional de una manera clara.
             </p>
+          </div>
 
-            <div className="feature-grid">
-              <article>
-                <h3>Crear currículum</h3>
-                <p>
-                  Diseña un CV profesional con plantillas modernas.
-                </p>
-              </article>
 
-              <article>
-                <h3>Asistente con IA</h3>
-                <p>
-                  Mejora la redacción de tu información profesional.
-                </p>
-              </article>
+          <div className="features-grid">
 
-              <article>
-                <h3>Ofertas laborales</h3>
-                <p>
-                  Encuentra oportunidades relacionadas con tu perfil.
-                </p>
-              </article>
+            <article className="feature-card">
 
-              <article>
-                <h3>Landing profesional</h3>
+              <div className="feature-card-content">
+
+                <div className="feature-icon">
+                  <img
+                    src="/images/icon5.png"
+                    alt=""
+                  />
+                </div>
+
+                <h3>
+                  Crea y organiza tu currículum
+                </h3>
+
                 <p>
-                  Comparte tu perfil mediante una página profesional.
+                  Registra tu formación,
+                  experiencia, proyectos,
+                  cursos, habilidades e idiomas
+                  de forma organizada.
                 </p>
-              </article>
+
+                <Link to="/registrarse">
+                  Comenzar
+                  <span>→</span>
+                </Link>
+
+              </div>
+
+              <div className="feature-card-image">
+                <img
+                  src="/images/imagecv.png"
+                  alt="Edición de currículum"
+                />
+              </div>
+
+            </article>
+
+
+            <article className="feature-card">
+
+              <div className="feature-card-content">
+
+                <div className="feature-icon">
+                  <img
+                    src="/images/icon6.png"
+                    alt=""
+                  />
+                </div>
+
+                <h3>
+                  Mejora textos con asistencia
+                  inteligente
+                </h3>
+
+                <p>
+                  Recibe sugerencias para mejorar
+                  la redacción, corregir errores
+                  y presentar tu experiencia de
+                  forma profesional.
+                </p>
+
+                <Link to="/registrarse">
+                  Conocer funciones
+                  <span>→</span>
+                </Link>
+
+              </div>
+
+              <div className="feature-card-image">
+                <img
+                  src="/images/imageia.png"
+                  alt="Asistente inteligente de PoliCV"
+                />
+              </div>
+
+            </article>
+
+
+            <article className="feature-card">
+
+              <div className="feature-card-content">
+
+                <div className="feature-icon">
+                  <img
+                    src="/images/icon7.png"
+                    alt=""
+                  />
+                </div>
+
+                <h3>
+                  Prepáralo para compartir
+                </h3>
+
+                <p>
+                  Presenta tu información con
+                  diseños profesionales y prepara
+                  tu currículum para futuras
+                  oportunidades.
+                </p>
+
+                <a href="#plantillas">
+                  Ver plantillas
+                  <span>→</span>
+                </a>
+
+              </div>
+
+              <div className="feature-card-image">
+                <img
+                  src="/images/imagepdf.png"
+                  alt="Currículum profesional"
+                />
+              </div>
+
+            </article>
+
+          </div>
+
+        </div>
+      </section>
+
+
+      {/* PLANTILLAS */}
+      <section
+        className="templates-section"
+        id="plantillas"
+      >
+        <div className="section-container">
+
+          <div className="templates-header">
+
+            <div>
+              <span className="section-label">
+                DISEÑOS PROFESIONALES
+              </span>
+
+              <h2>
+                Plantillas para presentar
+                mejor tu perfil
+              </h2>
+
+              <p>
+                Elige un estilo que se adapte
+                a tu perfil y al tipo de
+                oportunidad que buscas.
+              </p>
             </div>
-          </div>
-        </section>
 
-        <section id="como-funciona" className="section how-section">
-          <span className="section-label">CÓMO FUNCIONA</span>
-
-          <h2>
-            Crea tu perfil profesional en pocos pasos
-          </h2>
-
-          <p>
-            Sigue un proceso claro y guiado para organizar tu
-            información y generar un currículum profesional.
-          </p>
-
-          <div className="steps">
-            <article>
-              <span>1</span>
-              <h3>Completa tu perfil</h3>
-              <p>
-                Registra tu formación, experiencia, proyectos,
-                habilidades y demás información profesional.
-              </p>
-            </article>
-
-            <article className="active-step">
-              <span>2</span>
-              <h3>Mejora con IA</h3>
-              <p>
-                Recibe ayuda para organizar y mejorar la redacción
-                de tu información.
-              </p>
-            </article>
-
-            <article>
-              <span>3</span>
-              <h3>Genera tu CV</h3>
-              <p>
-                Selecciona una plantilla, revisa tu información y
-                genera tu currículum en PDF.
-              </p>
-            </article>
           </div>
 
-          <h2 className="more-title">
-            Más herramientas para impulsar tu crecimiento profesional
-          </h2>
 
-          <div className="extra-features">
-            <article>
-              <h3>Ofertas relacionadas</h3>
-              <p>
-                Descubre oportunidades relacionadas con tus
-                habilidades y conocimientos.
-              </p>
+          <div className="templates-grid">
+
+            <article className="template-card">
+              <div className="template-image-wrapper">
+                <img
+                  src="/images/plantilla1.png"
+                  alt="Plantilla moderna"
+                />
+              </div>
+
+              <div className="template-info">
+                <div>
+                  <h3>
+                    Moderna
+                  </h3>
+
+                  <p>
+                    Diseño actual y organizado.
+                  </p>
+                </div>
+
+                <span className="template-number">
+                  01
+                </span>
+              </div>
             </article>
 
-            <article>
-              <h3>Conoce tus competencias</h3>
-              <p>
-                Compara los requisitos laborales con tu perfil e
-                identifica competencias que puedes fortalecer.
-              </p>
+
+            <article className="template-card">
+              <div className="template-image-wrapper">
+                <img
+                  src="/images/plantilla2.png"
+                  alt="Plantilla clásica"
+                />
+              </div>
+
+              <div className="template-info">
+                <div>
+                  <h3>
+                    Clásica
+                  </h3>
+
+                  <p>
+                    Presentación sobria y profesional.
+                  </p>
+                </div>
+
+                <span className="template-number">
+                  02
+                </span>
+              </div>
             </article>
 
-            <article>
-              <h3>Adapta tu currículum</h3>
-              <p>
-                Recibe sugerencias para adaptar tu CV a una
-                oportunidad laboral específica.
-              </p>
+
+            <article className="template-card">
+              <div className="template-image-wrapper">
+                <img
+                  src="/images/plantilla3.png"
+                  alt="Plantilla elegante"
+                />
+              </div>
+
+              <div className="template-info">
+                <div>
+                  <h3>
+                    Elegante
+                  </h3>
+
+                  <p>
+                    Estilo limpio y contemporáneo.
+                  </p>
+                </div>
+
+                <span className="template-number">
+                  03
+                </span>
+              </div>
             </article>
+
           </div>
-        </section>
 
-        <section className="cta">
-          <div>
-            <span>COMIENZA AHORA</span>
+        </div>
+      </section>
+
+
+      {/* CÓMO FUNCIONA */}
+      <section
+        className="steps-section"
+        id="como-funciona"
+      >
+        <div className="section-container">
+
+          <div className="section-heading">
+            <span className="section-label">
+              PROCESO
+            </span>
 
             <h2>
-              Empieza a construir tu perfil profesional
+              Cómo funciona PoliCV
             </h2>
 
-            <div className="cta-buttons">
-              <Link to="/registrarse">
-                Crear mi cuenta
-              </Link>
-
-              <Link to="/iniciar-sesion">
-                Iniciar sesión
-              </Link>
-            </div>
+            <p>
+              Construye y mejora tu currículum
+              en un proceso sencillo.
+            </p>
           </div>
 
+
+          <div className="steps-grid">
+
+            <article className="step-item">
+
+              <div className="step-number">
+                01
+              </div>
+
+              <img
+                src="/images/icon1.png"
+                alt=""
+              />
+
+              <h3>
+                Completa tu información
+              </h3>
+
+              <p>
+                Registra tu formación,
+                experiencia, habilidades,
+                proyectos y cursos.
+              </p>
+
+            </article>
+
+
+            <article className="step-item">
+
+              <div className="step-number">
+                02
+              </div>
+
+              <img
+                src="/images/icon2.png"
+                alt=""
+              />
+
+              <h3>
+                Revisa y mejora
+              </h3>
+
+              <p>
+                Utiliza las sugerencias de
+                PoliCV para mejorar la
+                presentación de tu información.
+              </p>
+
+            </article>
+
+
+            <article className="step-item">
+
+              <div className="step-number">
+                03
+              </div>
+
+              <img
+                src="/images/icon3.png"
+                alt=""
+              />
+
+              <h3>
+                Elige tu estilo
+              </h3>
+
+              <p>
+                Selecciona la plantilla que
+                mejor represente tu perfil
+                profesional.
+              </p>
+
+            </article>
+
+
+            <article className="step-item">
+
+              <div className="step-number">
+                04
+              </div>
+
+              <img
+                src="/images/icon4.png"
+                alt=""
+              />
+
+              <h3>
+                Presenta tu perfil
+              </h3>
+
+              <p>
+                Utiliza tu currículum para
+                mostrar mejor tus capacidades
+                y experiencia.
+              </p>
+
+            </article>
+
+          </div>
+
+        </div>
+      </section>
+
+
+      {/* ACERCA DE */}
+      <section
+        className="about-section"
+        id="acerca"
+      >
+        <div className="about-image">
           <img
-            src="/images/cta-cv.png"
-            alt="Currículums creados con PoliCV"
+            src="/images/portada.png"
+            alt="Estudiantes de la Escuela Politécnica Nacional"
           />
-        </section>
+        </div>
 
-      </main>
+        <div className="about-content">
 
-      <footer>
-        <div>
-          <h2>PoliCV</h2>
+          <span className="section-label light">
+            SOBRE POLICV
+          </span>
+
+          <h2>
+            Una herramienta pensada para
+            acompañar tu perfil profesional
+          </h2>
 
           <p>
-            Plataforma web para la creación, mejora y adaptación de
-            currículums vitae con apoyo de inteligencia artificial.
+            PoliCV busca facilitar la organización
+            de la información académica y profesional
+            de los estudiantes, brindando herramientas
+            que permitan mejorar la presentación de
+            sus conocimientos, experiencias y proyectos.
           </p>
+
+          <Link
+            to="/registrarse"
+            className="btn-light"
+          >
+            Crear mi currículum
+            <span>→</span>
+          </Link>
+
+        </div>
+      </section>
+
+
+      {/* CTA FINAL */}
+      <section className="final-cta">
+
+        <div className="final-cta-overlay" />
+
+        <div className="final-cta-container">
+
+          <div className="final-cta-text">
+
+            <span>
+              TU EXPERIENCIA CUENTA
+            </span>
+
+            <h2>
+              Organiza tu perfil.
+              Preséntalo mejor.
+            </h2>
+
+            <p>
+              Construye un currículum que
+              muestre de forma clara tu
+              formación, proyectos y experiencia.
+            </p>
+
+          </div>
+
+
+          <div className="final-cta-action">
+            <Link
+              to="/registrarse"
+              className="btn-cta"
+            >
+              Crear mi currículum
+              <span>→</span>
+            </Link>
+          </div>
+
+        </div>
+      </section>
+
+
+      {/* FOOTER */}
+      <footer className="home-footer">
+
+        <div className="home-footer-container">
+
+          <div className="footer-brand">
+            <strong>
+              PoliCV
+            </strong>
+
+            <span>
+              Escuela Politécnica Nacional
+            </span>
+          </div>
+
+
+          <div className="footer-links">
+            <a href="#inicio">
+              Inicio
+            </a>
+
+            <a href="#como-funciona">
+              Cómo funciona
+            </a>
+
+            <a href="#plantillas">
+              Plantillas
+            </a>
+
+            <a href="#funciones">
+              Funciones
+            </a>
+          </div>
+
+
+          <div className="footer-social">
+
+            <img
+              src="/images/icon8.png"
+              alt="LinkedIn"
+            />
+
+            <img
+              src="/images/icon9.png"
+              alt="Instagram"
+            />
+
+            <img
+              src="/images/icon10.png"
+              alt="YouTube"
+            />
+
+          </div>
+
+
+          <div className="footer-copy">
+            <span>
+              © 2026 PoliCV
+            </span>
+
+            <span>
+              Todos los derechos reservados.
+            </span>
+          </div>
+
         </div>
 
-        <div>
-          <h3>PoliCV</h3>
-          <a href="#inicio">Inicio</a>
-          <a href="#beneficios">Beneficios</a>
-          <a href="#funciones">Funciones</a>
-          <a href="#como-funciona">Cómo funciona</a>
-        </div>
-
-        <div>
-          <h3>Cuenta</h3>
-          <Link to="/registrarse">Registrarse</Link>
-          <Link to="/iniciar-sesion">Iniciar sesión</Link>
-        </div>
-
-        <div>
-          <h3>Información</h3>
-          <span>Acerca del proyecto</span>
-          <span>Privacidad</span>
-          <span>Términos de uso</span>
-        </div>
-
-        <p className="copyright">
-          © 2026 PoliCV. Todos los derechos reservados.
-        </p>
       </footer>
 
     </div>
