@@ -1,56 +1,101 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
+import "../styles/admin.css";
 
 function AdminSectionsPage() {
+  const navigate = useNavigate();
+
   const [secciones, setSecciones] = useState([]);
 
   const [form, setForm] = useState({
-    id_seccion: null,
     nombre: "",
     descripcion: ""
   });
 
+  const [idEdicion, setIdEdicion] = useState(null);
+
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
+  const [cargando, setCargando] = useState(true);
+
+  const usuarioGuardado =
+    localStorage.getItem("usuario") ||
+    sessionStorage.getItem("usuario");
+
+  const usuarioActual = usuarioGuardado
+    ? JSON.parse(usuarioGuardado)
+    : null;
+
+  const cerrarSesion = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("usuario");
+
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("usuario");
+
+    navigate("/iniciar-sesion");
+  };
 
   const cargarSecciones = async () => {
     try {
-      const response =
-        await api.get("/admin/secciones");
+      setCargando(true);
+      setError("");
 
-      setSecciones(response.data.secciones);
+      const response = await api.get(
+        "/admin/secciones"
+      );
+
+      setSecciones(
+        response.data.secciones || []
+      );
 
     } catch (error) {
       setError(
         error.response?.data?.mensaje ||
         "No se pudieron cargar las secciones"
       );
+
+    } finally {
+      setCargando(false);
     }
   };
 
   useEffect(() => {
     let activo = true;
 
-    const obtener = async () => {
+    const cargarInicial = async () => {
       try {
-        const response =
-          await api.get("/admin/secciones");
+        const response = await api.get(
+          "/admin/secciones"
+        );
 
-        if (activo) {
-          setSecciones(response.data.secciones);
+        if (!activo) {
+          return;
         }
+
+        setSecciones(
+          response.data.secciones || []
+        );
+
       } catch (error) {
+        if (!activo) {
+          return;
+        }
+
+        setError(
+          error.response?.data?.mensaje ||
+          "No se pudieron cargar las secciones"
+        );
+
+      } finally {
         if (activo) {
-          setError(
-            error.response?.data?.mensaje ||
-            "No se pudieron cargar las secciones"
-          );
+          setCargando(false);
         }
       }
     };
 
-    obtener();
+    cargarInicial();
 
     return () => {
       activo = false;
@@ -58,48 +103,67 @@ function AdminSectionsPage() {
   }, []);
 
   const handleChange = (e) => {
+    const {
+      name,
+      value
+    } = e.target;
+
     setForm({
       ...form,
-      [e.target.name]: e.target.value
+      [name]: value
     });
   };
 
   const limpiarFormulario = () => {
     setForm({
-      id_seccion: null,
       nombre: "",
       descripcion: ""
     });
+
+    setIdEdicion(null);
   };
 
-  const guardar = async (e) => {
+  const guardarSeccion = async (e) => {
     e.preventDefault();
 
     setError("");
     setMensaje("");
 
+    if (!form.nombre.trim()) {
+      setError(
+        "El nombre de la sección es obligatorio"
+      );
+
+      return;
+    }
+
     try {
       let response;
 
-      if (form.id_seccion) {
+      if (idEdicion) {
         response = await api.put(
-          `/admin/secciones/${form.id_seccion}`,
+          `/admin/secciones/${idEdicion}`,
           {
-            nombre: form.nombre,
-            descripcion: form.descripcion
+            nombre: form.nombre.trim(),
+            descripcion:
+              form.descripcion.trim()
           }
         );
+
       } else {
         response = await api.post(
           "/admin/secciones",
           {
-            nombre: form.nombre,
-            descripcion: form.descripcion
+            nombre: form.nombre.trim(),
+            descripcion:
+              form.descripcion.trim()
           }
         );
       }
 
-      setMensaje(response.data.mensaje);
+      setMensaje(
+        response.data.mensaje
+      );
 
       limpiarFormulario();
 
@@ -113,18 +177,45 @@ function AdminSectionsPage() {
     }
   };
 
-  const editar = (seccion) => {
+  const editarSeccion = (seccion) => {
+    setIdEdicion(
+      seccion.id_seccion
+    );
+
     setForm({
-      id_seccion: seccion.id_seccion,
-      nombre: seccion.nombre,
-      descripcion: seccion.descripcion || ""
+      nombre:
+        seccion.nombre || "",
+
+      descripcion:
+        seccion.descripcion || ""
     });
 
-    setMensaje("");
     setError("");
+    setMensaje("");
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
   };
 
   const cambiarEstado = async (seccion) => {
+    const nuevoEstado =
+      !seccion.estado;
+
+    const accion =
+      nuevoEstado
+        ? "activar"
+        : "desactivar";
+
+    const confirmar = window.confirm(
+      `¿Deseas ${accion} la sección "${seccion.nombre}"?`
+    );
+
+    if (!confirmar) {
+      return;
+    }
+
     try {
       setError("");
       setMensaje("");
@@ -132,168 +223,499 @@ function AdminSectionsPage() {
       const response = await api.patch(
         `/admin/secciones/${seccion.id_seccion}/estado`,
         {
-          estado: !seccion.estado
+          estado: nuevoEstado
         }
       );
 
-      setMensaje(response.data.mensaje);
+      setMensaje(
+        response.data.mensaje
+      );
 
       await cargarSecciones();
 
     } catch (error) {
       setError(
         error.response?.data?.mensaje ||
-        "No se pudo cambiar el estado"
+        "No se pudo actualizar el estado de la sección"
       );
     }
   };
 
   return (
-    <main style={{ padding: "40px" }}>
+    <div className="admin-page">
 
-      <Link to="/admin">
-        ← Volver al dashboard
-      </Link>
+      {/* SIDEBAR */}
+      <aside className="admin-sidebar">
 
-      <h1>Gestionar secciones del currículum</h1>
+        <div className="admin-brand">
 
-      <form
-        onSubmit={guardar}
-        style={{ marginBottom: "30px" }}
-      >
-        <div>
-          <label>
-            Nombre
-          </label>
+          <div className="admin-brand-logo">
+            P
+          </div>
 
-          <br />
+          <div>
+            <h2>PoliCV</h2>
+            <span>Administración</span>
+          </div>
 
-          <input
-            name="nombre"
-            value={form.nombre}
-            onChange={handleChange}
-            required
-          />
         </div>
 
-        <br />
 
-        <div>
-          <label>
-            Descripción
-          </label>
+        <div className="admin-profile">
 
-          <br />
+          <div className="admin-avatar">
+            {usuarioActual?.email
+              ? usuarioActual.email
+                  .charAt(0)
+                  .toUpperCase()
+              : "A"}
+          </div>
 
-          <input
-            name="descripcion"
-            value={form.descripcion}
-            onChange={handleChange}
-          />
+          <div>
+            <strong>
+              Administrador
+            </strong>
+
+            <span>
+              {usuarioActual?.email}
+            </span>
+          </div>
+
         </div>
 
-        <br />
 
-        <button type="submit">
-          {form.id_seccion
-            ? "Guardar cambios"
-            : "Crear sección"}
+        <nav className="admin-menu">
+
+          <Link to="/admin">
+            <span>01</span>
+            Panel principal
+          </Link>
+
+          <Link to="/admin/usuarios">
+            <span>02</span>
+            Gestionar usuarios
+          </Link>
+
+          <Link
+            to="/admin/secciones"
+            className="active"
+          >
+            <span>03</span>
+            Secciones del CV
+          </Link>
+
+          <Link to="/admin/plantillas">
+            <span>04</span>
+            Plantillas
+          </Link>
+
+          <Link to="/admin/estadisticas">
+            <span>05</span>
+            Estadísticas
+          </Link>
+
+          <Link to="/admin/propuestas">
+            <span>06</span>
+            Propuestas
+          </Link>
+
+        </nav>
+
+
+        <button
+          type="button"
+          className="admin-logout"
+          onClick={cerrarSesion}
+        >
+          Cerrar sesión
         </button>
 
-        {form.id_seccion && (
-          <button
-            type="button"
-            onClick={limpiarFormulario}
-          >
-            Cancelar
-          </button>
-        )}
-      </form>
+      </aside>
 
-      {error && (
-        <p style={{ color: "red" }}>
-          {error}
-        </p>
-      )}
 
-      {mensaje && (
-        <p style={{ color: "green" }}>
-          {mensaje}
-        </p>
-      )}
+      {/* CONTENIDO */}
+      <main className="admin-main">
 
-      <table
-        border="1"
-        cellPadding="10"
-        style={{
-          borderCollapse: "collapse",
-          width: "100%"
-        }}
-      >
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Sección</th>
-            <th>Descripción</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
+        <header className="admin-header">
 
-        <tbody>
+          <div>
 
-          {secciones.map((seccion) => (
-            <tr key={seccion.id_seccion}>
+            <span className="admin-header-label">
+              CONFIGURACIÓN DEL CURRÍCULUM
+            </span>
 
-              <td>
-                {seccion.id_seccion}
-              </td>
+            <h1>
+              Secciones del CV
+            </h1>
 
-              <td>
-                {seccion.nombre}
-              </td>
+            <p>
+              Administra las secciones que forman
+              parte del currículum de los estudiantes.
+            </p>
 
-              <td>
-                {seccion.descripcion}
-              </td>
+          </div>
 
-              <td>
-                {seccion.estado
-                  ? "Activa"
-                  : "Inactiva"}
-              </td>
 
-              <td>
+          <div className="admin-header-account">
+
+            <div>
+              <span>
+                Sesión iniciada como
+              </span>
+
+              <strong>
+                {usuarioActual?.email}
+              </strong>
+            </div>
+
+            <div className="admin-header-avatar">
+              {usuarioActual?.email
+                ? usuarioActual.email
+                    .charAt(0)
+                    .toUpperCase()
+                : "A"}
+            </div>
+
+          </div>
+
+        </header>
+
+
+        <div className="admin-content">
+
+          {/* ENCABEZADO */}
+          <section className="sections-heading">
+
+            <div>
+
+              <span className="sections-label">
+                ADMINISTRACIÓN
+              </span>
+
+              <h2>
+                Gestionar secciones
+              </h2>
+
+              <p>
+                Crea nuevas secciones, modifica
+                su información y controla cuáles
+                permanecen disponibles.
+              </p>
+
+            </div>
+
+
+            <div className="sections-counter">
+
+              <span>
+                Secciones registradas
+              </span>
+
+              <strong>
+                {secciones.length}
+              </strong>
+
+            </div>
+
+          </section>
+
+
+          {/* FORMULARIO */}
+          <section className="sections-form-card">
+
+            <div className="sections-form-info">
+
+              <span>
+                {idEdicion
+                  ? "EDITAR SECCIÓN"
+                  : "NUEVA SECCIÓN"}
+              </span>
+
+              <h3>
+                {idEdicion
+                  ? "Actualizar información"
+                  : "Registrar sección"}
+              </h3>
+
+              <p>
+                Define el nombre y una descripción
+                clara para identificar la sección
+                dentro del currículum.
+              </p>
+
+            </div>
+
+
+            <form
+              className="sections-form"
+              onSubmit={guardarSeccion}
+            >
+
+              <div className="sections-field">
+
+                <label htmlFor="nombre">
+                  Nombre
+                </label>
+
+                <input
+                  id="nombre"
+                  type="text"
+                  name="nombre"
+                  value={form.nombre}
+                  onChange={handleChange}
+                  placeholder="Ejemplo: Formación académica"
+                />
+
+              </div>
+
+
+              <div className="sections-field">
+
+                <label htmlFor="descripcion">
+                  Descripción
+                </label>
+
+                <textarea
+                  id="descripcion"
+                  name="descripcion"
+                  value={form.descripcion}
+                  onChange={handleChange}
+                  placeholder="Describe brevemente el propósito de esta sección..."
+                  rows="4"
+                />
+
+              </div>
+
+
+              <div className="sections-form-actions">
 
                 <button
-                  type="button"
-                  onClick={() => editar(seccion)}
+                  type="submit"
+                  className="sections-btn-primary"
                 >
-                  Editar
+                  {idEdicion
+                    ? "Guardar cambios"
+                    : "Crear sección"}
                 </button>
 
-                {" "}
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    cambiarEstado(seccion)
-                  }
-                >
-                  {seccion.estado
-                    ? "Desactivar"
-                    : "Activar"}
-                </button>
+                {idEdicion && (
+                  <button
+                    type="button"
+                    className="sections-btn-secondary"
+                    onClick={limpiarFormulario}
+                  >
+                    Cancelar edición
+                  </button>
+                )}
 
-              </td>
+              </div>
 
-            </tr>
-          ))}
+            </form>
 
-        </tbody>
-      </table>
+          </section>
 
-    </main>
+
+          {/* MENSAJES */}
+          {error && (
+            <div className="users-message error">
+              {error}
+            </div>
+          )}
+
+          {mensaje && (
+            <div className="users-message success">
+              {mensaje}
+            </div>
+          )}
+
+
+          {/* TABLA */}
+          <section className="sections-table-card">
+
+            <div className="sections-table-header">
+
+              <div>
+
+                <span>
+                  CONFIGURACIÓN ACTUAL
+                </span>
+
+                <h3>
+                  Secciones disponibles
+                </h3>
+
+              </div>
+
+
+              <Link
+                to="/admin"
+                className="users-back-link"
+              >
+                Volver al panel
+              </Link>
+
+            </div>
+
+
+            {cargando ? (
+
+              <div className="users-loading">
+                Cargando secciones...
+              </div>
+
+            ) : secciones.length === 0 ? (
+
+              <div className="users-empty">
+
+                <strong>
+                  No existen secciones registradas
+                </strong>
+
+                <p>
+                  Utiliza el formulario superior
+                  para crear la primera sección.
+                </p>
+
+              </div>
+
+            ) : (
+
+              <div className="users-table-wrapper">
+
+                <table className="sections-table">
+
+                  <thead>
+
+                    <tr>
+                      <th>ID</th>
+                      <th>Sección</th>
+                      <th>Descripción</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+
+                  </thead>
+
+
+                  <tbody>
+
+                    {secciones.map(
+                      (seccion) => {
+
+                        const activa =
+                          seccion.estado;
+
+                        return (
+                          <tr
+                            key={
+                              seccion.id_seccion
+                            }
+                          >
+
+                            <td className="user-id">
+                              #{seccion.id_seccion}
+                            </td>
+
+
+                            <td>
+
+                              <div className="section-name-cell">
+
+                                <div className="section-table-number">
+                                  {seccion.id_seccion}
+                                </div>
+
+                                <strong>
+                                  {seccion.nombre}
+                                </strong>
+
+                              </div>
+
+                            </td>
+
+
+                            <td className="section-description">
+                              {seccion.descripcion ||
+                                "Sin descripción"}
+                            </td>
+
+
+                            <td>
+
+                              <span
+                                className={
+                                  activa
+                                    ? "status-badge active"
+                                    : "status-badge inactive"
+                                }
+                              >
+                                {activa
+                                  ? "Activa"
+                                  : "Inactiva"}
+                              </span>
+
+                            </td>
+
+
+                            <td>
+
+                              <div className="section-actions">
+
+                                <button
+                                  type="button"
+                                  className="section-edit-btn"
+                                  onClick={() =>
+                                    editarSeccion(
+                                      seccion
+                                    )
+                                  }
+                                >
+                                  Editar
+                                </button>
+
+
+                                <button
+                                  type="button"
+                                  className={
+                                    activa
+                                      ? "user-action deactivate"
+                                      : "user-action activate"
+                                  }
+                                  onClick={() =>
+                                    cambiarEstado(
+                                      seccion
+                                    )
+                                  }
+                                >
+                                  {activa
+                                    ? "Desactivar"
+                                    : "Activar"}
+                                </button>
+
+                              </div>
+
+                            </td>
+
+                          </tr>
+                        );
+                      }
+                    )}
+
+                  </tbody>
+
+                </table>
+
+              </div>
+            )}
+
+          </section>
+
+        </div>
+
+      </main>
+
+    </div>
   );
 }
 

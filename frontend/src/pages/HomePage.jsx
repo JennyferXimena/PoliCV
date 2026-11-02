@@ -135,14 +135,7 @@ function HomePage() {
               />
             </div>
 
-            <div className="hero-cv-preview">
-              <img
-                src="/images/plantilla1.png"
-                alt="Ejemplo de currículum profesional"
-              />
-            </div>
-
-          </div>
+</div>
 
         </div>
       </section>

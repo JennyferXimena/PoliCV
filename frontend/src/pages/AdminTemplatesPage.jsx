@@ -1,59 +1,103 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
+import "../styles/admin.css";
 
 function AdminTemplatesPage() {
+  const navigate = useNavigate();
+
   const [plantillas, setPlantillas] = useState([]);
 
   const [form, setForm] = useState({
-    id_plantilla: null,
     nombre: "",
     codigo: "",
     descripcion: "",
     imagen_url: ""
   });
 
+  const [idEdicion, setIdEdicion] = useState(null);
+
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
+  const [cargando, setCargando] = useState(true);
+
+  const usuarioGuardado =
+    localStorage.getItem("usuario") ||
+    sessionStorage.getItem("usuario");
+
+  const usuarioActual = usuarioGuardado
+    ? JSON.parse(usuarioGuardado)
+    : null;
+
+  const cerrarSesion = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("usuario");
+
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("usuario");
+
+    navigate("/iniciar-sesion");
+  };
 
   const cargarPlantillas = async () => {
     try {
-      const response =
-        await api.get("/admin/plantillas");
+      setCargando(true);
+      setError("");
 
-      setPlantillas(response.data.plantillas);
+      const response = await api.get(
+        "/admin/plantillas"
+      );
+
+      setPlantillas(
+        response.data.plantillas || []
+      );
 
     } catch (error) {
       setError(
         error.response?.data?.mensaje ||
         "No se pudieron cargar las plantillas"
       );
+
+    } finally {
+      setCargando(false);
     }
   };
 
   useEffect(() => {
     let activo = true;
 
-    const obtenerPlantillas = async () => {
+    const cargarInicial = async () => {
       try {
-        const response =
-          await api.get("/admin/plantillas");
+        const response = await api.get(
+          "/admin/plantillas"
+        );
 
-        if (activo) {
-          setPlantillas(response.data.plantillas);
+        if (!activo) {
+          return;
         }
 
+        setPlantillas(
+          response.data.plantillas || []
+        );
+
       } catch (error) {
+        if (!activo) {
+          return;
+        }
+
+        setError(
+          error.response?.data?.mensaje ||
+          "No se pudieron cargar las plantillas"
+        );
+
+      } finally {
         if (activo) {
-          setError(
-            error.response?.data?.mensaje ||
-            "No se pudieron cargar las plantillas"
-          );
+          setCargando(false);
         }
       }
     };
 
-    obtenerPlantillas();
+    cargarInicial();
 
     return () => {
       activo = false;
@@ -61,43 +105,73 @@ function AdminTemplatesPage() {
   }, []);
 
   const handleChange = (e) => {
+    const {
+      name,
+      value
+    } = e.target;
+
     setForm({
       ...form,
-      [e.target.name]: e.target.value
+      [name]: value
     });
   };
 
   const limpiarFormulario = () => {
     setForm({
-      id_plantilla: null,
       nombre: "",
       codigo: "",
       descripcion: "",
       imagen_url: ""
     });
+
+    setIdEdicion(null);
   };
 
-  const guardar = async (e) => {
+  const guardarPlantilla = async (e) => {
     e.preventDefault();
 
     setError("");
     setMensaje("");
 
+    if (!form.nombre.trim()) {
+      setError(
+        "El nombre de la plantilla es obligatorio"
+      );
+
+      return;
+    }
+
+    if (!form.codigo.trim()) {
+      setError(
+        "El código de la plantilla es obligatorio"
+      );
+
+      return;
+    }
+
     try {
       let response;
 
       const datos = {
-        nombre: form.nombre,
-        codigo: form.codigo,
-        descripcion: form.descripcion,
-        imagen_url: form.imagen_url
+        nombre:
+          form.nombre.trim(),
+
+        codigo:
+          form.codigo.trim(),
+
+        descripcion:
+          form.descripcion.trim(),
+
+        imagen_url:
+          form.imagen_url.trim()
       };
 
-      if (form.id_plantilla) {
+      if (idEdicion) {
         response = await api.put(
-          `/admin/plantillas/${form.id_plantilla}`,
+          `/admin/plantillas/${idEdicion}`,
           datos
         );
+
       } else {
         response = await api.post(
           "/admin/plantillas",
@@ -105,9 +179,12 @@ function AdminTemplatesPage() {
         );
       }
 
-      setMensaje(response.data.mensaje);
+      setMensaje(
+        response.data.mensaje
+      );
 
       limpiarFormulario();
+
       await cargarPlantillas();
 
     } catch (error) {
@@ -118,20 +195,51 @@ function AdminTemplatesPage() {
     }
   };
 
-  const editar = (plantilla) => {
+  const editarPlantilla = (plantilla) => {
+    setIdEdicion(
+      plantilla.id_plantilla
+    );
+
     setForm({
-      id_plantilla: plantilla.id_plantilla,
-      nombre: plantilla.nombre,
-      codigo: plantilla.codigo,
-      descripcion: plantilla.descripcion || "",
-      imagen_url: plantilla.imagen_url || ""
+      nombre:
+        plantilla.nombre || "",
+
+      codigo:
+        plantilla.codigo || "",
+
+      descripcion:
+        plantilla.descripcion || "",
+
+      imagen_url:
+        plantilla.imagen_url || ""
     });
 
     setError("");
     setMensaje("");
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
   };
 
   const cambiarEstado = async (plantilla) => {
+    const nuevoEstado =
+      !plantilla.estado;
+
+    const accion =
+      nuevoEstado
+        ? "activar"
+        : "desactivar";
+
+    const confirmar = window.confirm(
+      `¿Deseas ${accion} la plantilla "${plantilla.nombre}"?`
+    );
+
+    if (!confirmar) {
+      return;
+    }
+
     try {
       setError("");
       setMensaje("");
@@ -139,175 +247,560 @@ function AdminTemplatesPage() {
       const response = await api.patch(
         `/admin/plantillas/${plantilla.id_plantilla}/estado`,
         {
-          estado: !plantilla.estado
+          estado: nuevoEstado
         }
       );
 
-      setMensaje(response.data.mensaje);
+      setMensaje(
+        response.data.mensaje
+      );
 
       await cargarPlantillas();
 
     } catch (error) {
       setError(
         error.response?.data?.mensaje ||
-        "No se pudo cambiar el estado"
+        "No se pudo actualizar el estado de la plantilla"
       );
     }
   };
 
   return (
-    <main style={{ padding: "40px" }}>
+    <div className="admin-page">
 
-      <Link to="/admin">
-        ← Volver al dashboard
-      </Link>
+      {/* SIDEBAR */}
+      <aside className="admin-sidebar">
 
-      <h1>Gestionar plantillas</h1>
+        <div className="admin-brand">
 
-      <form
-        onSubmit={guardar}
-        style={{ marginBottom: "30px" }}
-      >
-        <p>
-          <label>Nombre</label>
-          <br />
+          <div className="admin-brand-logo">
+            P
+          </div>
 
-          <input
-            name="nombre"
-            value={form.nombre}
-            onChange={handleChange}
-            required
-          />
-        </p>
+          <div>
+            <h2>PoliCV</h2>
+            <span>Administración</span>
+          </div>
 
-        <p>
-          <label>Código</label>
-          <br />
+        </div>
 
-          <input
-            name="codigo"
-            value={form.codigo}
-            onChange={handleChange}
-            placeholder="Ejemplo: moderna"
-            required
-          />
-        </p>
 
-        <p>
-          <label>Descripción</label>
-          <br />
+        <div className="admin-profile">
 
-          <input
-            name="descripcion"
-            value={form.descripcion}
-            onChange={handleChange}
-          />
-        </p>
+          <div className="admin-avatar">
+            {usuarioActual?.email
+              ? usuarioActual.email
+                  .charAt(0)
+                  .toUpperCase()
+              : "A"}
+          </div>
 
-        <p>
-          <label>URL de imagen</label>
-          <br />
+          <div>
+            <strong>
+              Administrador
+            </strong>
 
-          <input
-            name="imagen_url"
-            value={form.imagen_url}
-            onChange={handleChange}
-          />
-        </p>
+            <span>
+              {usuarioActual?.email}
+            </span>
+          </div>
 
-        <button type="submit">
-          {form.id_plantilla
-            ? "Guardar cambios"
-            : "Crear plantilla"}
+        </div>
+
+
+        <nav className="admin-menu">
+
+          <Link to="/admin">
+            <span>01</span>
+            Panel principal
+          </Link>
+
+          <Link to="/admin/usuarios">
+            <span>02</span>
+            Gestionar usuarios
+          </Link>
+
+          <Link to="/admin/secciones">
+            <span>03</span>
+            Secciones del CV
+          </Link>
+
+          <Link
+            to="/admin/plantillas"
+            className="active"
+          >
+            <span>04</span>
+            Plantillas
+          </Link>
+
+          <Link to="/admin/estadisticas">
+            <span>05</span>
+            Estadísticas
+          </Link>
+
+          <Link to="/admin/propuestas">
+            <span>06</span>
+            Propuestas
+          </Link>
+
+        </nav>
+
+
+        <button
+          type="button"
+          className="admin-logout"
+          onClick={cerrarSesion}
+        >
+          Cerrar sesión
         </button>
 
-        {form.id_plantilla && (
-          <button
-            type="button"
-            onClick={limpiarFormulario}
-          >
-            Cancelar
-          </button>
-        )}
-      </form>
+      </aside>
 
-      {error && (
-        <p style={{ color: "red" }}>
-          {error}
-        </p>
-      )}
 
-      {mensaje && (
-        <p style={{ color: "green" }}>
-          {mensaje}
-        </p>
-      )}
+      {/* CONTENIDO */}
+      <main className="admin-main">
 
-      <table
-        border="1"
-        cellPadding="10"
-        style={{
-          borderCollapse: "collapse",
-          width: "100%"
-        }}
-      >
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Plantilla</th>
-            <th>Código</th>
-            <th>Descripción</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
+        <header className="admin-header">
 
-        <tbody>
-          {plantillas.map((plantilla) => (
-            <tr key={plantilla.id_plantilla}>
+          <div>
 
-              <td>{plantilla.id_plantilla}</td>
+            <span className="admin-header-label">
+              CONFIGURACIÓN VISUAL
+            </span>
 
-              <td>{plantilla.nombre}</td>
+            <h1>
+              Plantillas
+            </h1>
 
-              <td>{plantilla.codigo}</td>
+            <p>
+              Administra los diseños disponibles
+              para la presentación de los
+              currículums de los estudiantes.
+            </p>
 
-              <td>{plantilla.descripcion}</td>
+          </div>
 
-              <td>
-                {plantilla.estado
-                  ? "Activa"
-                  : "Inactiva"}
-              </td>
 
-              <td>
+          <div className="admin-header-account">
+
+            <div>
+              <span>
+                Sesión iniciada como
+              </span>
+
+              <strong>
+                {usuarioActual?.email}
+              </strong>
+            </div>
+
+            <div className="admin-header-avatar">
+              {usuarioActual?.email
+                ? usuarioActual.email
+                    .charAt(0)
+                    .toUpperCase()
+                : "A"}
+            </div>
+
+          </div>
+
+        </header>
+
+
+        <div className="admin-content">
+
+          {/* ENCABEZADO */}
+          <section className="templates-admin-heading">
+
+            <div>
+
+              <span className="templates-admin-label">
+                ADMINISTRACIÓN
+              </span>
+
+              <h2>
+                Gestionar plantillas
+              </h2>
+
+              <p>
+                Registra nuevos diseños, modifica
+                su información y controla cuáles
+                permanecen disponibles para los estudiantes.
+              </p>
+
+            </div>
+
+
+            <div className="templates-admin-counter">
+
+              <span>
+                Plantillas registradas
+              </span>
+
+              <strong>
+                {plantillas.length}
+              </strong>
+
+            </div>
+
+          </section>
+
+
+          {/* FORMULARIO */}
+          <section className="templates-admin-form-card">
+
+            <div className="templates-admin-form-info">
+
+              <span>
+                {idEdicion
+                  ? "EDITAR PLANTILLA"
+                  : "NUEVA PLANTILLA"}
+              </span>
+
+              <h3>
+                {idEdicion
+                  ? "Actualizar diseño"
+                  : "Registrar plantilla"}
+              </h3>
+
+              <p>
+                Define un nombre, código,
+                descripción y una imagen
+                representativa para identificar
+                cada diseño.
+              </p>
+
+            </div>
+
+
+            <form
+              className="templates-admin-form"
+              onSubmit={guardarPlantilla}
+            >
+
+              <div className="templates-admin-field">
+
+                <label htmlFor="nombre">
+                  Nombre
+                </label>
+
+                <input
+                  id="nombre"
+                  type="text"
+                  name="nombre"
+                  value={form.nombre}
+                  onChange={handleChange}
+                  placeholder="Ejemplo: Moderna"
+                />
+
+              </div>
+
+
+              <div className="templates-admin-field">
+
+                <label htmlFor="codigo">
+                  Código
+                </label>
+
+                <input
+                  id="codigo"
+                  type="text"
+                  name="codigo"
+                  value={form.codigo}
+                  onChange={handleChange}
+                  placeholder="Ejemplo: moderna"
+                />
+
+              </div>
+
+
+              <div className="templates-admin-field full">
+
+                <label htmlFor="descripcion">
+                  Descripción
+                </label>
+
+                <textarea
+                  id="descripcion"
+                  name="descripcion"
+                  value={form.descripcion}
+                  onChange={handleChange}
+                  placeholder="Describe brevemente el estilo de la plantilla..."
+                  rows="4"
+                />
+
+              </div>
+
+
+              <div className="templates-admin-field full">
+
+                <label htmlFor="imagen_url">
+                  URL de imagen
+                </label>
+
+                <input
+                  id="imagen_url"
+                  type="text"
+                  name="imagen_url"
+                  value={form.imagen_url}
+                  onChange={handleChange}
+                  placeholder="Ejemplo: /images/plantilla1.png"
+                />
+
+                <small>
+                  Puedes utilizar una ruta de imagen
+                  almacenada en PoliCV.
+                </small>
+
+              </div>
+
+
+              <div className="templates-admin-form-actions">
+
                 <button
-                  type="button"
-                  onClick={() => editar(plantilla)}
+                  type="submit"
+                  className="templates-admin-btn-primary"
                 >
-                  Editar
+                  {idEdicion
+                    ? "Guardar cambios"
+                    : "Crear plantilla"}
                 </button>
 
-                {" "}
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    cambiarEstado(plantilla)
-                  }
-                >
-                  {plantilla.estado
-                    ? "Desactivar"
-                    : "Activar"}
-                </button>
-              </td>
+                {idEdicion && (
+                  <button
+                    type="button"
+                    className="templates-admin-btn-secondary"
+                    onClick={limpiarFormulario}
+                  >
+                    Cancelar edición
+                  </button>
+                )}
 
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              </div>
 
-    </main>
+            </form>
+
+          </section>
+
+
+          {/* MENSAJES */}
+          {error && (
+            <div className="users-message error">
+              {error}
+            </div>
+          )}
+
+          {mensaje && (
+            <div className="users-message success">
+              {mensaje}
+            </div>
+          )}
+
+
+          {/* TABLA */}
+          <section className="templates-admin-table-card">
+
+            <div className="templates-admin-table-header">
+
+              <div>
+
+                <span>
+                  DISEÑOS DISPONIBLES
+                </span>
+
+                <h3>
+                  Plantillas de PoliCV
+                </h3>
+
+              </div>
+
+
+              <Link
+                to="/admin"
+                className="users-back-link"
+              >
+                Volver al panel
+              </Link>
+
+            </div>
+
+
+            {cargando ? (
+
+              <div className="users-loading">
+                Cargando plantillas...
+              </div>
+
+            ) : plantillas.length === 0 ? (
+
+              <div className="users-empty">
+
+                <strong>
+                  No existen plantillas registradas
+                </strong>
+
+                <p>
+                  Utiliza el formulario superior
+                  para registrar la primera plantilla.
+                </p>
+
+              </div>
+
+            ) : (
+
+              <div className="users-table-wrapper">
+
+                <table className="templates-admin-table">
+
+                  <thead>
+
+                    <tr>
+                      <th>ID</th>
+                      <th>Plantilla</th>
+                      <th>Código</th>
+                      <th>Descripción</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+
+                  </thead>
+
+
+                  <tbody>
+
+                    {plantillas.map(
+                      (plantilla) => {
+
+                        const activa =
+                          plantilla.estado;
+
+                        return (
+                          <tr
+                            key={
+                              plantilla.id_plantilla
+                            }
+                          >
+
+                            <td className="user-id">
+                              #{plantilla.id_plantilla}
+                            </td>
+
+
+                            <td>
+
+                              <div className="template-admin-name-cell">
+
+                                <div className="template-admin-icon">
+                                  CV
+                                </div>
+
+                                <div>
+
+                                  <strong>
+                                    {plantilla.nombre}
+                                  </strong>
+
+                                  <span>
+                                    Diseño PoliCV
+                                  </span>
+
+                                </div>
+
+                              </div>
+
+                            </td>
+
+
+                            <td>
+
+                              <span className="template-code">
+                                {plantilla.codigo}
+                              </span>
+
+                            </td>
+
+
+                            <td className="template-admin-description">
+                              {plantilla.descripcion ||
+                                "Sin descripción"}
+                            </td>
+
+
+                            <td>
+
+                              <span
+                                className={
+                                  activa
+                                    ? "status-badge active"
+                                    : "status-badge inactive"
+                                }
+                              >
+                                {activa
+                                  ? "Activa"
+                                  : "Inactiva"}
+                              </span>
+
+                            </td>
+
+
+                            <td>
+
+                              <div className="section-actions">
+
+                                <button
+                                  type="button"
+                                  className="section-edit-btn"
+                                  onClick={() =>
+                                    editarPlantilla(
+                                      plantilla
+                                    )
+                                  }
+                                >
+                                  Editar
+                                </button>
+
+
+                                <button
+                                  type="button"
+                                  className={
+                                    activa
+                                      ? "user-action deactivate"
+                                      : "user-action activate"
+                                  }
+                                  onClick={() =>
+                                    cambiarEstado(
+                                      plantilla
+                                    )
+                                  }
+                                >
+                                  {activa
+                                    ? "Desactivar"
+                                    : "Activar"}
+                                </button>
+
+                              </div>
+
+                            </td>
+
+                          </tr>
+                        );
+                      }
+                    )}
+
+                  </tbody>
+
+                </table>
+
+              </div>
+            )}
+
+          </section>
+
+        </div>
+
+      </main>
+
+    </div>
   );
 }
 

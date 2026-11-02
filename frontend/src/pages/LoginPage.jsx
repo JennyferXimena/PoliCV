@@ -56,13 +56,12 @@ function LoginPage() {
   return (
     <main className="auth-page">
       <section className="auth-left">
-        <div>
-          <h1>PoliCV</h1>
-          <h2>Construye tu futuro profesional</h2>
-          <p>
-            Accede a tu perfil, currículums y recomendaciones
-            profesionales.
-          </p>
+        <div className="login-left">
+          <img
+            src="/images/login.png"
+            alt="PoliCV"
+            className="login-left-image"
+          />
         </div>
       </section>
 

@@ -4,22 +4,49 @@ import {
 } from "react";
 
 import {
-  Link
+  Link,
+  useNavigate
 } from "react-router-dom";
 
 import api from "../services/api";
+import "../styles/student.css";
 
 
 function StudentAIAssistantPage() {
+
+  const navigate = useNavigate();
+
+
+  /* =========================================================
+     USUARIO
+  ========================================================= */
+
+  const usuarioGuardado =
+    localStorage.getItem("usuario") ||
+    sessionStorage.getItem("usuario");
+
+
+  const usuario =
+    usuarioGuardado
+      ? JSON.parse(usuarioGuardado)
+      : null;
+
+
+  /* =========================================================
+     ESTADOS
+  ========================================================= */
+
   const [
     curriculums,
     setCurriculums
   ] = useState([]);
 
+
   const [
-    idCurriculum,
-    setIdCurriculum
+    curriculumSeleccionado,
+    setCurriculumSeleccionado
   ] = useState("");
+
 
   const [
     mensajes,
@@ -32,69 +59,120 @@ function StudentAIAssistantPage() {
     }
   ]);
 
+
   const [
     mensaje,
     setMensaje
   ] = useState("");
+
 
   const [
     cargando,
     setCargando
   ] = useState(false);
 
+
+  const [
+    cargandoCurriculums,
+    setCargandoCurriculums
+  ] = useState(true);
+
+
   const [
     error,
     setError
   ] = useState("");
 
-  const [
-    sugerenciaResumen,
-    setSugerenciaResumen
-  ] = useState("");
 
-  const [
-    generandoSugerencia,
-    setGenerandoSugerencia
-  ] = useState(false);
+  /* =========================================================
+     CERRAR SESIÓN
+  ========================================================= */
 
-  const [
-    mensajeSugerencia,
-    setMensajeSugerencia
-  ] = useState("");
+  const cerrarSesion = () => {
 
+    localStorage.removeItem(
+      "token"
+    );
+
+    localStorage.removeItem(
+      "usuario"
+    );
+
+    sessionStorage.removeItem(
+      "token"
+    );
+
+    sessionStorage.removeItem(
+      "usuario"
+    );
+
+    navigate(
+      "/iniciar-sesion"
+    );
+  };
+
+
+  /* =========================================================
+     CARGAR CURRÍCULUMS
+  ========================================================= */
 
   useEffect(() => {
+
     let activo = true;
 
-    const cargarCurriculums =
-      async () => {
-        try {
-          const response =
-            await api.get(
-              "/curriculums"
-            );
 
-          if (!activo) {
-            return;
-          }
+    const cargarCurriculums = async () => {
 
-          const lista =
-            response.data.curriculums ||
-            response.data.datos ||
-            [];
+      try {
 
-          setCurriculums(lista);
+        const response =
+          await api.get(
+            "/curriculums"
+          );
 
-        } catch {
-          if (activo) {
-            setError(
-              "No se pudieron cargar tus currículums"
-            );
-          }
+
+        if (!activo) {
+          return;
         }
-      };
+
+
+        const lista =
+          response.data.curriculums ||
+          response.data.datos ||
+          [];
+
+
+        setCurriculums(
+          lista
+        );
+
+
+      } catch (error) {
+
+        if (!activo) {
+          return;
+        }
+
+
+        setError(
+          error.response?.data?.mensaje ||
+          "No se pudieron cargar tus currículums"
+        );
+
+
+      } finally {
+
+        if (activo) {
+          setCargandoCurriculums(
+            false
+          );
+        }
+      }
+    };
+
 
     cargarCurriculums();
+
 
     return () => {
       activo = false;
@@ -103,493 +181,830 @@ function StudentAIAssistantPage() {
   }, []);
 
 
-  const cambiarCurriculum = (e) => {
-    const nuevoId =
+  /* =========================================================
+     CAMBIAR CURRÍCULUM
+  ========================================================= */
+
+  const cambiarCurriculum = (
+    e
+  ) => {
+
+    const idCurriculum =
       e.target.value;
 
-    setIdCurriculum(
-      nuevoId
+
+    setCurriculumSeleccionado(
+      idCurriculum
     );
 
-    setSugerenciaResumen("");
-    setMensajeSugerencia("");
+
+    setMensaje("");
+
+    setError("");
+
+
+    if (!idCurriculum) {
+
+      setMensajes([
+        {
+          role: "assistant",
+          content:
+            "Hola, soy el asistente de PoliCV. Selecciona uno de tus currículums para comenzar."
+        }
+      ]);
+
+      return;
+    }
+
+
+    const curriculum =
+      curriculums.find(
+        (item) =>
+          String(
+            item.id_curriculum
+          ) ===
+          String(
+            idCurriculum
+          )
+      );
+
 
     setMensajes([
       {
         role: "assistant",
         content:
-          nuevoId
-            ? "Currículum seleccionado. Ya puedo analizar la información que tienes registrada."
-            : "Selecciona uno de tus currículums para comenzar."
+          `Perfecto. Trabajaremos con el currículum "${curriculum?.nombre || "seleccionado"}". Puedes contarme qué parte deseas mejorar o preguntarme qué podrías fortalecer.`
       }
     ]);
-
-    setMensaje("");
-    setError("");
   };
 
 
-  const enviarMensaje =
-    async (e) => {
-      e.preventDefault();
+  /* =========================================================
+     ENVIAR MENSAJE
+  ========================================================= */
 
-      const texto =
-        mensaje.trim();
+  const enviarMensaje = async (
+    e
+  ) => {
 
-      if (!idCurriculum) {
-        setError(
-          "Primero debes seleccionar un currículum"
+    e.preventDefault();
+
+
+    const texto =
+      mensaje.trim();
+
+
+    if (
+      !texto ||
+      cargando
+    ) {
+      return;
+    }
+
+
+    if (
+      !curriculumSeleccionado
+    ) {
+
+      setError(
+        "Selecciona primero un currículum"
+      );
+
+      return;
+    }
+
+
+    setError("");
+
+
+    const mensajeUsuario = {
+      role: "user",
+      content: texto
+    };
+
+
+    /*
+      El historial contiene los mensajes
+      anteriores de la conversación.
+    */
+
+    const historialAnterior =
+      mensajes.map(
+        (item) => ({
+          role: item.role,
+          content: item.content
+        })
+      );
+
+
+    /*
+      Mostramos inmediatamente el mensaje
+      del estudiante en pantalla.
+    */
+
+    setMensajes(
+      (anteriores) => [
+        ...anteriores,
+        mensajeUsuario
+      ]
+    );
+
+
+    setMensaje("");
+
+    setCargando(true);
+
+
+    try {
+
+      /*
+        Enviamos:
+        - mensaje actual
+        - historial
+        - currículum seleccionado
+
+        El backend utiliza el id_curriculum
+        para obtener su información desde MySQL.
+      */
+
+      const response =
+        await api.post(
+          "/ia/chat",
+          {
+            mensaje: texto,
+
+            historial:
+              historialAnterior,
+
+            id_curriculum:
+              Number(
+                curriculumSeleccionado
+              )
+          }
         );
 
-        return;
-      }
 
-      if (
-        !texto ||
-        cargando
-      ) {
-        return;
-      }
+      const respuestaIA =
+        response.data.respuesta ||
+        response.data.mensajeIA ||
+        "No se pudo generar una respuesta.";
 
-      setError("");
 
-      const mensajeUsuario = {
-        role: "user",
-        content: texto
+      const mensajeIA = {
+        role: "assistant",
+        content:
+          respuestaIA
       };
 
-      const historialAnterior =
-        mensajes.map(
-          (item) => ({
-            role:
-              item.role,
-
-            content:
-              item.content
-          })
-        );
 
       setMensajes(
         (anteriores) => [
           ...anteriores,
-          mensajeUsuario
+          mensajeIA
         ]
       );
 
-      setMensaje("");
-      setCargando(true);
 
-      try {
-        const response =
-          await api.post(
-            "/ia/chat",
-            {
-              mensaje:
-                texto,
+    } catch (error) {
 
-              historial:
-                historialAnterior,
-
-              id_curriculum:
-                Number(
-                  idCurriculum
-                )
-            }
-          );
-
-        setMensajes(
-          (anteriores) => [
-            ...anteriores,
-            {
-              role: "assistant",
-              content:
-                response.data.respuesta
-            }
-          ]
-        );
-
-      } catch (error) {
-        setError(
-          error.response?.data?.mensaje ||
-          "No se pudo obtener una respuesta"
-        );
-
-      } finally {
-        setCargando(false);
-      }
-    };
+      setError(
+        error.response?.data?.mensaje ||
+        "No se pudo obtener una respuesta del asistente"
+      );
 
 
-  const generarResumen =
-    async () => {
-      if (!idCurriculum) {
-        setError(
-          "Selecciona un currículum"
-        );
+    } finally {
 
-        return;
-      }
-
-      setError("");
-      setMensajeSugerencia("");
-      setGenerandoSugerencia(true);
-
-      try {
-        const response =
-          await api.post(
-            `/ia/curriculums/${idCurriculum}/resumen/sugerir`
-          );
-
-        setSugerenciaResumen(
-          response.data.sugerencia
-        );
-
-      } catch (error) {
-        setError(
-          error.response?.data?.mensaje ||
-          "No se pudo generar la sugerencia"
-        );
-
-      } finally {
-        setGenerandoSugerencia(false);
-      }
-    };
+      setCargando(false);
+    }
+  };
 
 
-  const aplicarResumen =
-    async () => {
-      if (!sugerenciaResumen) {
-        return;
-      }
-
-      try {
-        const response =
-          await api.put(
-            `/ia/curriculums/${idCurriculum}/resumen/aplicar`,
-            {
-              resumen:
-                sugerenciaResumen
-            }
-          );
-
-        setMensajeSugerencia(
-          response.data.mensaje
-        );
-
-        setMensajes(
-          (anteriores) => [
-            ...anteriores,
-            {
-              role: "assistant",
-              content:
-                "La sugerencia de resumen profesional fue aplicada a tu currículum."
-            }
-          ]
-        );
-
-      } catch (error) {
-        setError(
-          error.response?.data?.mensaje ||
-          "No se pudo aplicar la sugerencia"
-        );
-      }
-    };
-
+  /* =========================================================
+     INTERFAZ
+  ========================================================= */
 
   return (
-    <main
-      style={{
-        maxWidth: "900px",
-        margin: "0 auto",
-        padding: "40px"
-      }}
-    >
 
-      <Link to="/estudiante">
-        ← Volver al dashboard
-      </Link>
-
-      <h1>
-        Asistente IA de PoliCV
-      </h1>
-        <p>
-        <Link to="/estudiante/crear-cv-ia">
-            Crear un currículum desde cero con IA
-        </Link>
-        </p>
-      <p>
-        Selecciona un currículum para
-        analizarlo y recibir sugerencias.
-      </p>
+    <div className="student-page">
 
 
-      <div
-        style={{
-          marginBottom: "20px"
-        }}
-      >
-        <label>
-          <strong>
-            Currículum:
-          </strong>
-        </label>
+      {/* =====================================================
+          SIDEBAR
+      ===================================================== */}
 
-        <br />
-
-        <select
-          value={idCurriculum}
-          onChange={cambiarCurriculum}
-        >
-          <option value="">
-            Selecciona un currículum
-          </option>
-
-          {curriculums.map(
-            (curriculum) => (
-              <option
-                key={
-                  curriculum.id_curriculum
-                }
-                value={
-                  curriculum.id_curriculum
-                }
-              >
-                {curriculum.nombre}
-              </option>
-            )
-          )}
-        </select>
-      </div>
+      <aside className="student-sidebar">
 
 
-      {idCurriculum && (
-        <section
-          style={{
-            border:
-              "1px solid #ccc",
+        <div className="student-brand">
 
-            padding:
-              "20px",
-
-            marginBottom:
-              "25px"
-          }}
-        >
-          <h2>
-            Sugerencia de resumen profesional
-          </h2>
-
-          <button
-            type="button"
-            onClick={generarResumen}
-            disabled={
-              generandoSugerencia
-            }
-          >
-            {generandoSugerencia
-              ? "Generando..."
-              : "Generar sugerencia con IA"}
-          </button>
+          <div className="student-brand-logo">
+            P
+          </div>
 
 
-          {sugerenciaResumen && (
-            <div
-              style={{
-                marginTop:
-                  "20px"
-              }}
-            >
-              <textarea
-                rows="6"
-                value={
-                  sugerenciaResumen
-                }
-                onChange={
-                  (e) =>
-                    setSugerenciaResumen(
-                      e.target.value
-                    )
-                }
-                style={{
-                  width:
-                    "100%"
-                }}
-              />
+          <div>
 
-              <br />
+            <h2>
+              PoliCV
+            </h2>
 
-              <button
-                type="button"
-                onClick={
-                  aplicarResumen
-                }
-              >
-                Aplicar al CV
-              </button>
-            </div>
-          )}
+            <span>
+              Estudiante
+            </span>
+
+          </div>
+
+        </div>
 
 
-          {mensajeSugerencia && (
-            <p
-              style={{
-                color:
-                  "green"
-              }}
-            >
-              {mensajeSugerencia}
-            </p>
-          )}
-        </section>
-      )}
+        <div className="student-profile-mini">
+
+          <div className="student-avatar">
+
+            {usuario?.email
+              ? usuario.email
+                  .charAt(0)
+                  .toUpperCase()
+              : "E"}
+
+          </div>
 
 
-      <div
-        style={{
-          border:
-            "1px solid #ccc",
+          <div>
 
-          minHeight:
-            "400px",
-
-          maxHeight:
-            "500px",
-
-          overflowY:
-            "auto",
-
-          padding:
-            "20px",
-
-          marginBottom:
-            "20px"
-        }}
-      >
-        {mensajes.map(
-          (item, index) => (
-            <div
-              key={index}
-              style={{
-                marginBottom:
-                  "20px",
-
-                textAlign:
-                  item.role ===
-                  "user"
-                    ? "right"
-                    : "left"
-              }}
-            >
-              <strong>
-                {item.role ===
-                "user"
-                  ? "Tú"
-                  : "PoliCV IA"}
-              </strong>
-
-              <br />
-
-              <div
-                style={{
-                  display:
-                    "inline-block",
-
-                  maxWidth:
-                    "75%",
-
-                  padding:
-                    "10px",
-
-                  marginTop:
-                    "5px",
-
-                  border:
-                    "1px solid #ddd",
-
-                  borderRadius:
-                    "8px",
-
-                  textAlign:
-                    "left",
-
-                  whiteSpace:
-                    "pre-wrap"
-                }}
-              >
-                {item.content}
-              </div>
-            </div>
-          )
-        )}
-
-        {cargando && (
-          <p>
             <strong>
-              PoliCV IA:
+              Estudiante
             </strong>
-            {" "}
-            Analizando...
-          </p>
-        )}
-      </div>
+
+            <span>
+              {usuario?.email}
+            </span>
+
+          </div>
+
+        </div>
 
 
-      {error && (
-        <p
-          style={{
-            color: "red"
-          }}
-        >
-          {error}
-        </p>
-      )}
+        <nav className="student-menu">
 
 
-      <form onSubmit={enviarMensaje}>
-        <textarea
-          rows="4"
+          <Link to="/estudiante">
 
-          value={mensaje}
+            <span>
+              01
+            </span>
 
-          onChange={
-            (e) =>
-              setMensaje(
-                e.target.value
-              )
-          }
+            Inicio
 
-          placeholder={
-            idCurriculum
-              ? "Pregunta algo sobre tu currículum..."
-              : "Selecciona primero un currículum"
-          }
+          </Link>
 
-          disabled={
-            !idCurriculum ||
-            cargando
-          }
 
-          style={{
-            width: "100%",
-            marginBottom: "10px"
-          }}
-        />
+          <Link to="/perfil">
+
+            <span>
+              02
+            </span>
+
+            Mi perfil
+
+          </Link>
+
+
+          <Link to="/estudiante/curriculums">
+
+            <span>
+              03
+            </span>
+
+            Mis currículums
+
+          </Link>
+
+
+          <Link
+            to="/estudiante/asistente-ia"
+            className="active"
+          >
+
+            <span>
+              04
+            </span>
+
+            Asistente IA
+
+          </Link>
+
+
+          <Link to="/estudiante/propuestas">
+
+            <span>
+              05
+            </span>
+
+            Propuestas de mejora
+
+          </Link>
+
+
+        </nav>
+
 
         <button
-          type="submit"
-          disabled={
-            !idCurriculum ||
-            cargando
+          type="button"
+          className="student-logout"
+          onClick={
+            cerrarSesion
           }
         >
-          {cargando
-            ? "Enviando..."
-            : "Enviar"}
+          Cerrar sesión
         </button>
-      </form>
 
-    </main>
+
+      </aside>
+
+
+      {/* =====================================================
+          CONTENIDO PRINCIPAL
+      ===================================================== */}
+
+      <main className="student-main">
+
+
+        {/* HEADER */}
+
+        <header className="student-header">
+
+
+          <div>
+
+            <span className="student-header-label">
+              ASISTENCIA PROFESIONAL
+            </span>
+
+
+            <h1>
+              Asistente de PoliCV
+            </h1>
+
+
+            <p>
+              Revisa y mejora el contenido
+              de tu currículum con asistencia
+              inteligente.
+            </p>
+
+          </div>
+
+
+          <div className="student-header-account">
+
+
+            <div>
+
+              <span>
+                Sesión iniciada como
+              </span>
+
+              <strong>
+                {usuario?.email}
+              </strong>
+
+            </div>
+
+
+            <div className="student-header-avatar">
+
+              {usuario?.email
+                ? usuario.email
+                    .charAt(0)
+                    .toUpperCase()
+                : "E"}
+
+            </div>
+
+
+          </div>
+
+
+        </header>
+
+
+        {/* ===================================================
+            CONTENIDO
+        =================================================== */}
+
+        <div className="student-content">
+
+
+          {/* INTRODUCCIÓN */}
+
+          <section className="ai-page-heading">
+
+
+            <div>
+
+              <span>
+                ASISTENCIA PARA TU CURRÍCULUM
+              </span>
+
+
+              <h2>
+                Mejora la presentación de tu perfil
+              </h2>
+
+
+              <p>
+                Selecciona uno de tus currículums
+                y conversa con PoliCV para revisar
+                la redacción, organizar información
+                y mejorar tus descripciones
+                profesionales.
+              </p>
+
+            </div>
+
+
+            <Link
+              to="/estudiante/crear-cv-ia"
+              className="ai-create-cv-button"
+            >
+              Crear currículum desde cero
+            </Link>
+
+
+          </section>
+
+
+          {/* =================================================
+              ESPACIO DEL ASISTENTE
+          ================================================= */}
+
+          <section className="ai-professional-layout">
+
+
+            {/* ===============================================
+                PANEL IZQUIERDO
+            =============================================== */}
+
+            <aside className="ai-sidebar-panel">
+
+
+              <span className="ai-section-label">
+                CURRÍCULUM DE TRABAJO
+              </span>
+
+
+              <h3>
+                Selecciona un currículum
+              </h3>
+
+
+              <p>
+                PoliCV utilizará la información
+                del currículum seleccionado como
+                referencia para ofrecer sugerencias.
+              </p>
+
+
+              <label htmlFor="curriculum">
+                Currículum
+              </label>
+
+
+              <select
+                id="curriculum"
+                className="ai-cv-select"
+                value={
+                  curriculumSeleccionado
+                }
+                onChange={
+                  cambiarCurriculum
+                }
+                disabled={
+                  cargandoCurriculums
+                }
+              >
+
+                <option value="">
+
+                  {cargandoCurriculums
+                    ? "Cargando currículums..."
+                    : "Selecciona un currículum"}
+
+                </option>
+
+
+                {curriculums.map(
+                  (curriculum) => (
+
+                    <option
+                      key={
+                        curriculum.id_curriculum
+                      }
+                      value={
+                        curriculum.id_curriculum
+                      }
+                    >
+                      {curriculum.nombre}
+                    </option>
+
+                  )
+                )}
+
+
+              </select>
+
+
+              {/* FUNCIONES */}
+
+              <div className="ai-help-section">
+
+
+                <span>
+                  Funciones disponibles
+                </span>
+
+
+                <div>
+
+                  <strong>
+                    Revisar redacción
+                  </strong>
+
+                  <p>
+                    Corrige errores de escritura
+                    y textos poco claros.
+                  </p>
+
+                </div>
+
+
+                <div>
+
+                  <strong>
+                    Mejorar descripciones
+                  </strong>
+
+                  <p>
+                    Presenta experiencias,
+                    proyectos y actividades
+                    de manera profesional.
+                  </p>
+
+                </div>
+
+
+                <div>
+
+                  <strong>
+                    Organizar información
+                  </strong>
+
+                  <p>
+                    Ayuda a estructurar mejor
+                    el contenido de tu currículum.
+                  </p>
+
+                </div>
+
+
+                <div>
+
+                  <strong>
+                    Recibir sugerencias
+                  </strong>
+
+                  <p>
+                    Identifica aspectos que
+                    podrían fortalecer tu perfil.
+                  </p>
+
+                </div>
+
+
+              </div>
+
+
+            </aside>
+
+
+            {/* ===============================================
+                CHAT
+            =============================================== */}
+
+            <article className="ai-professional-chat">
+
+
+              {/* HEADER DEL CHAT */}
+
+              <header className="ai-professional-header">
+
+
+                <div className="ai-professional-avatar">
+                  IA
+                </div>
+
+
+                <div>
+
+                  <h3>
+                    Asistente PoliCV
+                  </h3>
+
+                  <span>
+                    Apoyo para la elaboración
+                    de tu currículum
+                  </span>
+
+                </div>
+
+
+                <div className="ai-professional-status">
+                  Disponible
+                </div>
+
+
+              </header>
+
+
+              {/* =============================================
+                  MENSAJES
+              ============================================= */}
+
+              <div className="ai-professional-messages">
+
+
+                {mensajes.map(
+                  (
+                    item,
+                    index
+                  ) => (
+
+                    <div
+                      key={index}
+                      className={
+                        item.role ===
+                        "user"
+                          ? "ai-professional-row user"
+                          : "ai-professional-row assistant"
+                      }
+                    >
+
+
+                      <span className="ai-professional-author">
+
+                        {item.role ===
+                        "user"
+                          ? "Tú"
+                          : "PoliCV"}
+
+                      </span>
+
+
+                      <div
+                        className={
+                          item.role ===
+                          "user"
+                            ? "ai-professional-message user"
+                            : "ai-professional-message assistant"
+                        }
+                      >
+
+                        {item.content}
+
+                      </div>
+
+
+                    </div>
+
+                  )
+                )}
+
+
+                {/* RESPUESTA EN PROCESO */}
+
+                {cargando && (
+
+                  <div className="ai-professional-row assistant">
+
+
+                    <span className="ai-professional-author">
+                      PoliCV
+                    </span>
+
+
+                    <div className="ai-professional-message assistant">
+                      Analizando tu información...
+                    </div>
+
+
+                  </div>
+
+                )}
+
+
+              </div>
+
+
+              {/* =============================================
+                  ERROR
+              ============================================= */}
+
+              {error && (
+
+                <div className="ai-professional-error">
+                  {error}
+                </div>
+
+              )}
+
+
+              {/* =============================================
+                  ESCRIBIR MENSAJE
+              ============================================= */}
+
+              <form
+                className="ai-professional-input"
+                onSubmit={
+                  enviarMensaje
+                }
+              >
+
+
+                <textarea
+                  value={
+                    mensaje
+                  }
+                  onChange={
+                    (e) =>
+                      setMensaje(
+                        e.target.value
+                      )
+                  }
+                  placeholder={
+                    curriculumSeleccionado
+                      ? "Escribe tu consulta o cuéntame tu experiencia..."
+                      : "Selecciona primero un currículum"
+                  }
+                  disabled={
+                    !curriculumSeleccionado ||
+                    cargando
+                  }
+                  rows="3"
+                />
+
+
+                <div className="ai-input-footer">
+
+
+                  <span>
+                    Puedes escribir de forma
+                    natural. PoliCV puede ayudarte
+                    a organizar y mejorar la
+                    redacción de la información
+                    que proporciones.
+                  </span>
+
+
+                  <button
+                    type="submit"
+                    disabled={
+                      !curriculumSeleccionado ||
+                      cargando ||
+                      !mensaje.trim()
+                    }
+                  >
+
+                    {cargando
+                      ? "Enviando..."
+                      : "Enviar mensaje"}
+
+                  </button>
+
+
+                </div>
+
+
+              </form>
+
+
+            </article>
+
+
+          </section>
+
+
+        </div>
+
+
+      </main>
+
+
+    </div>
+
   );
 }
+
 
 export default StudentAIAssistantPage;

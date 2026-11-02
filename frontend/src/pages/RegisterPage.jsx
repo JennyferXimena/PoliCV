@@ -35,20 +35,32 @@ function RegisterPage() {
       return;
     }
 
-    if (!form.email.toLowerCase().endsWith("@epn.edu.ec")) {
-      setError("Debe utilizar un correo institucional @epn.edu.ec");
+    if (
+      !form.email
+        .toLowerCase()
+        .endsWith("@epn.edu.ec")
+    ) {
+      setError(
+        "Debe utilizar un correo institucional @epn.edu.ec"
+      );
+
       return;
     }
 
     try {
-      const response = await api.post("/auth/registro", {
-        nombres: form.nombres,
-        apellidos: form.apellidos,
-        email: form.email,
-        password: form.password,
-      });
+      const response = await api.post(
+        "/auth/registro",
+        {
+          nombres: form.nombres,
+          apellidos: form.apellidos,
+          email: form.email,
+          password: form.password,
+        }
+      );
 
-      setMensaje(response.data.mensaje);
+      setMensaje(
+        response.data.mensaje
+      );
 
       setTimeout(() => {
         navigate("/iniciar-sesion");
@@ -64,29 +76,47 @@ function RegisterPage() {
 
   return (
     <main className="auth-page">
+
+      {/* IMAGEN IZQUIERDA */}
       <section className="auth-left">
-        <div>
-          <h1>PoliCV</h1>
-          <h2>Construye tu futuro profesional</h2>
-          <p>
-            Crea un currículum profesional y descubre oportunidades
-            relacionadas con tu perfil.
-          </p>
+
+        <div className="login-left">
+
+          <img
+            src="/images/login.png"
+            alt="PoliCV"
+            className="login-left-image"
+          />
+
         </div>
+
       </section>
 
+
+      {/* FORMULARIO DERECHO */}
       <section className="auth-right">
+
         <div className="auth-box">
-          <h1>Crear cuenta</h1>
+
+          <h1>
+            Crear cuenta
+          </h1>
 
           <p className="subtitle">
             Únete a PoliCV e impulsa tu perfil profesional.
           </p>
 
+
           <form onSubmit={handleSubmit}>
+
             <div className="two-columns">
+
               <div>
-                <label>Nombre</label>
+
+                <label>
+                  Nombre
+                </label>
+
                 <input
                   type="text"
                   name="nombres"
@@ -95,10 +125,16 @@ function RegisterPage() {
                   placeholder="Nombre"
                   required
                 />
+
               </div>
 
+
               <div>
-                <label>Apellido</label>
+
+                <label>
+                  Apellido
+                </label>
+
                 <input
                   type="text"
                   name="apellidos"
@@ -107,10 +143,16 @@ function RegisterPage() {
                   placeholder="Apellido"
                   required
                 />
+
               </div>
+
             </div>
 
-            <label>Correo institucional</label>
+
+            <label>
+              Correo institucional
+            </label>
+
             <input
               type="email"
               name="email"
@@ -120,7 +162,11 @@ function RegisterPage() {
               required
             />
 
-            <label>Contraseña</label>
+
+            <label>
+              Contraseña
+            </label>
+
             <input
               type="password"
               name="password"
@@ -131,7 +177,11 @@ function RegisterPage() {
               required
             />
 
-            <label>Confirmar contraseña</label>
+
+            <label>
+              Confirmar contraseña
+            </label>
+
             <input
               type="password"
               name="confirmarPassword"
@@ -141,27 +191,45 @@ function RegisterPage() {
               required
             />
 
+
             {error && (
-              <p className="message error">{error}</p>
+              <p className="message error">
+                {error}
+              </p>
             )}
+
 
             {mensaje && (
-              <p className="message success">{mensaje}</p>
+              <p className="message success">
+                {mensaje}
+              </p>
             )}
 
-            <button className="primary-button" type="submit">
+
+            <button
+              className="primary-button"
+              type="submit"
+            >
               Crear cuenta
             </button>
+
           </form>
 
+
           <p className="bottom-text">
+
             ¿Ya tienes una cuenta?{" "}
+
             <Link to="/iniciar-sesion">
               Inicia sesión
             </Link>
+
           </p>
+
         </div>
+
       </section>
+
     </main>
   );
 }
