@@ -11,57 +11,68 @@ const {
   verificarRol
 } = require("../middlewares/roleMiddleware");
 
-const detalleCurriculumController =
-  require("../controllers/detalleCurriculumController");
 
 const router = express.Router();
 
-router.use(verificarToken);
-router.use(verificarRol("Estudiante"));
+
+/* =========================================================
+   SOLO ESTUDIANTES AUTENTICADOS
+========================================================= */
+
+router.use(
+  verificarToken,
+  verificarRol("Estudiante")
+);
+
+
+/* =========================================================
+   LISTAR CURRÍCULUMS
+========================================================= */
 
 router.get(
   "/",
   curriculumController.listar
 );
 
+
+/* =========================================================
+   CREAR CURRÍCULUM
+========================================================= */
+
 router.post(
   "/",
   curriculumController.crear
 );
+
+
+/* =========================================================
+   OBTENER UN CURRÍCULUM
+========================================================= */
 
 router.get(
   "/:id",
   curriculumController.obtenerPorId
 );
 
+
+/* =========================================================
+   ACTUALIZAR CURRÍCULUM
+========================================================= */
+
 router.put(
   "/:id",
   curriculumController.actualizar
 );
+
+
+/* =========================================================
+   ELIMINAR / DESACTIVAR CURRÍCULUM
+========================================================= */
 
 router.delete(
   "/:id",
   curriculumController.eliminar
 );
 
-router.get(
-  "/:idCurriculum/secciones/:seccion",
-  detalleCurriculumController.listar
-);
-
-router.post(
-  "/:idCurriculum/secciones/:seccion",
-  detalleCurriculumController.crear
-);
-
-router.put(
-  "/:idCurriculum/secciones/:seccion/:idItem",
-  detalleCurriculumController.actualizar
-);
-
-router.delete(
-  "/:idCurriculum/secciones/:seccion/:idItem",
-  detalleCurriculumController.eliminar
-);
 
 module.exports = router;

@@ -18,7 +18,8 @@ import StudentCVPage from "./pages/StudentCVPage";
 import StudentCVDetailPage from "./pages/StudentCVDetailPage";
 import StudentAIAssistantPage from "./pages/StudentAIAssistantPage";
 import StudentAICreateCVPage from "./pages/StudentAICreateCVPage";
-
+import StudentProfileGuard from "./components/StudentProfileGuard";
+import StudentWelcomePage from "./pages/StudentWelcomePage"; 
 function App() {
   return (
     <BrowserRouter>
@@ -157,6 +158,24 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["Estudiante"]}>
               <StudentAICreateCVPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/bienvenida"
+          element={
+            <ProtectedRoute allowedRoles={["Estudiante"]}>
+              <StudentWelcomePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/estudiante"
+          element={
+            <ProtectedRoute allowedRoles={["Estudiante"]}>
+              <StudentProfileGuard>
+                <StudentDashboardPage />
+              </StudentProfileGuard>
             </ProtectedRoute>
           }
         />

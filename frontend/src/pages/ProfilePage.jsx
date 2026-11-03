@@ -1,93 +1,143 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import {
+  useEffect,
+  useState
+} from "react";
+
+import {
+  useNavigate
+} from "react-router-dom";
+
 import api from "../services/api";
 import "../styles/student.css";
+
 
 function ProfilePage() {
   const navigate = useNavigate();
 
-  const [perfil, setPerfil] = useState({
+  const [
+    carreras,
+    setCarreras
+  ] = useState([]);
+
+  const [
+    form,
+    setForm
+  ] = useState({
     nombres: "",
     apellidos: "",
     email: "",
     telefono: "",
-    direccion: "",
+    ciudad_pais: "",
+    id_carrera: "",
+    estado_academico: "",
+    titulo_profesional: "",
+    fotografia_url: "",
     linkedin_url: "",
-    github_url: "",
-    sitio_web: "",
-    fotografia_url: ""
+    github_url: ""
   });
 
-  const [error, setError] = useState("");
-  const [mensaje, setMensaje] = useState("");
-  const [cargando, setCargando] = useState(true);
-  const [guardando, setGuardando] = useState(false);
+  const [
+    cargando,
+    setCargando
+  ] = useState(true);
+
+  const [
+    guardando,
+    setGuardando
+  ] = useState(false);
+
+  const [
+    error,
+    setError
+  ] = useState("");
+
+  const [
+    mensaje,
+    setMensaje
+  ] = useState("");
+
+
+  /* =========================================================
+     USUARIO GUARDADO
+  ========================================================= */
 
   const usuarioGuardado =
     localStorage.getItem("usuario") ||
     sessionStorage.getItem("usuario");
 
-  const usuario = usuarioGuardado
-    ? JSON.parse(usuarioGuardado)
-    : null;
+  const usuario =
+    usuarioGuardado
+      ? JSON.parse(usuarioGuardado)
+      : null;
 
-  const cerrarSesion = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("usuario");
 
-    sessionStorage.removeItem("token");
-    sessionStorage.removeItem("usuario");
-
-    navigate("/iniciar-sesion");
-  };
+  /* =========================================================
+     CARGAR PERFIL Y CARRERAS
+  ========================================================= */
 
   useEffect(() => {
     let activo = true;
 
-    const cargarPerfil = async () => {
+    const cargarDatos = async () => {
       try {
-        const response = await api.get(
-          "/perfil"
-        );
+        const [
+          responsePerfil,
+          responseCarreras
+        ] = await Promise.all([
+          api.get(
+            "/configuracion-inicial"
+          ),
+
+          api.get(
+            "/configuracion-inicial/carreras"
+          )
+        ]);
 
         if (!activo) {
           return;
         }
 
-        const datos =
-          response.data.perfil ||
-          response.data.usuario ||
-          response.data;
+        const perfil =
+          responsePerfil.data?.perfil;
 
-        setPerfil({
+        setCarreras(
+          responseCarreras.data?.carreras ||
+          []
+        );
+
+        setForm({
           nombres:
-            datos.nombres || "",
+            perfil?.nombres || "",
 
           apellidos:
-            datos.apellidos || "",
+            perfil?.apellidos || "",
 
           email:
-            datos.email ||
-            usuario?.email ||
-            "",
+            perfil?.email || "",
 
           telefono:
-            datos.telefono || "",
+            perfil?.telefono || "",
 
-          direccion:
-            datos.direccion || "",
+          ciudad_pais:
+            perfil?.ciudad_pais || "",
 
-          linkedin_url:
-            datos.linkedin_url || "",
+          id_carrera:
+            perfil?.id_carrera || "",
 
-          github_url:
-            datos.github_url || "",
+          estado_academico:
+            perfil?.estado_academico || "",
 
-          sitio_web:
-            datos.sitio_web || "",
+          titulo_profesional:
+            perfil?.titulo_profesional || "",
 
           fotografia_url:
-            datos.fotografia_url || ""
+            perfil?.fotografia_url || "",
+
+          linkedin_url:
+            perfil?.linkedin_url || "",
+
+          github_url:
+            perfil?.github_url || ""
         });
 
       } catch (error) {
@@ -107,12 +157,18 @@ function ProfilePage() {
       }
     };
 
-    cargarPerfil();
+    cargarDatos();
 
     return () => {
       activo = false;
     };
-  }, [usuario?.email]);
+
+  }, []);
+
+
+  /* =========================================================
+     CAMBIAR CAMPOS
+  ========================================================= */
 
   const handleChange = (e) => {
     const {
@@ -120,58 +176,142 @@ function ProfilePage() {
       value
     } = e.target;
 
-    setPerfil((anterior) => ({
-      ...anterior,
-      [name]: value
-    }));
+    setForm(
+      (anterior) => ({
+        ...anterior,
+        [name]: value
+      })
+    );
+
+    setError("");
+    setMensaje("");
   };
+
+
+  /* =========================================================
+     GUARDAR CAMBIOS
+  ========================================================= */
 
   const guardarPerfil = async (e) => {
     e.preventDefault();
 
     setError("");
     setMensaje("");
+
+    if (
+      !form.nombres.trim() ||
+      !form.apellidos.trim() ||
+      !form.telefono.trim() ||
+      !form.ciudad_pais.trim() ||
+      !form.id_carrera ||
+      !form.estado_academico ||
+      !form.titulo_profesional.trim()
+    ) {
+      setError(
+        "Completa todos los campos obligatorios"
+      );
+
+      return;
+    }
+
     setGuardando(true);
 
     try {
-      const response = await api.put(
-        "/perfil",
-        {
-          nombres:
-            perfil.nombres,
+      const response =
+        await api.put(
+          "/configuracion-inicial",
+          {
+            nombres:
+              form.nombres,
 
-          apellidos:
-            perfil.apellidos,
+            apellidos:
+              form.apellidos,
 
-          telefono:
-            perfil.telefono,
+            telefono:
+              form.telefono,
 
-          direccion:
-            perfil.direccion,
+            ciudad_pais:
+              form.ciudad_pais,
 
-          linkedin_url:
-            perfil.linkedin_url,
+            id_carrera:
+              Number(
+                form.id_carrera
+              ),
 
-          github_url:
-            perfil.github_url,
+            estado_academico:
+              form.estado_academico,
 
-          sitio_web:
-            perfil.sitio_web,
+            titulo_profesional:
+              form.titulo_profesional,
 
-          fotografia_url:
-            perfil.fotografia_url
-        }
-      );
+            fotografia_url:
+              form.fotografia_url,
+
+            linkedin_url:
+              form.linkedin_url,
+
+            github_url:
+              form.github_url
+          }
+        );
 
       setMensaje(
-        response.data.mensaje ||
+        response.data?.mensaje ||
         "Perfil actualizado correctamente"
       );
+
+
+      /* =====================================================
+         ACTUALIZAR USUARIO GUARDADO
+      ===================================================== */
+
+      const perfilActualizado =
+        response.data?.perfil;
+
+      if (usuarioGuardado) {
+        const usuarioActualizado = {
+          ...usuario,
+
+          id_carrera:
+            perfilActualizado?.id_carrera,
+
+          carrera:
+            perfilActualizado?.carrera,
+
+          estado_academico:
+            perfilActualizado?.estado_academico,
+
+          perfil_completado:
+            true
+        };
+
+
+        if (
+          localStorage.getItem(
+            "usuario"
+          )
+        ) {
+          localStorage.setItem(
+            "usuario",
+            JSON.stringify(
+              usuarioActualizado
+            )
+          );
+
+        } else {
+          sessionStorage.setItem(
+            "usuario",
+            JSON.stringify(
+              usuarioActualizado
+            )
+          );
+        }
+      }
 
     } catch (error) {
       setError(
         error.response?.data?.mensaje ||
-        "No se pudo actualizar el perfil"
+        "No se pudieron guardar los cambios"
       );
 
     } finally {
@@ -179,18 +319,60 @@ function ProfilePage() {
     }
   };
 
+
+  /* =========================================================
+     CERRAR SESIÓN
+  ========================================================= */
+
+  const cerrarSesion = () => {
+    localStorage.removeItem(
+      "token"
+    );
+
+    localStorage.removeItem(
+      "usuario"
+    );
+
+    sessionStorage.removeItem(
+      "token"
+    );
+
+    sessionStorage.removeItem(
+      "usuario"
+    );
+
+    navigate(
+      "/iniciar-sesion"
+    );
+  };
+
+
+  /* =========================================================
+     CARGANDO
+  ========================================================= */
+
   if (cargando) {
     return (
-      <main className="profile-loading">
+      <main
+        style={{
+          padding: "40px"
+        }}
+      >
         Cargando perfil...
       </main>
     );
   }
 
+
+  /* =========================================================
+     INTERFAZ
+  ========================================================= */
+
   return (
     <div className="student-page">
 
       {/* SIDEBAR */}
+
       <aside className="student-sidebar">
 
         <div className="student-brand">
@@ -200,8 +382,13 @@ function ProfilePage() {
           </div>
 
           <div>
-            <h2>PoliCV</h2>
-            <span>Estudiante</span>
+            <h2>
+              PoliCV
+            </h2>
+
+            <span>
+              Estudiante
+            </span>
           </div>
 
         </div>
@@ -210,24 +397,27 @@ function ProfilePage() {
         <div className="student-profile-mini">
 
           <div className="student-avatar">
-            {perfil.nombres
-              ? perfil.nombres
+
+            {form.nombres
+              ? form.nombres
                   .charAt(0)
                   .toUpperCase()
-              : usuario?.email
-                ?.charAt(0)
-                .toUpperCase() || "E"}
+              : "E"}
+
           </div>
 
+
           <div>
+
             <strong>
-              {perfil.nombres ||
+              {form.nombres ||
                 "Estudiante"}
             </strong>
 
             <span>
-              {usuario?.email}
+              {form.email}
             </span>
+
           </div>
 
         </div>
@@ -235,33 +425,33 @@ function ProfilePage() {
 
         <nav className="student-menu">
 
-          <Link to="/estudiante">
+          <a href="/estudiante">
             <span>01</span>
             Inicio
-          </Link>
+          </a>
 
-          <Link
-            to="/perfil"
+          <a
+            href="/perfil"
             className="active"
           >
             <span>02</span>
             Mi perfil
-          </Link>
+          </a>
 
-          <Link to="/estudiante/curriculums">
+          <a href="/estudiante/curriculums">
             <span>03</span>
             Mis currículums
-          </Link>
+          </a>
 
-          <Link to="/estudiante/asistente-ia">
+          <a href="/estudiante/asistente-ia">
             <span>04</span>
             Asistente IA
-          </Link>
+          </a>
 
-          <Link to="/estudiante/propuestas">
+          <a href="/estudiante/propuestas">
             <span>05</span>
             Propuestas de mejora
-          </Link>
+          </a>
 
         </nav>
 
@@ -278,6 +468,7 @@ function ProfilePage() {
 
 
       {/* CONTENIDO */}
+
       <main className="student-main">
 
         <header className="student-header">
@@ -293,8 +484,8 @@ function ProfilePage() {
             </h1>
 
             <p>
-              Mantén actualizados tus datos
-              personales y profesionales.
+              Mantén actualizada tu información
+              personal, académica y profesional.
             </p>
 
           </div>
@@ -303,21 +494,26 @@ function ProfilePage() {
           <div className="student-header-account">
 
             <div>
+
               <span>
                 Sesión iniciada como
               </span>
 
               <strong>
-                {usuario?.email}
+                {form.email}
               </strong>
+
             </div>
 
+
             <div className="student-header-avatar">
-              {perfil.nombres
-                ? perfil.nombres
+
+              {form.nombres
+                ? form.nombres
                     .charAt(0)
                     .toUpperCase()
                 : "E"}
+
             </div>
 
           </div>
@@ -327,74 +523,38 @@ function ProfilePage() {
 
         <div className="student-content">
 
-          {/* CABECERA PERFIL */}
+
+          {/* RESUMEN */}
+
           <section className="profile-hero">
 
-            <div className="profile-photo-area">
+            <div className="profile-avatar-large">
 
-              {perfil.fotografia_url ? (
-                <img
-                  src={perfil.fotografia_url}
-                  alt="Fotografía de perfil"
-                  className="profile-photo"
-                />
-              ) : (
-                <div className="profile-photo-placeholder">
-                  {perfil.nombres
-                    ? perfil.nombres
-                        .charAt(0)
-                        .toUpperCase()
-                    : "E"}
-                </div>
-              )}
+              {form.nombres
+                ? form.nombres
+                    .charAt(0)
+                    .toUpperCase()
+                : "E"}
 
             </div>
 
 
-            <div className="profile-hero-info">
+            <div>
 
               <span>
                 PERFIL DEL ESTUDIANTE
               </span>
 
               <h2>
-                {perfil.nombres || "Estudiante"}{" "}
-                {perfil.apellidos || ""}
+                {form.nombres}
+                {" "}
+                {form.apellidos}
               </h2>
 
               <p>
-                Completa tu información para que
-                pueda utilizarse posteriormente
-                en tus currículums y presentación
-                profesional.
+                {form.titulo_profesional ||
+                  "Perfil profesional"}
               </p>
-
-
-              <div className="profile-hero-data">
-
-                <div>
-                  <span>
-                    Correo institucional
-                  </span>
-
-                  <strong>
-                    {perfil.email ||
-                      usuario?.email}
-                  </strong>
-                </div>
-
-                <div>
-                  <span>
-                    Teléfono
-                  </span>
-
-                  <strong>
-                    {perfil.telefono ||
-                      "No registrado"}
-                  </strong>
-                </div>
-
-              </div>
 
             </div>
 
@@ -402,70 +562,83 @@ function ProfilePage() {
 
 
           {/* FORMULARIO */}
+
           <section className="profile-form-card">
 
-            <div className="profile-form-heading">
+            <div className="profile-section-heading">
 
-              <div>
-                <span>
-                  DATOS DEL PERFIL
-                </span>
+              <span>
+                DATOS DEL PERFIL
+              </span>
 
-                <h2>
-                  Información personal
-                </h2>
+              <h2>
+                Información personal y académica
+              </h2>
 
-                <p>
-                  Edita los campos que necesites
-                  actualizar.
-                </p>
-              </div>
+              <p>
+                Modifica únicamente la información
+                que necesites actualizar.
+              </p>
 
             </div>
 
 
             <form
-              onSubmit={guardarPerfil}
+              onSubmit={
+                guardarPerfil
+              }
               className="profile-form"
             >
 
-              <div className="profile-field">
+              {/* NOMBRES */}
 
-                <label htmlFor="nombres">
-                  Nombre
+              <div>
+
+                <label>
+                  Nombres *
                 </label>
 
                 <input
-                  id="nombres"
                   type="text"
                   name="nombres"
-                  value={perfil.nombres}
-                  onChange={handleChange}
+                  value={
+                    form.nombres
+                  }
+                  onChange={
+                    handleChange
+                  }
                   required
                 />
 
               </div>
 
 
-              <div className="profile-field">
+              {/* APELLIDOS */}
 
-                <label htmlFor="apellidos">
-                  Apellido
+              <div>
+
+                <label>
+                  Apellidos *
                 </label>
 
                 <input
-                  id="apellidos"
                   type="text"
                   name="apellidos"
-                  value={perfil.apellidos}
-                  onChange={handleChange}
+                  value={
+                    form.apellidos
+                  }
+                  onChange={
+                    handleChange
+                  }
                   required
                 />
 
               </div>
 
 
-              <div className="profile-field">
+              {/* CORREO */}
+
+              <div>
 
                 <label>
                   Correo institucional
@@ -474,164 +647,274 @@ function ProfilePage() {
                 <input
                   type="email"
                   value={
-                    perfil.email ||
-                    usuario?.email ||
-                    ""
+                    form.email
                   }
                   disabled
-                  className="profile-disabled"
                 />
-
-                <small>
-                  El correo institucional no
-                  puede modificarse desde el perfil.
-                </small>
 
               </div>
 
 
-              <div className="profile-field">
+              {/* TELÉFONO */}
 
-                <label htmlFor="telefono">
-                  Teléfono
+              <div>
+
+                <label>
+                  Teléfono *
                 </label>
 
                 <input
-                  id="telefono"
                   type="text"
                   name="telefono"
-                  value={perfil.telefono}
-                  onChange={handleChange}
-                  placeholder="Ejemplo: 0999999999"
+                  value={
+                    form.telefono
+                  }
+                  onChange={
+                    handleChange
+                  }
+                  required
                 />
 
               </div>
 
 
-              <div className="profile-field full">
+              {/* CIUDAD */}
 
-                <label htmlFor="direccion">
-                  Dirección
+              <div className="full">
+
+                <label>
+                  Ciudad y país *
                 </label>
 
                 <input
-                  id="direccion"
                   type="text"
-                  name="direccion"
-                  value={perfil.direccion}
-                  onChange={handleChange}
-                  placeholder="Ciudad o dirección de residencia"
+                  name="ciudad_pais"
+                  value={
+                    form.ciudad_pais
+                  }
+                  onChange={
+                    handleChange
+                  }
+                  placeholder="Quito, Ecuador"
+                  required
                 />
 
               </div>
 
 
-              <div className="profile-field">
+              {/* CARRERA */}
 
-                <label htmlFor="linkedin_url">
+              <div className="full">
+
+                <label>
+                  Carrera *
+                </label>
+
+                <select
+                  name="id_carrera"
+                  value={
+                    form.id_carrera
+                  }
+                  onChange={
+                    handleChange
+                  }
+                  required
+                >
+
+                  <option value="">
+                    Selecciona una carrera
+                  </option>
+
+
+                  {carreras.map(
+                    (carrera) => (
+
+                      <option
+                        key={
+                          carrera.id_carrera
+                        }
+                        value={
+                          carrera.id_carrera
+                        }
+                      >
+                        {carrera.nombre}
+                      </option>
+
+                    )
+                  )}
+
+                </select>
+
+              </div>
+
+
+              {/* ESTADO ACADÉMICO */}
+
+              <div>
+
+                <label>
+                  Estado académico *
+                </label>
+
+                <select
+                  name="estado_academico"
+                  value={
+                    form.estado_academico
+                  }
+                  onChange={
+                    handleChange
+                  }
+                  required
+                >
+
+                  <option value="">
+                    Selecciona una opción
+                  </option>
+
+                  <option value="cursando">
+                    Actualmente cursando
+                  </option>
+
+                  <option value="graduado">
+                    Graduado
+                  </option>
+
+                </select>
+
+              </div>
+
+
+              {/* TITULO PROFESIONAL */}
+
+              <div>
+
+                <label>
+                  Título o perfil profesional *
+                </label>
+
+                <input
+                  type="text"
+                  name="titulo_profesional"
+                  value={
+                    form.titulo_profesional
+                  }
+                  onChange={
+                    handleChange
+                  }
+                  required
+                />
+
+              </div>
+
+
+              {/* FOTO */}
+
+              <div className="full">
+
+                <label>
+                  URL de fotografía
+                </label>
+
+                <input
+                  type="url"
+                  name="fotografia_url"
+                  value={
+                    form.fotografia_url
+                  }
+                  onChange={
+                    handleChange
+                  }
+                  placeholder="Opcional"
+                />
+
+              </div>
+
+
+              {/* LINKEDIN */}
+
+              <div>
+
+                <label>
                   LinkedIn
                 </label>
 
                 <input
-                  id="linkedin_url"
                   type="url"
                   name="linkedin_url"
-                  value={perfil.linkedin_url}
-                  onChange={handleChange}
+                  value={
+                    form.linkedin_url
+                  }
+                  onChange={
+                    handleChange
+                  }
                   placeholder="https://linkedin.com/in/..."
                 />
 
               </div>
 
 
-              <div className="profile-field">
+              {/* GITHUB */}
 
-                <label htmlFor="github_url">
+              <div>
+
+                <label>
                   GitHub
                 </label>
 
                 <input
-                  id="github_url"
                   type="url"
                   name="github_url"
-                  value={perfil.github_url}
-                  onChange={handleChange}
+                  value={
+                    form.github_url
+                  }
+                  onChange={
+                    handleChange
+                  }
                   placeholder="https://github.com/..."
                 />
 
               </div>
 
 
-              <div className="profile-field">
-
-                <label htmlFor="sitio_web">
-                  Sitio web
-                </label>
-
-                <input
-                  id="sitio_web"
-                  type="url"
-                  name="sitio_web"
-                  value={perfil.sitio_web}
-                  onChange={handleChange}
-                  placeholder="https://..."
-                />
-
-              </div>
-
-
-              <div className="profile-field">
-
-                <label htmlFor="fotografia_url">
-                  URL de fotografía
-                </label>
-
-                <input
-                  id="fotografia_url"
-                  type="url"
-                  name="fotografia_url"
-                  value={perfil.fotografia_url}
-                  onChange={handleChange}
-                  placeholder="https://..."
-                />
-
-              </div>
-
+              {/* MENSAJES */}
 
               {error && (
-                <div className="profile-message error">
+
+                <p className="message error full">
                   {error}
-                </div>
+                </p>
+
               )}
 
 
               {mensaje && (
-                <div className="profile-message success">
+
+                <p className="message success full">
                   {mensaje}
-                </div>
+                </p>
+
               )}
 
 
-              <div className="profile-actions">
+              {/* BOTÓN */}
+
+              <div className="full">
 
                 <button
                   type="submit"
-                  className="profile-save-button"
-                  disabled={guardando}
+                  disabled={
+                    guardando
+                  }
                 >
+
                   {guardando
                     ? "Guardando..."
                     : "Guardar cambios"}
+
                 </button>
 
-                <Link
-                  to="/estudiante"
-                  className="profile-cancel-button"
-                >
-                  Volver al panel
-                </Link>
-
               </div>
+
 
             </form>
 
@@ -644,5 +927,6 @@ function ProfilePage() {
     </div>
   );
 }
+
 
 export default ProfilePage;

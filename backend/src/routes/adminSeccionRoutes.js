@@ -1,39 +1,66 @@
-const express = require("express");
+const express =
+  require("express");
 
-const adminSeccionController =
-  require("../controllers/adminSeccionController");
+const {
+  listarSecciones,
+  cambiarOrden,
+  listarCarreras,
+  estadisticasPorCarrera
+} =
+  require(
+    "../controllers/adminSeccionController"
+  );
 
 const {
   verificarToken
-} = require("../middlewares/authMiddleware");
+} =
+  require(
+    "../middlewares/authMiddleware"
+  );
 
 const {
   verificarRol
-} = require("../middlewares/roleMiddleware");
+} =
+  require(
+    "../middlewares/roleMiddleware"
+  );
 
-const router = express.Router();
 
-router.use(verificarToken);
-router.use(verificarRol("Administrador"));
+const router =
+  express.Router();
+
+
+router.use(
+  verificarToken,
+  verificarRol(
+    "Administrador"
+  )
+);
+
 
 router.get(
   "/",
-  adminSeccionController.listar
+  listarSecciones
 );
 
-router.post(
-  "/",
-  adminSeccionController.crear
-);
 
 router.put(
-  "/:id",
-  adminSeccionController.actualizar
+  "/orden",
+  cambiarOrden
 );
 
-router.patch(
-  "/:id/estado",
-  adminSeccionController.cambiarEstado
+
+router.get(
+  "/carreras",
+  listarCarreras
 );
 
-module.exports = router;
+
+router.get(
+  "/estadisticas",
+  estadisticasPorCarrera
+);
+
+
+module.exports =
+  router;

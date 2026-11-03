@@ -1,156 +1,231 @@
 const seccionModel =
-  require("../models/seccionModel");
+  require(
+    "../models/seccionModel"
+  );
 
-async function listar(req, res) {
+
+async function listarSecciones(
+  req,
+  res
+) {
   try {
     const secciones =
-      await seccionModel.listarSecciones();
+      await seccionModel
+        .listarSeccionesCompletas();
 
     return res.status(200).json({
+      total:
+        secciones.length,
+
       secciones
     });
 
   } catch (error) {
-    console.error(error);
+    console.error(
+      "Error al listar secciones:",
+      error
+    );
 
     return res.status(500).json({
-      mensaje: "Error al obtener las secciones"
+      mensaje:
+        "No se pudieron obtener las secciones"
     });
   }
 }
 
-async function crear(req, res) {
-  const { nombre, descripcion } = req.body || {};
 
-  if (!nombre || !nombre.trim()) {
-    return res.status(400).json({
-      mensaje: "El nombre de la sección es obligatorio"
-    });
-  }
-
+async function cambiarOrden(
+  req,
+  res
+) {
   try {
-    const existente =
-      await seccionModel.buscarPorNombre(
-        nombre.trim()
-      );
+    const { orden } =
+      req.body;
 
-    if (existente) {
-      return res.status(409).json({
-        mensaje: "Ya existe una sección con ese nombre"
+
+    if (
+      !Array.isArray(orden)
+    ) {
+      return res.status(400).json({
+        mensaje:
+          "El orden debe ser una lista"
       });
     }
 
-    const idSeccion =
-      await seccionModel.crearSeccion(
-        nombre.trim(),
-        descripcion?.trim()
-      );
 
-    return res.status(201).json({
-      mensaje: "Sección creada correctamente",
-      id_seccion: idSeccion
-    });
+    const idsActuales =
+      await seccionModel
+        .obtenerIdsSecciones();
 
-  } catch (error) {
-    console.error(error);
 
-    return res.status(500).json({
-      mensaje: "Error al crear la sección"
-    });
-  }
-}
-
-async function actualizar(req, res) {
-  const idSeccion = Number(req.params.id);
-
-  const { nombre, descripcion } = req.body || {};
-
-  if (!Number.isInteger(idSeccion)) {
-    return res.status(400).json({
-      mensaje: "Sección inválida"
-    });
-  }
-
-  if (!nombre || !nombre.trim()) {
-    return res.status(400).json({
-      mensaje: "El nombre es obligatorio"
-    });
-  }
-
-  try {
-    const actualizado =
-      await seccionModel.actualizarSeccion(
-        idSeccion,
-        nombre.trim(),
-        descripcion?.trim()
-      );
-
-    if (!actualizado) {
-      return res.status(404).json({
-        mensaje: "Sección no encontrada"
+    if (
+      orden.length !==
+      idsActuales.length
+    ) {
+      return res.status(400).json({
+        mensaje:
+          "Debe enviar todas las secciones"
       });
     }
+
+
+    const idsRecibidos =
+      orden.map(Number);
+
+
+    const unicos =
+      new Set(
+        idsRecibidos
+      );
+
+
+    if (
+      unicos.size !==
+      idsActuales.length
+    ) {
+      return res.status(400).json({
+        mensaje:
+          "No se pueden repetir secciones"
+      });
+    }
+
+
+    const contieneTodas =
+      idsActuales.every(
+        (id) =>
+          unicos.has(id)
+      );
+
+
+    if (!contieneTodas) {
+      return res.status(400).json({
+        mensaje:
+          "El orden contiene secciones inválidas"
+      });
+    }
+
+
+    await seccionModel
+      .actualizarOrden(
+        idsRecibidos
+      );
+
+
+    const secciones =
+      await seccionModel
+        .listarSeccionesCompletas();
+
 
     return res.status(200).json({
-      mensaje: "Sección actualizada correctamente"
+      mensaje:
+        "Orden actualizado correctamente",
+
+      secciones
     });
 
+
   } catch (error) {
-    console.error(error);
+    console.error(
+      "Error al cambiar orden:",
+      error
+    );
 
     return res.status(500).json({
-      mensaje: "Error al actualizar la sección"
+      mensaje:
+        "No se pudo actualizar el orden"
     });
   }
 }
 
-async function cambiarEstado(req, res) {
-  const idSeccion = Number(req.params.id);
-  const { estado } = req.body || {};
 
-  if (!Number.isInteger(idSeccion)) {
-    return res.status(400).json({
-      mensaje: "Sección inválida"
-    });
-  }
-
-  if (typeof estado !== "boolean") {
-    return res.status(400).json({
-      mensaje: "Estado inválido"
-    });
-  }
-
+async function listarCarreras(
+  req,
+  res
+) {
   try {
-    const actualizado =
-      await seccionModel.actualizarEstadoSeccion(
-        idSeccion,
-        estado
+    const carreras =
+      await seccionModel
+        .listarCarreras();
+
+    return res.status(200).json({
+      carreras
+    });
+
+  } catch (error) {
+    console.error(
+      "Error al listar carreras:",
+      error
+    );
+
+    return res.status(500).json({
+      mensaje:
+        "No se pudieron obtener las carreras"
+    });
+  }
+}
+
+
+async function estadisticasPorCarrera(
+  req,
+  res
+) {
+  try {
+    const idCarrera =
+      Number(
+        req.query.carrera
       );
 
-    if (!actualizado) {
-      return res.status(404).json({
-        mensaje: "Sección no encontrada"
+
+    if (
+      !Number.isInteger(
+        idCarrera
+      ) ||
+      idCarrera <= 0
+    ) {
+      return res.status(400).json({
+        mensaje:
+          "Selecciona una carrera válida"
       });
     }
 
-    return res.status(200).json({
-      mensaje: estado
-        ? "Sección activada correctamente"
-        : "Sección desactivada correctamente"
-    });
+
+    const estadisticas =
+      await seccionModel
+        .obtenerEstadisticasPorCarrera(
+          idCarrera
+        );
+
+
+    if (!estadisticas) {
+      return res.status(404).json({
+        mensaje:
+          "La carrera no existe"
+      });
+    }
+
+
+    return res.status(200).json(
+      estadisticas
+    );
+
 
   } catch (error) {
-    console.error(error);
+    console.error(
+      "Error al consultar estadísticas:",
+      error
+    );
 
     return res.status(500).json({
-      mensaje: "Error al cambiar el estado"
+      mensaje:
+        "No se pudieron obtener las estadísticas"
     });
   }
 }
+
 
 module.exports = {
-  listar,
-  crear,
-  actualizar,
-  cambiarEstado
+  listarSecciones,
+  cambiarOrden,
+  listarCarreras,
+  estadisticasPorCarrera
 };

@@ -1,722 +1,1077 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import {
+  useEffect,
+  useState
+} from "react";
+
+import {
+  Link
+} from "react-router-dom";
+
 import api from "../services/api";
 import "../styles/admin.css";
 
+
 function AdminSectionsPage() {
-  const navigate = useNavigate();
 
-  const [secciones, setSecciones] = useState([]);
+  const [
+    secciones,
+    setSecciones
+  ] = useState([]);
 
-  const [form, setForm] = useState({
-    nombre: "",
-    descripcion: ""
-  });
 
-  const [idEdicion, setIdEdicion] = useState(null);
+  const [
+    carreras,
+    setCarreras
+  ] = useState([]);
 
-  const [error, setError] = useState("");
-  const [mensaje, setMensaje] = useState("");
-  const [cargando, setCargando] = useState(true);
 
-  const usuarioGuardado =
-    localStorage.getItem("usuario") ||
-    sessionStorage.getItem("usuario");
+  const [
+    carreraSeleccionada,
+    setCarreraSeleccionada
+  ] = useState("");
 
-  const usuarioActual = usuarioGuardado
-    ? JSON.parse(usuarioGuardado)
-    : null;
 
-  const cerrarSesion = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("usuario");
+  const [
+    estadisticas,
+    setEstadisticas
+  ] = useState(null);
 
-    sessionStorage.removeItem("token");
-    sessionStorage.removeItem("usuario");
 
-    navigate("/iniciar-sesion");
-  };
+  const [
+    seccionAbierta,
+    setSeccionAbierta
+  ] = useState(null);
 
-  const cargarSecciones = async () => {
-    try {
-      setCargando(true);
-      setError("");
 
-      const response = await api.get(
-        "/admin/secciones"
-      );
+  const [
+    arrastrando,
+    setArrastrando
+  ] = useState(null);
 
-      setSecciones(
-        response.data.secciones || []
-      );
 
-    } catch (error) {
-      setError(
-        error.response?.data?.mensaje ||
-        "No se pudieron cargar las secciones"
-      );
+  const [
+    cargando,
+    setCargando
+  ] = useState(true);
 
-    } finally {
-      setCargando(false);
-    }
-  };
+
+  const [
+    guardandoOrden,
+    setGuardandoOrden
+  ] = useState(false);
+
+
+  const [
+    error,
+    setError
+  ] = useState("");
+
+
+  const [
+    mensaje,
+    setMensaje
+  ] = useState("");
+
 
   useEffect(() => {
+
     let activo = true;
 
-    const cargarInicial = async () => {
-      try {
-        const response = await api.get(
-          "/admin/secciones"
-        );
 
-        if (!activo) {
-          return;
+    const cargarInicial =
+      async () => {
+
+        try {
+
+          const [
+            responseSecciones,
+            responseCarreras
+          ] =
+            await Promise.all([
+              api.get(
+                "/admin/secciones"
+              ),
+
+              api.get(
+                "/admin/secciones/carreras"
+              )
+            ]);
+
+
+          if (!activo) {
+            return;
+          }
+
+
+          setSecciones(
+            responseSecciones
+              .data
+              ?.secciones ||
+            []
+          );
+
+
+          setCarreras(
+            responseCarreras
+              .data
+              ?.carreras ||
+            []
+          );
+
+
+        } catch (error) {
+
+          if (!activo) {
+            return;
+          }
+
+
+          setError(
+            error.response
+              ?.data
+              ?.mensaje ||
+
+            "No se pudo cargar la configuración de las secciones"
+          );
+
+
+        } finally {
+
+          if (activo) {
+            setCargando(false);
+          }
+
         }
 
-        setSecciones(
-          response.data.secciones || []
-        );
+      };
 
-      } catch (error) {
-        if (!activo) {
-          return;
-        }
-
-        setError(
-          error.response?.data?.mensaje ||
-          "No se pudieron cargar las secciones"
-        );
-
-      } finally {
-        if (activo) {
-          setCargando(false);
-        }
-      }
-    };
 
     cargarInicial();
+
 
     return () => {
       activo = false;
     };
+
   }, []);
 
-  const handleChange = (e) => {
-    const {
-      name,
-      value
-    } = e.target;
 
-    setForm({
-      ...form,
-      [name]: value
-    });
-  };
+  const abrirSeccion =
+    (idSeccion) => {
 
-  const limpiarFormulario = () => {
-    setForm({
-      nombre: "",
-      descripcion: ""
-    });
-
-    setIdEdicion(null);
-  };
-
-  const guardarSeccion = async (e) => {
-    e.preventDefault();
-
-    setError("");
-    setMensaje("");
-
-    if (!form.nombre.trim()) {
-      setError(
-        "El nombre de la sección es obligatorio"
+      setSeccionAbierta(
+        (actual) =>
+          actual === idSeccion
+            ? null
+            : idSeccion
       );
 
-      return;
-    }
+    };
 
-    try {
-      let response;
 
-      if (idEdicion) {
-        response = await api.put(
-          `/admin/secciones/${idEdicion}`,
-          {
-            nombre: form.nombre.trim(),
-            descripcion:
-              form.descripcion.trim()
-          }
-        );
+  /* ================================================
+     ARRASTRAR
+  ================================================ */
 
-      } else {
-        response = await api.post(
-          "/admin/secciones",
-          {
-            nombre: form.nombre.trim(),
-            descripcion:
-              form.descripcion.trim()
-          }
-        );
+  const iniciarArrastre =
+    (idSeccion) => {
+
+      setArrastrando(
+        idSeccion
+      );
+
+    };
+
+
+  const permitirSoltar =
+    (e) => {
+
+      e.preventDefault();
+
+    };
+
+
+  const soltarSeccion =
+    (
+      idDestino
+    ) => {
+
+      if (
+        arrastrando === null ||
+        arrastrando === idDestino
+      ) {
+        return;
       }
 
-      setMensaje(
-        response.data.mensaje
-      );
 
-      limpiarFormulario();
+      setSecciones(
+        (actuales) => {
 
-      await cargarSecciones();
+          const nuevaLista =
+            [...actuales];
 
-    } catch (error) {
-      setError(
-        error.response?.data?.mensaje ||
-        "No se pudo guardar la sección"
-      );
-    }
-  };
 
-  const editarSeccion = (seccion) => {
-    setIdEdicion(
-      seccion.id_seccion
-    );
+          const indiceOrigen =
+            nuevaLista.findIndex(
+              (item) =>
+                item.id_seccion ===
+                arrastrando
+            );
 
-    setForm({
-      nombre:
-        seccion.nombre || "",
 
-      descripcion:
-        seccion.descripcion || ""
-    });
+          const indiceDestino =
+            nuevaLista.findIndex(
+              (item) =>
+                item.id_seccion ===
+                idDestino
+            );
 
-    setError("");
-    setMensaje("");
 
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth"
-    });
-  };
+          if (
+            indiceOrigen === -1 ||
+            indiceDestino === -1
+          ) {
+            return actuales;
+          }
 
-  const cambiarEstado = async (seccion) => {
-    const nuevoEstado =
-      !seccion.estado;
 
-    const accion =
-      nuevoEstado
-        ? "activar"
-        : "desactivar";
+          const [
+            elemento
+          ] =
+            nuevaLista.splice(
+              indiceOrigen,
+              1
+            );
 
-    const confirmar = window.confirm(
-      `¿Deseas ${accion} la sección "${seccion.nombre}"?`
-    );
 
-    if (!confirmar) {
-      return;
-    }
+          nuevaLista.splice(
+            indiceDestino,
+            0,
+            elemento
+          );
 
-    try {
-      setError("");
-      setMensaje("");
 
-      const response = await api.patch(
-        `/admin/secciones/${seccion.id_seccion}/estado`,
-        {
-          estado: nuevoEstado
+          return nuevaLista.map(
+            (
+              item,
+              index
+            ) => ({
+              ...item,
+              orden:
+                index + 1
+            })
+          );
+
         }
       );
 
-      setMensaje(
-        response.data.mensaje
+
+      setArrastrando(
+        null
       );
 
-      await cargarSecciones();
+    };
 
-    } catch (error) {
-      setError(
-        error.response?.data?.mensaje ||
-        "No se pudo actualizar el estado de la sección"
+
+  const guardarOrden =
+    async () => {
+
+      setError("");
+
+      setMensaje("");
+
+      setGuardandoOrden(
+        true
       );
-    }
-  };
+
+
+      try {
+
+        const orden =
+          secciones.map(
+            (item) =>
+              item.id_seccion
+          );
+
+
+        const response =
+          await api.put(
+            "/admin/secciones/orden",
+            {
+              orden
+            }
+          );
+
+
+        setSecciones(
+          response.data
+            ?.secciones ||
+          secciones
+        );
+
+
+        setMensaje(
+          "Orden guardado correctamente"
+        );
+
+
+      } catch (error) {
+
+        setError(
+          error.response
+            ?.data
+            ?.mensaje ||
+
+          "No se pudo guardar el orden"
+        );
+
+
+      } finally {
+
+        setGuardandoOrden(
+          false
+        );
+
+      }
+
+    };
+
+
+  /* ================================================
+     ESTADÍSTICAS
+  ================================================ */
+
+  const verEstadisticas =
+    async () => {
+
+      if (
+        !carreraSeleccionada
+      ) {
+
+        setError(
+          "Selecciona una carrera"
+        );
+
+        return;
+
+      }
+
+
+      setError("");
+
+      setEstadisticas(
+        null
+      );
+
+
+      try {
+
+        const response =
+          await api.get(
+            `/admin/secciones/estadisticas?carrera=${carreraSeleccionada}`
+          );
+
+
+        setEstadisticas(
+          response.data
+        );
+
+
+      } catch (error) {
+
+        setError(
+          error.response
+            ?.data
+            ?.mensaje ||
+
+          "No se pudieron consultar las estadísticas"
+        );
+
+      }
+
+    };
+
+
+  const obtenerMayorUso =
+    () => {
+
+      if (
+        !estadisticas
+          ?.secciones
+          ?.length
+      ) {
+        return null;
+      }
+
+
+      return [
+        ...estadisticas.secciones
+      ].sort(
+        (a, b) =>
+          b.porcentaje -
+          a.porcentaje
+      )[0];
+
+    };
+
+
+  const obtenerMenorUso =
+    () => {
+
+      if (
+        !estadisticas
+          ?.secciones
+          ?.length
+      ) {
+        return null;
+      }
+
+
+      return [
+        ...estadisticas.secciones
+      ].sort(
+        (a, b) =>
+          a.porcentaje -
+          b.porcentaje
+      )[0];
+
+    };
+
+
+  const mayorUso =
+    obtenerMayorUso();
+
+
+  const menorUso =
+    obtenerMenorUso();
+
+
+  if (cargando) {
+
+    return (
+      <main className="admin-content">
+        Cargando secciones...
+      </main>
+    );
+
+  }
+
 
   return (
-    <div className="admin-page">
 
-      {/* SIDEBAR */}
-      <aside className="admin-sidebar">
+    <main className="admin-content">
 
-        <div className="admin-brand">
 
-          <div className="admin-brand-logo">
-            P
-          </div>
+      <section className="sections-heading">
 
-          <div>
-            <h2>PoliCV</h2>
-            <span>Administración</span>
-          </div>
+        <div>
+
+          <span className="sections-label">
+            CONFIGURACIÓN DEL CURRÍCULUM
+          </span>
+
+          <h2>
+            Secciones del currículum
+          </h2>
+
+          <p>
+            Las secciones, subsecciones y
+            campos son predeterminados y
+            permanentes. Puedes consultar
+            su estructura y modificar
+            únicamente el orden.
+          </p>
 
         </div>
 
 
-        <div className="admin-profile">
+        <div className="sections-counter">
 
-          <div className="admin-avatar">
-            {usuarioActual?.email
-              ? usuarioActual.email
-                  .charAt(0)
-                  .toUpperCase()
-              : "A"}
-          </div>
+          <span>
+            Secciones
+          </span>
+
+          <strong>
+            {secciones.length}
+          </strong>
+
+        </div>
+
+      </section>
+
+
+      {error && (
+        <p className="users-message error">
+          {error}
+        </p>
+      )}
+
+
+      {mensaje && (
+        <p className="users-message success">
+          {mensaje}
+        </p>
+      )}
+
+
+      <section className="sections-table-card">
+
+
+        <div className="sections-table-header">
 
           <div>
-            <strong>
-              Administrador
-            </strong>
 
             <span>
-              {usuarioActual?.email}
+              ESTRUCTURA PREDETERMINADA
             </span>
+
+            <h3>
+              Secciones disponibles
+            </h3>
+
+          </div>
+
+
+          <button
+            type="button"
+            className="sections-btn-primary"
+            onClick={guardarOrden}
+            disabled={guardandoOrden}
+          >
+            {guardandoOrden
+              ? "Guardando..."
+              : "Guardar orden"}
+          </button>
+
+        </div>
+
+
+        <div>
+
+          {secciones.map(
+            (
+              seccion,
+              index
+            ) => (
+
+              <article
+                key={
+                  seccion.id_seccion
+                }
+                draggable
+                onDragStart={() =>
+                  iniciarArrastre(
+                    seccion.id_seccion
+                  )
+                }
+                onDragOver={
+                  permitirSoltar
+                }
+                onDrop={() =>
+                  soltarSeccion(
+                    seccion.id_seccion
+                  )
+                }
+                style={{
+                  padding:
+                    "18px 22px",
+
+                  borderBottom:
+                    "1px solid #e4eeee",
+
+                  background:
+                    arrastrando ===
+                    seccion.id_seccion
+                      ? "#eef9f8"
+                      : "#ffffff",
+
+                  cursor:
+                    "grab"
+                }}
+              >
+
+
+                <div
+                  style={{
+                    display:
+                      "flex",
+
+                    alignItems:
+                      "center",
+
+                    gap:
+                      "16px"
+                  }}
+                >
+
+                  <strong
+                    style={{
+                      minWidth:
+                        "30px"
+                    }}
+                  >
+                    {index + 1}
+                  </strong>
+
+
+                  <div
+                    style={{
+                      flex:
+                        1
+                    }}
+                  >
+
+                    <strong>
+                      {seccion.nombre}
+                    </strong>
+
+                    <p>
+                      {seccion.descripcion}
+                    </p>
+
+                  </div>
+
+
+                  <button
+                    type="button"
+                    className="section-edit-btn"
+                    onClick={() =>
+                      abrirSeccion(
+                        seccion.id_seccion
+                      )
+                    }
+                  >
+                    {seccionAbierta ===
+                    seccion.id_seccion
+                      ? "Ocultar"
+                      : "Ver estructura"}
+                  </button>
+
+                </div>
+
+
+                {seccionAbierta ===
+                  seccion.id_seccion && (
+
+                  <div
+                    style={{
+                      marginTop:
+                        "18px",
+
+                      paddingTop:
+                        "18px",
+
+                      borderTop:
+                        "1px solid #edf3f3"
+                    }}
+                  >
+
+
+                    {seccion.campos
+                      ?.length > 0 && (
+
+                      <div>
+
+                        <strong>
+                          Campos
+                        </strong>
+
+                        {seccion.campos.map(
+                          (campo) => (
+
+                            <p
+                              key={
+                                campo.id_campo
+                              }
+                            >
+                              • {campo.nombre}
+
+                              {campo.obligatorio
+                                ? " — Obligatorio"
+                                : " — Opcional"}
+
+                              {campo.minimo !==
+                                null &&
+                                campo.maximo !==
+                                null
+                                ? ` — ${campo.minimo} a ${campo.maximo}`
+                                : ""}
+                            </p>
+
+                          )
+                        )}
+
+                      </div>
+
+                    )}
+
+
+                    {seccion.subsecciones
+                      ?.map(
+                        (subseccion) => (
+
+                          <div
+                            key={
+                              subseccion.id_subseccion
+                            }
+                            style={{
+                              marginTop:
+                                "15px"
+                            }}
+                          >
+
+                            <strong>
+                              {
+                                subseccion.nombre
+                              }
+                            </strong>
+
+                            <p>
+                              {
+                                subseccion.descripcion
+                              }
+                            </p>
+
+
+                            {subseccion.campos
+                              ?.map(
+                                (campo) => (
+
+                                  <p
+                                    key={
+                                      campo.id_campo
+                                    }
+                                  >
+                                    • {
+                                      campo.nombre
+                                    }
+
+                                    {campo.obligatorio
+                                      ? " — Obligatorio"
+                                      : " — Opcional"}
+
+                                    {campo.minimo !==
+                                      null &&
+                                      campo.maximo !==
+                                      null
+                                      ? ` — ${campo.minimo} a ${campo.maximo}`
+                                      : ""}
+                                  </p>
+
+                                )
+                              )}
+
+                          </div>
+
+                        )
+                      )}
+
+                  </div>
+
+                )}
+
+              </article>
+
+            )
+          )}
+
+        </div>
+
+      </section>
+
+
+      {/* ===============================================
+          ESTADÍSTICAS POR CARRERA
+      =============================================== */}
+
+      <section
+        style={{
+          marginTop:
+            "35px"
+        }}
+      >
+
+        <div className="sections-heading">
+
+          <div>
+
+            <span className="sections-label">
+              ESTADÍSTICAS
+            </span>
+
+            <h2>
+              Uso de secciones por carrera
+            </h2>
+
+            <p>
+              Selecciona una carrera para
+              conocer qué secciones utilizan
+              sus estudiantes.
+            </p>
+
           </div>
 
         </div>
 
 
-        <nav className="admin-menu">
+        <div className="sections-form-card">
 
-          <Link to="/admin">
-            <span>01</span>
-            Panel principal
-          </Link>
+          <div className="sections-form-info">
 
-          <Link to="/admin/usuarios">
-            <span>02</span>
-            Gestionar usuarios
-          </Link>
-
-          <Link
-            to="/admin/secciones"
-            className="active"
-          >
-            <span>03</span>
-            Secciones del CV
-          </Link>
-
-          <Link to="/admin/plantillas">
-            <span>04</span>
-            Plantillas
-          </Link>
-
-          <Link to="/admin/estadisticas">
-            <span>05</span>
-            Estadísticas
-          </Link>
-
-          <Link to="/admin/propuestas">
-            <span>06</span>
-            Propuestas
-          </Link>
-
-        </nav>
-
-
-        <button
-          type="button"
-          className="admin-logout"
-          onClick={cerrarSesion}
-        >
-          Cerrar sesión
-        </button>
-
-      </aside>
-
-
-      {/* CONTENIDO */}
-      <main className="admin-main">
-
-        <header className="admin-header">
-
-          <div>
-
-            <span className="admin-header-label">
-              CONFIGURACIÓN DEL CURRÍCULUM
+            <span>
+              CARRERA
             </span>
 
-            <h1>
-              Secciones del CV
-            </h1>
+            <h3>
+              Consultar estadísticas
+            </h3>
 
             <p>
-              Administra las secciones que forman
-              parte del currículum de los estudiantes.
+              Los porcentajes se calculan
+              según los estudiantes que
+              utilizan cada sección.
             </p>
 
           </div>
 
 
-          <div className="admin-header-account">
+          <div>
 
-            <div>
-              <span>
-                Sesión iniciada como
-              </span>
+            <select
+              value={
+                carreraSeleccionada
+              }
+              onChange={(e) =>
+                setCarreraSeleccionada(
+                  e.target.value
+                )
+              }
+              style={{
+                width:
+                  "100%",
 
-              <strong>
-                {usuarioActual?.email}
-              </strong>
-            </div>
+                minHeight:
+                  "43px",
 
-            <div className="admin-header-avatar">
-              {usuarioActual?.email
-                ? usuarioActual.email
-                    .charAt(0)
-                    .toUpperCase()
-                : "A"}
-            </div>
+                marginBottom:
+                  "12px"
+              }}
+            >
+
+              <option value="">
+                Selecciona una carrera
+              </option>
+
+              {carreras.map(
+                (carrera) => (
+
+                  <option
+                    key={
+                      carrera.id_carrera
+                    }
+                    value={
+                      carrera.id_carrera
+                    }
+                  >
+                    {carrera.nombre}
+                  </option>
+
+                )
+              )}
+
+            </select>
+
+
+            <button
+              type="button"
+              className="sections-btn-primary"
+              onClick={
+                verEstadisticas
+              }
+            >
+              Ver estadísticas
+            </button>
 
           </div>
 
-        </header>
+        </div>
 
 
-        <div className="admin-content">
+        {estadisticas && (
 
-          {/* ENCABEZADO */}
-          <section className="sections-heading">
+          <div className="statistics-card">
 
-            <div>
-
-              <span className="sections-label">
-                ADMINISTRACIÓN
-              </span>
-
-              <h2>
-                Gestionar secciones
-              </h2>
-
-              <p>
-                Crea nuevas secciones, modifica
-                su información y controla cuáles
-                permanecen disponibles.
-              </p>
-
-            </div>
-
-
-            <div className="sections-counter">
-
-              <span>
-                Secciones registradas
-              </span>
-
-              <strong>
-                {secciones.length}
-              </strong>
-
-            </div>
-
-          </section>
-
-
-          {/* FORMULARIO */}
-          <section className="sections-form-card">
-
-            <div className="sections-form-info">
-
-              <span>
-                {idEdicion
-                  ? "EDITAR SECCIÓN"
-                  : "NUEVA SECCIÓN"}
-              </span>
-
-              <h3>
-                {idEdicion
-                  ? "Actualizar información"
-                  : "Registrar sección"}
-              </h3>
-
-              <p>
-                Define el nombre y una descripción
-                clara para identificar la sección
-                dentro del currículum.
-              </p>
-
-            </div>
-
-
-            <form
-              className="sections-form"
-              onSubmit={guardarSeccion}
-            >
-
-              <div className="sections-field">
-
-                <label htmlFor="nombre">
-                  Nombre
-                </label>
-
-                <input
-                  id="nombre"
-                  type="text"
-                  name="nombre"
-                  value={form.nombre}
-                  onChange={handleChange}
-                  placeholder="Ejemplo: Formación académica"
-                />
-
-              </div>
-
-
-              <div className="sections-field">
-
-                <label htmlFor="descripcion">
-                  Descripción
-                </label>
-
-                <textarea
-                  id="descripcion"
-                  name="descripcion"
-                  value={form.descripcion}
-                  onChange={handleChange}
-                  placeholder="Describe brevemente el propósito de esta sección..."
-                  rows="4"
-                />
-
-              </div>
-
-
-              <div className="sections-form-actions">
-
-                <button
-                  type="submit"
-                  className="sections-btn-primary"
-                >
-                  {idEdicion
-                    ? "Guardar cambios"
-                    : "Crear sección"}
-                </button>
-
-
-                {idEdicion && (
-                  <button
-                    type="button"
-                    className="sections-btn-secondary"
-                    onClick={limpiarFormulario}
-                  >
-                    Cancelar edición
-                  </button>
-                )}
-
-              </div>
-
-            </form>
-
-          </section>
-
-
-          {/* MENSAJES */}
-          {error && (
-            <div className="users-message error">
-              {error}
-            </div>
-          )}
-
-          {mensaje && (
-            <div className="users-message success">
-              {mensaje}
-            </div>
-          )}
-
-
-          {/* TABLA */}
-          <section className="sections-table-card">
-
-            <div className="sections-table-header">
+            <div className="statistics-card-heading">
 
               <div>
 
                 <span>
-                  CONFIGURACIÓN ACTUAL
+                  {
+                    estadisticas
+                      .carrera
+                      .nombre
+                  }
                 </span>
 
                 <h3>
-                  Secciones disponibles
+                  Uso de las secciones
                 </h3>
 
               </div>
 
 
-              <Link
-                to="/admin"
-                className="users-back-link"
-              >
-                Volver al panel
-              </Link>
+              <p>
+                {
+                  estadisticas
+                    .total_estudiantes
+                }
+                {" "}
+                estudiantes
+              </p>
 
             </div>
 
 
-            {cargando ? (
+            <div className="statistics-bars">
 
-              <div className="users-loading">
-                Cargando secciones...
-              </div>
+              {estadisticas
+                .secciones
+                .map(
+                  (seccion) => (
 
-            ) : secciones.length === 0 ? (
-
-              <div className="users-empty">
-
-                <strong>
-                  No existen secciones registradas
-                </strong>
-
-                <p>
-                  Utiliza el formulario superior
-                  para crear la primera sección.
-                </p>
-
-              </div>
-
-            ) : (
-
-              <div className="users-table-wrapper">
-
-                <table className="sections-table">
-
-                  <thead>
-
-                    <tr>
-                      <th>ID</th>
-                      <th>Sección</th>
-                      <th>Descripción</th>
-                      <th>Estado</th>
-                      <th>Acciones</th>
-                    </tr>
-
-                  </thead>
-
-
-                  <tbody>
-
-                    {secciones.map(
-                      (seccion) => {
-
-                        const activa =
-                          seccion.estado;
-
-                        return (
-                          <tr
-                            key={
-                              seccion.id_seccion
-                            }
-                          >
-
-                            <td className="user-id">
-                              #{seccion.id_seccion}
-                            </td>
-
-
-                            <td>
-
-                              <div className="section-name-cell">
-
-                                <div className="section-table-number">
-                                  {seccion.id_seccion}
-                                </div>
-
-                                <strong>
-                                  {seccion.nombre}
-                                </strong>
-
-                              </div>
-
-                            </td>
-
-
-                            <td className="section-description">
-                              {seccion.descripcion ||
-                                "Sin descripción"}
-                            </td>
-
-
-                            <td>
-
-                              <span
-                                className={
-                                  activa
-                                    ? "status-badge active"
-                                    : "status-badge inactive"
-                                }
-                              >
-                                {activa
-                                  ? "Activa"
-                                  : "Inactiva"}
-                              </span>
-
-                            </td>
-
-
-                            <td>
-
-                              <div className="section-actions">
-
-                                <button
-                                  type="button"
-                                  className="section-edit-btn"
-                                  onClick={() =>
-                                    editarSeccion(
-                                      seccion
-                                    )
-                                  }
-                                >
-                                  Editar
-                                </button>
-
-
-                                <button
-                                  type="button"
-                                  className={
-                                    activa
-                                      ? "user-action deactivate"
-                                      : "user-action activate"
-                                  }
-                                  onClick={() =>
-                                    cambiarEstado(
-                                      seccion
-                                    )
-                                  }
-                                >
-                                  {activa
-                                    ? "Desactivar"
-                                    : "Activar"}
-                                </button>
-
-                              </div>
-
-                            </td>
-
-                          </tr>
-                        );
+                    <div
+                      key={
+                        seccion.id_seccion
                       }
-                    )}
+                    >
 
-                  </tbody>
+                      <div className="statistics-bar-info">
 
-                </table>
+                        <span>
+                          {seccion.nombre}
+                        </span>
+
+                        <strong>
+                          {
+                            seccion.porcentaje
+                          }
+                          %
+                        </strong>
+
+                      </div>
+
+
+                      <div className="statistics-bar-track">
+
+                        <div
+                          className="statistics-bar-fill teal"
+                          style={{
+                            width:
+                              `${seccion.porcentaje}%`
+                          }}
+                        />
+
+                      </div>
+
+
+                      <small>
+                        {
+                          seccion.estudiantes
+                        }
+                        {" de "}
+                        {
+                          seccion.total_estudiantes
+                        }
+                        {" estudiantes"}
+                      </small>
+
+                    </div>
+
+                  )
+                )}
+
+            </div>
+
+
+            {mayorUso && menorUso && (
+
+              <div
+                style={{
+                  marginTop:
+                    "25px",
+
+                  display:
+                    "grid",
+
+                  gridTemplateColumns:
+                    "1fr 1fr",
+
+                  gap:
+                    "15px"
+                }}
+              >
+
+                <div>
+
+                  <strong>
+                    Sección más utilizada
+                  </strong>
+
+                  <p>
+                    {mayorUso.nombre}
+                    {" — "}
+                    {mayorUso.porcentaje}%
+                  </p>
+
+                </div>
+
+
+                <div>
+
+                  <strong>
+                    Sección menos utilizada
+                  </strong>
+
+                  <p>
+                    {menorUso.nombre}
+                    {" — "}
+                    {menorUso.porcentaje}%
+                  </p>
+
+                </div>
 
               </div>
+
             )}
 
-          </section>
+          </div>
 
-        </div>
+        )}
 
-      </main>
+      </section>
 
-    </div>
+
+      <div
+        style={{
+          marginTop:
+            "30px"
+        }}
+      >
+
+        <Link
+          to="/admin"
+          className="users-back-link"
+        >
+          Volver al panel principal
+        </Link>
+
+      </div>
+
+
+    </main>
+
   );
 }
+
 
 export default AdminSectionsPage;
