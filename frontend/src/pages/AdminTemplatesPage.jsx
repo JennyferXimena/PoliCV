@@ -1,275 +1,262 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import {
+  useEffect,
+  useState
+} from "react";
+
+import {
+  Link,
+  useNavigate
+} from "react-router-dom";
+
 import api from "../services/api";
 import "../styles/admin.css";
 
+
 function AdminTemplatesPage() {
-  const navigate = useNavigate();
 
-  const [plantillas, setPlantillas] = useState([]);
+  const navigate =
+    useNavigate();
 
-  const [form, setForm] = useState({
-    nombre: "",
-    codigo: "",
-    descripcion: "",
-    imagen_url: ""
-  });
 
-  const [idEdicion, setIdEdicion] = useState(null);
+  const [
+    plantillas,
+    setPlantillas
+  ] = useState([]);
 
-  const [error, setError] = useState("");
-  const [mensaje, setMensaje] = useState("");
-  const [cargando, setCargando] = useState(true);
+
+  const [
+    error,
+    setError
+  ] = useState("");
+
+
+  const [
+    mensaje,
+    setMensaje
+  ] = useState("");
+
+
+  const [
+    cargando,
+    setCargando
+  ] = useState(true);
+
 
   const usuarioGuardado =
     localStorage.getItem("usuario") ||
     sessionStorage.getItem("usuario");
 
-  const usuarioActual = usuarioGuardado
-    ? JSON.parse(usuarioGuardado)
-    : null;
+
+  const usuarioActual =
+    usuarioGuardado
+      ? JSON.parse(usuarioGuardado)
+      : null;
+
+
+  /* =========================================================
+     CERRAR SESIÓN
+  ========================================================= */
 
   const cerrarSesion = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("usuario");
 
-    sessionStorage.removeItem("token");
-    sessionStorage.removeItem("usuario");
+    localStorage.removeItem(
+      "token"
+    );
 
-    navigate("/iniciar-sesion");
+    localStorage.removeItem(
+      "usuario"
+    );
+
+    sessionStorage.removeItem(
+      "token"
+    );
+
+    sessionStorage.removeItem(
+      "usuario"
+    );
+
+    navigate(
+      "/iniciar-sesion"
+    );
   };
 
-  const cargarPlantillas = async () => {
-    try {
-      setCargando(true);
-      setError("");
 
-      const response = await api.get(
-        "/admin/plantillas"
-      );
+  /* =========================================================
+     CARGAR PLANTILLAS
+  ========================================================= */
 
-      setPlantillas(
-        response.data.plantillas || []
-      );
+  const cargarPlantillas =
+    async () => {
 
-    } catch (error) {
-      setError(
-        error.response?.data?.mensaje ||
-        "No se pudieron cargar las plantillas"
-      );
-
-    } finally {
-      setCargando(false);
-    }
-  };
-
-  useEffect(() => {
-    let activo = true;
-
-    const cargarInicial = async () => {
       try {
-        const response = await api.get(
-          "/admin/plantillas"
-        );
 
-        if (!activo) {
-          return;
-        }
+        setCargando(true);
+        setError("");
+
+
+        const response =
+          await api.get(
+            "/admin/plantillas"
+          );
+
 
         setPlantillas(
-          response.data.plantillas || []
+          response.data.plantillas ||
+          []
         );
 
+
       } catch (error) {
-        if (!activo) {
-          return;
-        }
 
         setError(
           error.response?.data?.mensaje ||
           "No se pudieron cargar las plantillas"
         );
 
+
       } finally {
-        if (activo) {
-          setCargando(false);
-        }
+
+        setCargando(false);
+
       }
     };
 
+
+  useEffect(() => {
+
+    let activo = true;
+
+
+    const cargarInicial =
+      async () => {
+
+        try {
+
+          const response =
+            await api.get(
+              "/admin/plantillas"
+            );
+
+
+          if (!activo) {
+            return;
+          }
+
+
+          setPlantillas(
+            response.data.plantillas ||
+            []
+          );
+
+
+        } catch (error) {
+
+          if (!activo) {
+            return;
+          }
+
+
+          setError(
+            error.response?.data?.mensaje ||
+            "No se pudieron cargar las plantillas"
+          );
+
+
+        } finally {
+
+          if (activo) {
+            setCargando(false);
+          }
+
+        }
+      };
+
+
     cargarInicial();
+
 
     return () => {
       activo = false;
     };
+
   }, []);
 
-  const handleChange = (e) => {
-    const {
-      name,
-      value
-    } = e.target;
 
-    setForm({
-      ...form,
-      [name]: value
-    });
-  };
+  /* =========================================================
+     ACTIVAR / DESACTIVAR
+  ========================================================= */
 
-  const limpiarFormulario = () => {
-    setForm({
-      nombre: "",
-      codigo: "",
-      descripcion: "",
-      imagen_url: ""
-    });
+  const cambiarEstado =
+    async (plantilla) => {
 
-    setIdEdicion(null);
-  };
+      const nuevoEstado =
+          !plantilla.estado
 
-  const guardarPlantilla = async (e) => {
-    e.preventDefault();
+      const accion =
+        nuevoEstado
+          ? "activar"
+          : "desactivar";
 
-    setError("");
-    setMensaje("");
 
-    if (!form.nombre.trim()) {
-      setError(
-        "El nombre de la plantilla es obligatorio"
-      );
-
-      return;
-    }
-
-    if (!form.codigo.trim()) {
-      setError(
-        "El código de la plantilla es obligatorio"
-      );
-
-      return;
-    }
-
-    try {
-      let response;
-
-      const datos = {
-        nombre:
-          form.nombre.trim(),
-
-        codigo:
-          form.codigo.trim(),
-
-        descripcion:
-          form.descripcion.trim(),
-
-        imagen_url:
-          form.imagen_url.trim()
-      };
-
-      if (idEdicion) {
-        response = await api.put(
-          `/admin/plantillas/${idEdicion}`,
-          datos
+      const confirmar =
+        window.confirm(
+          `¿Deseas ${accion} la plantilla "${plantilla.nombre}"?`
         );
 
-      } else {
-        response = await api.post(
-          "/admin/plantillas",
-          datos
-        );
+
+      if (!confirmar) {
+        return;
       }
 
-      setMensaje(
-        response.data.mensaje
-      );
 
-      limpiarFormulario();
+      try {
 
-      await cargarPlantillas();
+        setError("");
+        setMensaje("");
 
-    } catch (error) {
-      setError(
-        error.response?.data?.mensaje ||
-        "No se pudo guardar la plantilla"
-      );
-    }
-  };
 
-  const editarPlantilla = (plantilla) => {
-    setIdEdicion(
-      plantilla.id_plantilla
-    );
+        const response =
+          await api.patch(
+            `/admin/plantillas/${plantilla.id_plantilla}/estado`,
+            {
+              estado:
+                nuevoEstado
+            }
+          );
 
-    setForm({
-      nombre:
-        plantilla.nombre || "",
 
-      codigo:
-        plantilla.codigo || "",
+        setMensaje(
+          response.data.mensaje
+        );
 
-      descripcion:
-        plantilla.descripcion || "",
 
-      imagen_url:
-        plantilla.imagen_url || ""
-    });
+        await cargarPlantillas();
 
-    setError("");
-    setMensaje("");
 
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth"
-    });
-  };
+      } catch (error) {
 
-  const cambiarEstado = async (plantilla) => {
-    const nuevoEstado =
-      !plantilla.estado;
+        setError(
+          error.response?.data?.mensaje ||
+          "No se pudo actualizar el estado de la plantilla"
+        );
 
-    const accion =
-      nuevoEstado
-        ? "activar"
-        : "desactivar";
+      }
+    };
 
-    const confirmar = window.confirm(
-      `¿Deseas ${accion} la plantilla "${plantilla.nombre}"?`
-    );
 
-    if (!confirmar) {
-      return;
-    }
-
-    try {
-      setError("");
-      setMensaje("");
-
-      const response = await api.patch(
-        `/admin/plantillas/${plantilla.id_plantilla}/estado`,
-        {
-          estado: nuevoEstado
-        }
-      );
-
-      setMensaje(
-        response.data.mensaje
-      );
-
-      await cargarPlantillas();
-
-    } catch (error) {
-      setError(
-        error.response?.data?.mensaje ||
-        "No se pudo actualizar el estado de la plantilla"
-      );
-    }
-  };
+  /* =========================================================
+     INTERFAZ
+  ========================================================= */
 
   return (
+
     <div className="admin-page">
 
+
       {/* SIDEBAR */}
+
       <aside className="admin-sidebar">
+
 
         <div className="admin-brand">
 
@@ -277,9 +264,17 @@ function AdminTemplatesPage() {
             P
           </div>
 
+
           <div>
-            <h2>PoliCV</h2>
-            <span>Administración</span>
+
+            <h2>
+              PoliCV
+            </h2>
+
+            <span>
+              Administración
+            </span>
+
           </div>
 
         </div>
@@ -287,15 +282,20 @@ function AdminTemplatesPage() {
 
         <div className="admin-profile">
 
+
           <div className="admin-avatar">
+
             {usuarioActual?.email
               ? usuarioActual.email
                   .charAt(0)
                   .toUpperCase()
               : "A"}
+
           </div>
 
+
           <div>
+
             <strong>
               Administrador
             </strong>
@@ -303,6 +303,7 @@ function AdminTemplatesPage() {
             <span>
               {usuarioActual?.email}
             </span>
+
           </div>
 
         </div>
@@ -310,38 +311,75 @@ function AdminTemplatesPage() {
 
         <nav className="admin-menu">
 
+
           <Link to="/admin">
-            <span>01</span>
+
+            <span>
+              01
+            </span>
+
             Panel principal
+
           </Link>
+
 
           <Link to="/admin/usuarios">
-            <span>02</span>
+
+            <span>
+              02
+            </span>
+
             Gestionar usuarios
+
           </Link>
 
+
           <Link to="/admin/secciones">
-            <span>03</span>
+
+            <span>
+              03
+            </span>
+
             Secciones del CV
+
           </Link>
+
 
           <Link
             to="/admin/plantillas"
             className="active"
           >
-            <span>04</span>
+
+            <span>
+              04
+            </span>
+
             Plantillas
+
           </Link>
+
 
           <Link to="/admin/estadisticas">
-            <span>05</span>
+
+            <span>
+              05
+            </span>
+
             Estadísticas
+
           </Link>
 
+
           <Link to="/admin/propuestas">
-            <span>06</span>
+
+            <span>
+              06
+            </span>
+
             Propuestas
+
           </Link>
+
 
         </nav>
 
@@ -349,18 +387,24 @@ function AdminTemplatesPage() {
         <button
           type="button"
           className="admin-logout"
-          onClick={cerrarSesion}
+          onClick={
+            cerrarSesion
+          }
         >
           Cerrar sesión
         </button>
+
 
       </aside>
 
 
       {/* CONTENIDO */}
+
       <main className="admin-main">
 
+
         <header className="admin-header">
+
 
           <div>
 
@@ -368,14 +412,16 @@ function AdminTemplatesPage() {
               CONFIGURACIÓN VISUAL
             </span>
 
+
             <h1>
               Plantillas
             </h1>
 
+
             <p>
-              Administra los diseños disponibles
-              para la presentación de los
-              currículums de los estudiantes.
+              Controla la disponibilidad de
+              los diseños predeterminados de
+              currículum de PoliCV.
             </p>
 
           </div>
@@ -383,7 +429,9 @@ function AdminTemplatesPage() {
 
           <div className="admin-header-account">
 
+
             <div>
+
               <span>
                 Sesión iniciada como
               </span>
@@ -391,40 +439,51 @@ function AdminTemplatesPage() {
               <strong>
                 {usuarioActual?.email}
               </strong>
+
             </div>
 
+
             <div className="admin-header-avatar">
+
               {usuarioActual?.email
                 ? usuarioActual.email
                     .charAt(0)
                     .toUpperCase()
                 : "A"}
+
             </div>
 
           </div>
+
 
         </header>
 
 
         <div className="admin-content">
 
+
           {/* ENCABEZADO */}
+
           <section className="templates-admin-heading">
+
 
             <div>
 
               <span className="templates-admin-label">
-                ADMINISTRACIÓN
+                DISEÑOS PREDETERMINADOS
               </span>
 
+
               <h2>
-                Gestionar plantillas
+                Plantillas de PoliCV
               </h2>
 
+
               <p>
-                Registra nuevos diseños, modifica
-                su información y controla cuáles
-                permanecen disponibles para los estudiantes.
+                PoliCV dispone de tres diseños
+                predeterminados. El administrador
+                puede controlar cuáles están
+                disponibles para los estudiantes.
               </p>
 
             </div>
@@ -433,7 +492,7 @@ function AdminTemplatesPage() {
             <div className="templates-admin-counter">
 
               <span>
-                Plantillas registradas
+                Plantillas
               </span>
 
               <strong>
@@ -442,165 +501,37 @@ function AdminTemplatesPage() {
 
             </div>
 
-          </section>
-
-
-          {/* FORMULARIO */}
-          <section className="templates-admin-form-card">
-
-            <div className="templates-admin-form-info">
-
-              <span>
-                {idEdicion
-                  ? "EDITAR PLANTILLA"
-                  : "NUEVA PLANTILLA"}
-              </span>
-
-              <h3>
-                {idEdicion
-                  ? "Actualizar diseño"
-                  : "Registrar plantilla"}
-              </h3>
-
-              <p>
-                Define un nombre, código,
-                descripción y una imagen
-                representativa para identificar
-                cada diseño.
-              </p>
-
-            </div>
-
-
-            <form
-              className="templates-admin-form"
-              onSubmit={guardarPlantilla}
-            >
-
-              <div className="templates-admin-field">
-
-                <label htmlFor="nombre">
-                  Nombre
-                </label>
-
-                <input
-                  id="nombre"
-                  type="text"
-                  name="nombre"
-                  value={form.nombre}
-                  onChange={handleChange}
-                  placeholder="Ejemplo: Moderna"
-                />
-
-              </div>
-
-
-              <div className="templates-admin-field">
-
-                <label htmlFor="codigo">
-                  Código
-                </label>
-
-                <input
-                  id="codigo"
-                  type="text"
-                  name="codigo"
-                  value={form.codigo}
-                  onChange={handleChange}
-                  placeholder="Ejemplo: moderna"
-                />
-
-              </div>
-
-
-              <div className="templates-admin-field full">
-
-                <label htmlFor="descripcion">
-                  Descripción
-                </label>
-
-                <textarea
-                  id="descripcion"
-                  name="descripcion"
-                  value={form.descripcion}
-                  onChange={handleChange}
-                  placeholder="Describe brevemente el estilo de la plantilla..."
-                  rows="4"
-                />
-
-              </div>
-
-
-              <div className="templates-admin-field full">
-
-                <label htmlFor="imagen_url">
-                  URL de imagen
-                </label>
-
-                <input
-                  id="imagen_url"
-                  type="text"
-                  name="imagen_url"
-                  value={form.imagen_url}
-                  onChange={handleChange}
-                  placeholder="Ejemplo: /images/plantilla1.png"
-                />
-
-                <small>
-                  Puedes utilizar una ruta de imagen
-                  almacenada en PoliCV.
-                </small>
-
-              </div>
-
-
-              <div className="templates-admin-form-actions">
-
-                <button
-                  type="submit"
-                  className="templates-admin-btn-primary"
-                >
-                  {idEdicion
-                    ? "Guardar cambios"
-                    : "Crear plantilla"}
-                </button>
-
-
-                {idEdicion && (
-                  <button
-                    type="button"
-                    className="templates-admin-btn-secondary"
-                    onClick={limpiarFormulario}
-                  >
-                    Cancelar edición
-                  </button>
-                )}
-
-              </div>
-
-            </form>
 
           </section>
 
 
           {/* MENSAJES */}
+
           {error && (
+
             <div className="users-message error">
               {error}
             </div>
+
           )}
 
+
           {mensaje && (
+
             <div className="users-message success">
               {mensaje}
             </div>
+
           )}
 
 
-          {/* TABLA */}
+          {/* PLANTILLAS */}
+
           <section className="templates-admin-table-card">
 
+
             <div className="templates-admin-table-header">
+
 
               <div>
 
@@ -608,8 +539,9 @@ function AdminTemplatesPage() {
                   DISEÑOS DISPONIBLES
                 </span>
 
+
                 <h3>
-                  Plantillas de PoliCV
+                  Moderna, Clásica y Minimalista
                 </h3>
 
               </div>
@@ -621,6 +553,7 @@ function AdminTemplatesPage() {
               >
                 Volver al panel
               </Link>
+
 
             </div>
 
@@ -636,12 +569,11 @@ function AdminTemplatesPage() {
               <div className="users-empty">
 
                 <strong>
-                  No existen plantillas registradas
+                  No se encontraron las plantillas predeterminadas
                 </strong>
 
                 <p>
-                  Utiliza el formulario superior
-                  para registrar la primera plantilla.
+                  Verifica los registros de la tabla plantillas.
                 </p>
 
               </div>
@@ -650,17 +582,38 @@ function AdminTemplatesPage() {
 
               <div className="users-table-wrapper">
 
+
                 <table className="templates-admin-table">
+
 
                   <thead>
 
                     <tr>
-                      <th>ID</th>
-                      <th>Plantilla</th>
-                      <th>Código</th>
-                      <th>Descripción</th>
-                      <th>Estado</th>
-                      <th>Acciones</th>
+
+                      <th>
+                        ID
+                      </th>
+
+                      <th>
+                        Plantilla
+                      </th>
+
+                      <th>
+                        Código
+                      </th>
+
+                      <th>
+                        Descripción
+                      </th>
+
+                      <th>
+                        Estado
+                      </th>
+
+                      <th>
+                        Acción
+                      </th>
+
                     </tr>
 
                   </thead>
@@ -668,18 +621,24 @@ function AdminTemplatesPage() {
 
                   <tbody>
 
+
                     {plantillas.map(
                       (plantilla) => {
 
                         const activa =
-                          plantilla.estado;
+                          Boolean(
+                            plantilla.estado
+                          );
+
 
                         return (
+
                           <tr
                             key={
                               plantilla.id_plantilla
                             }
                           >
+
 
                             <td className="user-id">
                               #{plantilla.id_plantilla}
@@ -690,9 +649,11 @@ function AdminTemplatesPage() {
 
                               <div className="template-admin-name-cell">
 
+
                                 <div className="template-admin-icon">
                                   CV
                                 </div>
+
 
                                 <div>
 
@@ -701,10 +662,11 @@ function AdminTemplatesPage() {
                                   </strong>
 
                                   <span>
-                                    Diseño PoliCV
+                                    Diseño predeterminado PoliCV
                                   </span>
 
                                 </div>
+
 
                               </div>
 
@@ -721,8 +683,10 @@ function AdminTemplatesPage() {
 
 
                             <td className="template-admin-description">
+
                               {plantilla.descripcion ||
-                                "Sin descripción"}
+                                "Diseño predeterminado de PoliCV"}
+
                             </td>
 
 
@@ -735,9 +699,11 @@ function AdminTemplatesPage() {
                                     : "status-badge inactive"
                                 }
                               >
+
                                 {activa
                                   ? "Activa"
                                   : "Inactiva"}
+
                               </span>
 
                             </td>
@@ -745,63 +711,61 @@ function AdminTemplatesPage() {
 
                             <td>
 
-                              <div className="section-actions">
-
-                                <button
-                                  type="button"
-                                  className="section-edit-btn"
-                                  onClick={() =>
-                                    editarPlantilla(
-                                      plantilla
-                                    )
-                                  }
-                                >
-                                  Editar
-                                </button>
-
-
-                                <button
-                                  type="button"
-                                  className={
-                                    activa
-                                      ? "user-action deactivate"
-                                      : "user-action activate"
-                                  }
-                                  onClick={() =>
+                              <button
+                                type="button"
+                                className={
+                                  activa
+                                    ? "user-action deactivate"
+                                    : "user-action activate"
+                                }
+                                onClick={
+                                  () =>
                                     cambiarEstado(
                                       plantilla
                                     )
-                                  }
-                                >
-                                  {activa
-                                    ? "Desactivar"
-                                    : "Activar"}
-                                </button>
+                                }
+                              >
 
-                              </div>
+                                {activa
+                                  ? "Desactivar"
+                                  : "Activar"}
+
+                              </button>
 
                             </td>
 
+
                           </tr>
+
                         );
                       }
                     )}
 
+
                   </tbody>
+
 
                 </table>
 
+
               </div>
+
             )}
+
 
           </section>
 
+
         </div>
+
 
       </main>
 
+
     </div>
+
   );
 }
+
 
 export default AdminTemplatesPage;

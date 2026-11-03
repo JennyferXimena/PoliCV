@@ -82,7 +82,16 @@ async function obtenerCurriculumUsuario(
         u.email,
 
         ca.nombre
-          AS carrera
+          AS carrera,
+
+        pl.nombre
+          AS plantilla_nombre,
+
+        pl.codigo
+          AS plantilla_codigo,
+
+        pl.estado
+          AS plantilla_estado
 
       FROM curriculums c
 
@@ -94,6 +103,9 @@ async function obtenerCurriculumUsuario(
 
       LEFT JOIN carreras ca
         ON ca.id_carrera = p.id_carrera
+
+      LEFT JOIN plantillas pl
+        ON pl.id_plantilla = c.id_plantilla
 
       WHERE c.id_curriculum = ?
       AND c.id_usuario = ?
@@ -110,7 +122,6 @@ async function obtenerCurriculumUsuario(
 
   return rows[0] || null;
 }
-
 
 /* =========================================================
    ESTRUCTURA ORDENADA POR ADMINISTRADOR

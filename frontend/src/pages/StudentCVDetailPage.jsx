@@ -177,6 +177,12 @@ function StudentCVDetailPage() {
 
 
   const [
+    generandoPDF,
+    setGenerandoPDF
+  ] = useState(false);
+
+
+  const [
     mejorando,
     setMejorando
   ] = useState(false);
@@ -325,6 +331,128 @@ function StudentCVDetailPage() {
           respuesta
         )
       );
+    };
+
+
+  /* =======================================================
+     GENERAR PDF
+  ======================================================= */
+
+  const generarPDF =
+    async () => {
+
+      setError("");
+      setMensaje("");
+      setGenerandoPDF(true);
+
+
+      try {
+
+        const response =
+          await api.get(
+            `/curriculums/${id}/pdf`,
+            {
+              responseType:
+                "blob"
+            }
+          );
+
+
+        const archivo =
+          new Blob(
+            [response.data],
+            {
+              type:
+                "application/pdf"
+            }
+          );
+
+
+        const url =
+          window.URL
+            .createObjectURL(
+              archivo
+            );
+
+
+        const enlace =
+          document.createElement(
+            "a"
+          );
+
+
+        enlace.href =
+          url;
+
+
+        const nombreCV =
+          datos
+            ?.curriculum
+            ?.nombre ||
+          "PoliCV";
+
+
+        const nombreSeguro =
+          nombreCV
+            .normalize("NFD")
+            .replace(
+              /[\u0300-\u036f]/g,
+              ""
+            )
+            .replace(
+              /[^a-zA-Z0-9-_]/g,
+              "_"
+            );
+
+
+        enlace.download =
+          `CV_${nombreSeguro}.pdf`;
+
+
+        document.body
+          .appendChild(
+            enlace
+          );
+
+
+        enlace.click();
+
+
+        enlace.remove();
+
+
+        window.URL
+          .revokeObjectURL(
+            url
+          );
+
+
+        setMensaje(
+          "PDF generado correctamente"
+        );
+
+
+      } catch (error) {
+
+        console.error(
+          "Error al generar PDF:",
+          error
+        );
+
+
+        setError(
+          error.response
+            ?.data
+            ?.mensaje ||
+          "No se pudo generar el PDF"
+        );
+
+
+      } finally {
+
+        setGenerandoPDF(false);
+
+      }
     };
 
 
@@ -3663,12 +3791,48 @@ function StudentCVDetailPage() {
             </div>
 
 
-            <Link
-              to="/estudiante/curriculums"
-              className="cv-detail-back"
+            <div
+              style={{
+                display:
+                  "flex",
+
+                gap:
+                  "10px",
+
+                alignItems:
+                  "center",
+
+                flexWrap:
+                  "wrap"
+              }}
             >
-              Volver a mis currículums
-            </Link>
+
+              <button
+                type="button"
+                className="cv-detail-save"
+                onClick={
+                  generarPDF
+                }
+                disabled={
+                  generandoPDF
+                }
+              >
+
+                {generandoPDF
+                  ? "Generando PDF..."
+                  : "Generar PDF"}
+
+              </button>
+
+
+              <Link
+                to="/estudiante/curriculums"
+                className="cv-detail-back"
+              >
+                Volver a mis currículums
+              </Link>
+
+            </div>
 
           </section>
 
@@ -3752,6 +3916,8 @@ function StudentCVDetailPage() {
           >
             {renderSeccion()}
           </div>
+
+
 
 
         </div>

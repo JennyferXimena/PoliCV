@@ -17,7 +17,7 @@ const curriculumRoutes = require("./routes/curriculumRoutes");
 const aiRoutes = require("./routes/aiRoutes");
 const configuracionInicialRoutes = require("./routes/configuracionInicialRoutes");
 const detalleCurriculumRoutes = require("./routes/detalleCurriculumRoutes");
-
+const pdfRoutes = require("./routes/pdfRoutes");
 
 // Middlewares generales
 app.use(cors());
@@ -35,6 +35,7 @@ app.use("/api/admin/estadisticas",adminEstadisticaRoutes);
 app.use("/api/curriculums",curriculumRoutes);
 app.use("/api/ia", aiRoutes);
 app.use("/api/curriculums",detalleCurriculumRoutes);
+app.use("/api/curriculums",pdfRoutes);
 
 // Rutas de configuracion inicial
 app.use(
