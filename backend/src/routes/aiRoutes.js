@@ -1,80 +1,141 @@
-const express = require("express");
+const express =
+  require("express");
 
-const router = express.Router();
+
+const router =
+  express.Router();
+
+
+/* =========================================================
+   MIDDLEWARES
+========================================================= */
+
+const {
+  verificarToken
+} =
+  require(
+    "../middlewares/authMiddleware"
+  );
+
+
+const {
+  verificarRol
+} =
+  require(
+    "../middlewares/roleMiddleware"
+  );
+
+
+/* =========================================================
+   CONTROLADORES GENERALES IA
+========================================================= */
 
 const {
   chatIA,
   sugerirResumen,
   aplicarResumen
-} = require(
-  "../controllers/aiController"
-);
+} =
+  require(
+    "../controllers/aiController"
+  );
 
-const {
-  verificarToken
-} = require(
-  "../middlewares/authMiddleware"
-);
 
-const {
-  verificarRol
-} = require(
-  "../middlewares/roleMiddleware"
-);
+/* =========================================================
+   CONTROLADOR CREACIÓN CV CON IA
+========================================================= */
 
 const {
   generarResumenBorrador,
   crearCVDesdeIA
-} = require(
-  "../controllers/aiCvController"
-);
+} =
+  require(
+    "../controllers/aiCvController"
+  );
+
+
+/* =========================================================
+   CONTROLADOR MEJORAR REDACCIÓN
+========================================================= */
 
 const {
   mejorarTexto
-} = require(
-  "../controllers/aiTextController"
+} =
+  require(
+    "../controllers/aiTextController"
+  );
+
+
+/* =========================================================
+   TODAS LAS RUTAS REQUIEREN ESTUDIANTE AUTENTICADO
+========================================================= */
+
+router.use(
+  verificarToken,
+  verificarRol(
+    "Estudiante"
+  )
 );
+
+
+/* =========================================================
+   CHAT IA
+========================================================= */
 
 router.post(
   "/chat",
-  verificarToken,
-  verificarRol("Estudiante"),
   chatIA
 );
 
-router.post(
-  "/curriculums/:idCurriculum/resumen/sugerir",
-  verificarToken,
-  verificarRol("Estudiante"),
-  sugerirResumen
-);
 
-router.put(
-  "/curriculums/:idCurriculum/resumen/aplicar",
-  verificarToken,
-  verificarRol("Estudiante"),
-  aplicarResumen
-);
-
-router.post(
-  "/curriculums/crear-desde-ia",
-  verificarToken,
-  verificarRol("Estudiante"),
-  crearCVDesdeIA
-);
-
-router.post(
-  "/curriculums/borrador/resumen",
-  verificarToken,
-  verificarRol("Estudiante"),
-  generarResumenBorrador
-);
+/* =========================================================
+   MEJORAR CUALQUIER TEXTO DEL CV
+========================================================= */
 
 router.post(
   "/mejorar-texto",
-  verificarToken,
-  verificarRol("Estudiante"),
   mejorarTexto
 );
 
-module.exports = router;
+
+/* =========================================================
+   SUGERIR RESUMEN DE UN CV EXISTENTE
+========================================================= */
+
+router.post(
+  "/curriculums/:idCurriculum/resumen/sugerir",
+  sugerirResumen
+);
+
+
+/* =========================================================
+   APLICAR RESUMEN
+========================================================= */
+
+router.put(
+  "/curriculums/:idCurriculum/resumen/aplicar",
+  aplicarResumen
+);
+
+
+/* =========================================================
+   CREAR CV DESDE CERO CON IA
+========================================================= */
+
+router.post(
+  "/curriculums/crear-desde-ia",
+  crearCVDesdeIA
+);
+
+
+/* =========================================================
+   GENERAR BORRADOR DE RESUMEN
+========================================================= */
+
+router.post(
+  "/curriculums/borrador/resumen",
+  generarResumenBorrador
+);
+
+
+module.exports =
+  router;

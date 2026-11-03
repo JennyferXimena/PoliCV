@@ -1,21 +1,36 @@
-const pool = require("../config/database");
+const curriculumModel =
+  require("../models/curriculumModel");
 
 const {
   enviarMensajeIA
 } = require("../services/aiService");
 
 
-async function generarResumenBorrador(req, res) {
+/* =========================================================
+   GENERAR DESCRIPCIÓN PROFESIONAL DESDE BORRADOR
+========================================================= */
+
+async function generarResumenBorrador(
+  req,
+  res
+) {
   try {
     const {
       titulo_profesional,
+
       formacion = [],
       experiencias = [],
       proyectos = [],
+      practicas = [],
       habilidades = [],
       idiomas = [],
       cursos = []
-    } = req.body;
+    } = req.body || {};
+
+
+    /* =====================================================
+       VALIDACIÓN
+    ===================================================== */
 
     if (
       !titulo_profesional ||
@@ -27,12 +42,20 @@ async function generarResumenBorrador(req, res) {
       });
     }
 
+
+    /* =====================================================
+       CONTEXTO REAL PROPORCIONADO POR EL ESTUDIANTE
+    ===================================================== */
+
     const contexto = JSON.stringify(
       {
-        titulo_profesional,
+        titulo_profesional:
+          titulo_profesional.trim(),
+
         formacion,
         experiencias,
         proyectos,
+        practicas,
         habilidades,
         idiomas,
         cursos
@@ -41,78 +64,127 @@ async function generarResumenBorrador(req, res) {
       2
     );
 
-    const historial = [
+
+    /* =====================================================
+       PROMPT
+    ===================================================== */
+
+    const mensajes = [
       {
         role: "user",
-        content: `
-Estoy creando mi currículum desde cero.
 
-Con la información proporcionada,
-redacta un resumen profesional de 3 a 5 líneas.
+        content: `
+Estoy creando mi currículum vitae.
+
+Utiliza únicamente la información proporcionada
+para redactar una descripción personal o profesional
+de entre 40 y 120 palabras.
 
 Reglas obligatorias:
 
+- Corrige errores ortográficos.
+- Corrige errores gramaticales.
+- Comprende expresiones informales.
+- Organiza las ideas de manera clara.
+- Utiliza un tono profesional pero natural.
+- Mantén una redacción apropiada para un estudiante,
+  recién graduado o profesional junior.
+
 - No inventes información.
-- Usa únicamente los datos proporcionados.
-- No agregues experiencia que no exista.
-- No agregues tecnologías que no aparezcan.
-- Redacta en español.
-- Utiliza un tono profesional.
-- No uses Markdown.
+- No inventes experiencia laboral.
+- No inventes prácticas.
+- No inventes estudios.
+- No inventes proyectos.
+- No inventes habilidades.
+- No inventes tecnologías.
+- No inventes idiomas.
+- No inventes certificaciones.
+- No inventes logros.
+- No inventes porcentajes ni resultados.
+
+- No exageres las responsabilidades.
+- No conviertas participación en liderazgo.
+- No conviertas apoyo en gestión.
+- No agregues conocimientos que no aparezcan
+  en los datos proporcionados.
+
+- Si existe poca información, redacta una
+  descripción más sencilla en lugar de inventar.
+
+- Devuelve únicamente la descripción profesional.
+- No utilices Markdown.
 - No escribas títulos.
-- Devuelve únicamente el resumen profesional.
+- No incluyas explicaciones adicionales.
         `
       }
     ];
 
+
+    /* =====================================================
+       CONSULTAR IA
+    ===================================================== */
+
     const resumen =
       await enviarMensajeIA(
-        historial,
+        mensajes,
         contexto
       );
 
+
+    if (
+      !resumen ||
+      typeof resumen !== "string"
+    ) {
+      return res.status(502).json({
+        mensaje:
+          "La IA no devolvió una descripción válida"
+      });
+    }
+
+
     return res.status(200).json({
       mensaje:
-        "Resumen generado correctamente",
+        "Descripción generada correctamente",
 
       resumen:
         resumen.trim()
     });
 
+
   } catch (error) {
     console.error(
-      "Error al generar resumen:",
+      "Error al generar descripción profesional:",
       error
     );
 
+
     return res.status(502).json({
       mensaje:
-        "No se pudo generar el resumen con IA"
+        "No se pudo generar la descripción con IA"
     });
   }
 }
 
 
-async function crearCVDesdeIA(req, res) {
-  const connection =
-    await pool.getConnection();
+/* =========================================================
+   CREAR CURRÍCULUM BASE DESDE EL ASISTENTE
+========================================================= */
 
+async function crearCVDesdeIA(
+  req,
+  res
+) {
   try {
-    const idUsuario =
-      req.usuario.id_usuario;
-
     const {
       nombre,
       titulo_profesional,
-      resumen_profesional,
+      resumen_profesional
+    } = req.body || {};
 
-      formacion = [],
-      experiencias = [],
-      proyectos = [],
-      habilidades = [],
-      idiomas = [],
-      cursos = []
-    } = req.body;
+
+    /* =====================================================
+       VALIDAR NOMBRE
+    ===================================================== */
 
     if (
       !nombre ||
@@ -124,246 +196,55 @@ async function crearCVDesdeIA(req, res) {
       });
     }
 
-    await connection.beginTransaction();
 
-    /*
-     * CURRÍCULUM PRINCIPAL
-     */
-    const [resultadoCV] =
-      await connection.execute(
-        `INSERT INTO curriculums
-          (
-            id_usuario,
-            nombre,
-            titulo_profesional,
-            resumen_profesional,
-            estado
-          )
-         VALUES (?, ?, ?, ?, 1)`,
-        [
-          idUsuario,
-          nombre.trim(),
+    /* =====================================================
+       CREAR ÚNICAMENTE EL CURRÍCULUM PRINCIPAL
 
-          titulo_profesional
-            ?.trim() || null,
+       Las 10 secciones NO se guardan aquí.
 
-          resumen_profesional
-            ?.trim() || null
-        ]
-      );
+       Después se utilizarán los mismos endpoints
+       de contenido-fijo que utiliza Mis currículums.
+    ===================================================== */
 
     const idCurriculum =
-      resultadoCV.insertId;
+      await curriculumModel.crearCurriculum(
+        req.usuario.id_usuario,
 
+        nombre.trim(),
 
-    /*
-     * FORMACIÓN ACADÉMICA
-     */
-    for (const item of formacion) {
-      if (
-        !item.institucion ||
-        !item.titulo
-      ) {
-        continue;
-      }
+        titulo_profesional
+          ?.trim() || null,
 
-      await connection.execute(
-        `INSERT INTO formacion_academica
-          (
-            id_curriculum,
-            institucion,
-            titulo,
-            fecha_inicio,
-            fecha_fin,
-            en_curso,
-            descripcion
-          )
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [
-          idCurriculum,
-          item.institucion,
-          item.titulo,
-          item.fecha_inicio || null,
-          item.fecha_fin || null,
-          item.en_curso ? 1 : 0,
-          item.descripcion || null
-        ]
+        resumen_profesional
+          ?.trim() || null,
+
+        null
       );
-    }
 
-
-    /*
-     * EXPERIENCIA LABORAL
-     */
-    for (const item of experiencias) {
-      if (
-        !item.empresa ||
-        !item.cargo
-      ) {
-        continue;
-      }
-
-      await connection.execute(
-        `INSERT INTO experiencias_laborales
-          (
-            id_curriculum,
-            empresa,
-            cargo,
-            fecha_inicio,
-            fecha_fin,
-            actualmente,
-            descripcion
-          )
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [
-          idCurriculum,
-          item.empresa,
-          item.cargo,
-          item.fecha_inicio || null,
-          item.fecha_fin || null,
-          item.actualmente ? 1 : 0,
-          item.descripcion || null
-        ]
-      );
-    }
-
-
-    /*
-     * PROYECTOS
-     */
-    for (const item of proyectos) {
-      if (!item.nombre) {
-        continue;
-      }
-
-      await connection.execute(
-        `INSERT INTO proyectos
-          (
-            id_curriculum,
-            nombre,
-            descripcion,
-            tecnologias,
-            enlace
-          )
-         VALUES (?, ?, ?, ?, ?)`,
-        [
-          idCurriculum,
-          item.nombre,
-          item.descripcion || null,
-          item.tecnologias || null,
-          item.enlace || null
-        ]
-      );
-    }
-
-
-    /*
-     * HABILIDADES
-     */
-    for (const item of habilidades) {
-      if (!item.nombre) {
-        continue;
-      }
-
-      await connection.execute(
-        `INSERT INTO habilidades
-          (
-            id_curriculum,
-            nombre,
-            nivel
-          )
-         VALUES (?, ?, ?)`,
-        [
-          idCurriculum,
-          item.nombre,
-          item.nivel || null
-        ]
-      );
-    }
-
-
-    /*
-     * IDIOMAS
-     */
-    for (const item of idiomas) {
-      if (
-        !item.idioma ||
-        !item.nivel
-      ) {
-        continue;
-      }
-
-      await connection.execute(
-        `INSERT INTO idiomas
-          (
-            id_curriculum,
-            idioma,
-            nivel
-          )
-         VALUES (?, ?, ?)`,
-        [
-          idCurriculum,
-          item.idioma,
-          item.nivel
-        ]
-      );
-    }
-
-
-    /*
-     * CURSOS Y CERTIFICACIONES
-     */
-    for (const item of cursos) {
-      if (!item.nombre) {
-        continue;
-      }
-
-      await connection.execute(
-        `INSERT INTO cursos_certificaciones
-          (
-            id_curriculum,
-            nombre,
-            institucion,
-            fecha_obtencion,
-            enlace
-          )
-         VALUES (?, ?, ?, ?, ?)`,
-        [
-          idCurriculum,
-          item.nombre,
-          item.institucion || null,
-          item.fecha_obtencion || null,
-          item.enlace || null
-        ]
-      );
-    }
-
-
-    await connection.commit();
 
     return res.status(201).json({
       mensaje:
-        "Currículum creado correctamente desde el asistente",
+        "Currículum iniciado correctamente desde el asistente",
 
       id_curriculum:
-        idCurriculum
+        idCurriculum,
+
+      siguiente_paso:
+        "Completar las secciones del currículum"
     });
 
-  } catch (error) {
-    await connection.rollback();
 
+  } catch (error) {
     console.error(
-      "Error al crear CV desde IA:",
+      "Error al iniciar CV desde IA:",
       error
     );
 
+
     return res.status(500).json({
       mensaje:
-        "No se pudo crear el currículum"
+        "No se pudo iniciar el currículum"
     });
-
-  } finally {
-    connection.release();
   }
 }
 

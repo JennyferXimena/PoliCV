@@ -20,6 +20,8 @@ import StudentAIAssistantPage from "./pages/StudentAIAssistantPage";
 import StudentAICreateCVPage from "./pages/StudentAICreateCVPage";
 import StudentProfileGuard from "./components/StudentProfileGuard";
 import StudentWelcomePage from "./pages/StudentWelcomePage"; 
+import StudentAIImproveCVPage from "./pages/StudentAIImproveCVPage";
+
 function App() {
   return (
     <BrowserRouter>
@@ -175,6 +177,16 @@ function App() {
             <ProtectedRoute allowedRoles={["Estudiante"]}>
               <StudentProfileGuard>
                 <StudentDashboardPage />
+              </StudentProfileGuard>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/estudiante/asistente-ia/mejorar"
+          element={
+            <ProtectedRoute rolPermitido="Estudiante">
+              <StudentProfileGuard>
+                <StudentAIImproveCVPage />
               </StudentProfileGuard>
             </ProtectedRoute>
           }

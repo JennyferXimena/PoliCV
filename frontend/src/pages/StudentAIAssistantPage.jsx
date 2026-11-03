@@ -1,20 +1,15 @@
 import {
-  useEffect,
-  useState
-} from "react";
-
-import {
   Link,
   useNavigate
 } from "react-router-dom";
 
-import api from "../services/api";
 import "../styles/student.css";
 
 
 function StudentAIAssistantPage() {
 
-  const navigate = useNavigate();
+  const navigate =
+    useNavigate();
 
 
   /* =========================================================
@@ -30,58 +25,6 @@ function StudentAIAssistantPage() {
     usuarioGuardado
       ? JSON.parse(usuarioGuardado)
       : null;
-
-
-  /* =========================================================
-     ESTADOS
-  ========================================================= */
-
-  const [
-    curriculums,
-    setCurriculums
-  ] = useState([]);
-
-
-  const [
-    curriculumSeleccionado,
-    setCurriculumSeleccionado
-  ] = useState("");
-
-
-  const [
-    mensajes,
-    setMensajes
-  ] = useState([
-    {
-      role: "assistant",
-      content:
-        "Hola, soy el asistente de PoliCV. Selecciona uno de tus currículums para comenzar."
-    }
-  ]);
-
-
-  const [
-    mensaje,
-    setMensaje
-  ] = useState("");
-
-
-  const [
-    cargando,
-    setCargando
-  ] = useState(false);
-
-
-  const [
-    cargandoCurriculums,
-    setCargandoCurriculums
-  ] = useState(true);
-
-
-  const [
-    error,
-    setError
-  ] = useState("");
 
 
   /* =========================================================
@@ -113,274 +56,6 @@ function StudentAIAssistantPage() {
 
 
   /* =========================================================
-     CARGAR CURRÍCULUMS
-  ========================================================= */
-
-  useEffect(() => {
-
-    let activo = true;
-
-
-    const cargarCurriculums = async () => {
-
-      try {
-
-        const response =
-          await api.get(
-            "/curriculums"
-          );
-
-
-        if (!activo) {
-          return;
-        }
-
-
-        const lista =
-          response.data.curriculums ||
-          response.data.datos ||
-          [];
-
-
-        setCurriculums(
-          lista
-        );
-
-
-      } catch (error) {
-
-        if (!activo) {
-          return;
-        }
-
-
-        setError(
-          error.response?.data?.mensaje ||
-          "No se pudieron cargar tus currículums"
-        );
-
-
-      } finally {
-
-        if (activo) {
-          setCargandoCurriculums(
-            false
-          );
-        }
-      }
-    };
-
-
-    cargarCurriculums();
-
-
-    return () => {
-      activo = false;
-    };
-
-  }, []);
-
-
-  /* =========================================================
-     CAMBIAR CURRÍCULUM
-  ========================================================= */
-
-  const cambiarCurriculum = (
-    e
-  ) => {
-
-    const idCurriculum =
-      e.target.value;
-
-
-    setCurriculumSeleccionado(
-      idCurriculum
-    );
-
-
-    setMensaje("");
-
-    setError("");
-
-
-    if (!idCurriculum) {
-
-      setMensajes([
-        {
-          role: "assistant",
-          content:
-            "Hola, soy el asistente de PoliCV. Selecciona uno de tus currículums para comenzar."
-        }
-      ]);
-
-      return;
-    }
-
-
-    const curriculum =
-      curriculums.find(
-        (item) =>
-          String(
-            item.id_curriculum
-          ) ===
-          String(
-            idCurriculum
-          )
-      );
-
-
-    setMensajes([
-      {
-        role: "assistant",
-        content:
-          `Perfecto. Trabajaremos con el currículum "${curriculum?.nombre || "seleccionado"}". Puedes contarme qué parte deseas mejorar o preguntarme qué podrías fortalecer.`
-      }
-    ]);
-  };
-
-
-  /* =========================================================
-     ENVIAR MENSAJE
-  ========================================================= */
-
-  const enviarMensaje = async (
-    e
-  ) => {
-
-    e.preventDefault();
-
-
-    const texto =
-      mensaje.trim();
-
-
-    if (
-      !texto ||
-      cargando
-    ) {
-      return;
-    }
-
-
-    if (
-      !curriculumSeleccionado
-    ) {
-
-      setError(
-        "Selecciona primero un currículum"
-      );
-
-      return;
-    }
-
-
-    setError("");
-
-
-    const mensajeUsuario = {
-      role: "user",
-      content: texto
-    };
-
-
-    /*
-      El historial contiene los mensajes
-      anteriores de la conversación.
-    */
-
-    const historialAnterior =
-      mensajes.map(
-        (item) => ({
-          role: item.role,
-          content: item.content
-        })
-      );
-
-
-    /*
-      Mostramos inmediatamente el mensaje
-      del estudiante en pantalla.
-    */
-
-    setMensajes(
-      (anteriores) => [
-        ...anteriores,
-        mensajeUsuario
-      ]
-    );
-
-
-    setMensaje("");
-
-    setCargando(true);
-
-
-    try {
-
-      /*
-        Enviamos:
-        - mensaje actual
-        - historial
-        - currículum seleccionado
-
-        El backend utiliza el id_curriculum
-        para obtener su información desde MySQL.
-      */
-
-      const response =
-        await api.post(
-          "/ia/chat",
-          {
-            mensaje: texto,
-
-            historial:
-              historialAnterior,
-
-            id_curriculum:
-              Number(
-                curriculumSeleccionado
-              )
-          }
-        );
-
-
-      const respuestaIA =
-        response.data.respuesta ||
-        response.data.mensajeIA ||
-        "No se pudo generar una respuesta.";
-
-
-      const mensajeIA = {
-        role: "assistant",
-        content:
-          respuestaIA
-      };
-
-
-      setMensajes(
-        (anteriores) => [
-          ...anteriores,
-          mensajeIA
-        ]
-      );
-
-
-    } catch (error) {
-
-      setError(
-        error.response?.data?.mensaje ||
-        "No se pudo obtener una respuesta del asistente"
-      );
-
-
-    } finally {
-
-      setCargando(false);
-    }
-  };
-
-
-  /* =========================================================
      INTERFAZ
   ========================================================= */
 
@@ -401,7 +76,6 @@ function StudentAIAssistantPage() {
           <div className="student-brand-logo">
             P
           </div>
-
 
           <div>
 
@@ -429,7 +103,6 @@ function StudentAIAssistantPage() {
               : "E"}
 
           </div>
-
 
           <div>
 
@@ -531,7 +204,9 @@ function StudentAIAssistantPage() {
       <main className="student-main">
 
 
-        {/* HEADER */}
+        {/* ===================================================
+            HEADER
+        =================================================== */}
 
         <header className="student-header">
 
@@ -542,23 +217,20 @@ function StudentAIAssistantPage() {
               ASISTENCIA PROFESIONAL
             </span>
 
-
             <h1>
               Asistente de PoliCV
             </h1>
 
-
             <p>
-              Revisa y mejora el contenido
-              de tu currículum con asistencia
-              inteligente.
+              Utiliza inteligencia artificial para
+              crear un currículum desde cero o mejorar
+              la presentación de uno que ya hayas creado.
             </p>
 
           </div>
 
 
           <div className="student-header-account">
-
 
             <div>
 
@@ -583,7 +255,6 @@ function StudentAIAssistantPage() {
 
             </div>
 
-
           </div>
 
 
@@ -597,7 +268,9 @@ function StudentAIAssistantPage() {
         <div className="student-content">
 
 
-          {/* INTRODUCCIÓN */}
+          {/* =================================================
+              INTRODUCCIÓN
+          ================================================= */}
 
           <section className="ai-page-heading">
 
@@ -605,125 +278,190 @@ function StudentAIAssistantPage() {
             <div>
 
               <span>
-                ASISTENCIA PARA TU CURRÍCULUM
+                ASISTENTE INTELIGENTE
               </span>
 
-
               <h2>
-                Mejora la presentación de tu perfil
+                ¿Cómo deseas trabajar tu currículum?
               </h2>
 
-
               <p>
-                Selecciona uno de tus currículums
-                y conversa con PoliCV para revisar
-                la redacción, organizar información
-                y mejorar tus descripciones
-                profesionales.
+                PoliCV puede guiarte para completar
+                tu información profesional desde cero
+                o ayudarte a mejorar la redacción de
+                un currículum que ya tengas registrado.
               </p>
 
             </div>
-
-
-            <Link
-              to="/estudiante/crear-cv-ia"
-              className="ai-create-cv-button"
-            >
-              Crear currículum desde cero
-            </Link>
 
 
           </section>
 
 
           {/* =================================================
-              ESPACIO DEL ASISTENTE
+              OPCIONES
           ================================================= */}
 
           <section className="ai-professional-layout">
 
 
             {/* ===============================================
-                PANEL IZQUIERDO
+                CREAR DESDE CERO
             =============================================== */}
 
-            <aside className="ai-sidebar-panel">
+            <article className="ai-sidebar-panel">
 
 
               <span className="ai-section-label">
-                CURRÍCULUM DE TRABAJO
+                OPCIÓN 01
               </span>
 
 
               <h3>
-                Selecciona un currículum
+                Crear CV desde cero con IA
               </h3>
 
 
               <p>
-                PoliCV utilizará la información
-                del currículum seleccionado como
-                referencia para ofrecer sugerencias.
+                El asistente te guiará paso a paso
+                utilizando la estructura profesional
+                definida por PoliCV.
               </p>
 
-
-              <label htmlFor="curriculum">
-                Currículum
-              </label>
-
-
-              <select
-                id="curriculum"
-                className="ai-cv-select"
-                value={
-                  curriculumSeleccionado
-                }
-                onChange={
-                  cambiarCurriculum
-                }
-                disabled={
-                  cargandoCurriculums
-                }
-              >
-
-                <option value="">
-
-                  {cargandoCurriculums
-                    ? "Cargando currículums..."
-                    : "Selecciona un currículum"}
-
-                </option>
-
-
-                {curriculums.map(
-                  (curriculum) => (
-
-                    <option
-                      key={
-                        curriculum.id_curriculum
-                      }
-                      value={
-                        curriculum.id_curriculum
-                      }
-                    >
-                      {curriculum.nombre}
-                    </option>
-
-                  )
-                )}
-
-
-              </select>
-
-
-              {/* FUNCIONES */}
 
               <div className="ai-help-section">
 
 
-                <span>
-                  Funciones disponibles
-                </span>
+                <div>
+
+                  <strong>
+                    Datos del perfil
+                  </strong>
+
+                  <p>
+                    PoliCV utilizará la información
+                    personal y académica que ya
+                    registraste en tu perfil.
+                  </p>
+
+                </div>
+
+
+                <div>
+
+                  <strong>
+                    Preguntas guiadas
+                  </strong>
+
+                  <p>
+                    Completarás formación, idiomas,
+                    habilidades, cursos, proyectos,
+                    prácticas, experiencia y referencias.
+                  </p>
+
+                </div>
+
+
+                <div>
+
+                  <strong>
+                    Opciones predeterminadas
+                  </strong>
+
+                  <p>
+                    Los idiomas y habilidades se
+                    seleccionarán desde los catálogos
+                    establecidos para tu carrera.
+                  </p>
+
+                </div>
+
+
+                <div>
+
+                  <strong>
+                    Redacción asistida
+                  </strong>
+
+                  <p>
+                    La IA corregirá ortografía,
+                    gramática y redacción sin inventar
+                    información profesional.
+                  </p>
+
+                </div>
+
+
+              </div>
+
+
+              <Link
+                to="/estudiante/crear-cv-ia"
+                className="ai-create-cv-button"
+              >
+                Crear currículum desde cero
+              </Link>
+
+
+            </article>
+
+
+            {/* ===============================================
+                MEJORAR CV EXISTENTE
+            =============================================== */}
+
+            <article className="ai-sidebar-panel">
+
+
+              <span className="ai-section-label">
+                OPCIÓN 02
+              </span>
+
+
+              <h3>
+                Mejorar un CV existente
+              </h3>
+
+
+              <p>
+                Selecciona uno de tus currículums
+                creados y utiliza la IA para mejorar
+                únicamente los campos que necesitan
+                redacción.
+              </p>
+
+
+              <div className="ai-help-section">
+
+
+                <div>
+
+                  <strong>
+                    Seleccionar currículum
+                  </strong>
+
+                  <p>
+                    PoliCV cargará automáticamente
+                    la información que ya tengas
+                    registrada.
+                  </p>
+
+                </div>
+
+
+                <div>
+
+                  <strong>
+                    Sin repetir información
+                  </strong>
+
+                  <p>
+                    No volverá a preguntarte carrera,
+                    idiomas, habilidades ni otros
+                    datos que ya estén guardados.
+                  </p>
+
+                </div>
 
 
                 <div>
@@ -733,8 +471,9 @@ function StudentAIAssistantPage() {
                   </strong>
 
                   <p>
-                    Corrige errores de escritura
-                    y textos poco claros.
+                    Podrás mejorar descripción
+                    profesional, proyectos, prácticas,
+                    formación y experiencia laboral.
                   </p>
 
                 </div>
@@ -743,41 +482,13 @@ function StudentAIAssistantPage() {
                 <div>
 
                   <strong>
-                    Mejorar descripciones
+                    Tú decides
                   </strong>
 
                   <p>
-                    Presenta experiencias,
-                    proyectos y actividades
-                    de manera profesional.
-                  </p>
-
-                </div>
-
-
-                <div>
-
-                  <strong>
-                    Organizar información
-                  </strong>
-
-                  <p>
-                    Ayuda a estructurar mejor
-                    el contenido de tu currículum.
-                  </p>
-
-                </div>
-
-
-                <div>
-
-                  <strong>
-                    Recibir sugerencias
-                  </strong>
-
-                  <p>
-                    Identifica aspectos que
-                    podrían fortalecer tu perfil.
+                    La sugerencia de la IA nunca se
+                    guardará automáticamente. Podrás
+                    aplicarla o conservar tu texto.
                   </p>
 
                 </div>
@@ -786,210 +497,48 @@ function StudentAIAssistantPage() {
               </div>
 
 
-            </aside>
-
-
-            {/* ===============================================
-                CHAT
-            =============================================== */}
-
-            <article className="ai-professional-chat">
-
-
-              {/* HEADER DEL CHAT */}
-
-              <header className="ai-professional-header">
-
-
-                <div className="ai-professional-avatar">
-                  IA
-                </div>
-
-
-                <div>
-
-                  <h3>
-                    Asistente PoliCV
-                  </h3>
-
-                  <span>
-                    Apoyo para la elaboración
-                    de tu currículum
-                  </span>
-
-                </div>
-
-
-                <div className="ai-professional-status">
-                  Disponible
-                </div>
-
-
-              </header>
-
-
-              {/* =============================================
-                  MENSAJES
-              ============================================= */}
-
-              <div className="ai-professional-messages">
-
-
-                {mensajes.map(
-                  (
-                    item,
-                    index
-                  ) => (
-
-                    <div
-                      key={index}
-                      className={
-                        item.role ===
-                        "user"
-                          ? "ai-professional-row user"
-                          : "ai-professional-row assistant"
-                      }
-                    >
-
-
-                      <span className="ai-professional-author">
-
-                        {item.role ===
-                        "user"
-                          ? "Tú"
-                          : "PoliCV"}
-
-                      </span>
-
-
-                      <div
-                        className={
-                          item.role ===
-                          "user"
-                            ? "ai-professional-message user"
-                            : "ai-professional-message assistant"
-                        }
-                      >
-
-                        {item.content}
-
-                      </div>
-
-
-                    </div>
-
-                  )
-                )}
-
-
-                {/* RESPUESTA EN PROCESO */}
-
-                {cargando && (
-
-                  <div className="ai-professional-row assistant">
-
-
-                    <span className="ai-professional-author">
-                      PoliCV
-                    </span>
-
-
-                    <div className="ai-professional-message assistant">
-                      Analizando tu información...
-                    </div>
-
-
-                  </div>
-
-                )}
-
-
-              </div>
-
-
-              {/* =============================================
-                  ERROR
-              ============================================= */}
-
-              {error && (
-
-                <div className="ai-professional-error">
-                  {error}
-                </div>
-
-              )}
-
-
-              {/* =============================================
-                  ESCRIBIR MENSAJE
-              ============================================= */}
-
-              <form
-                className="ai-professional-input"
-                onSubmit={
-                  enviarMensaje
-                }
+              <Link
+                to="/estudiante/asistente-ia/mejorar"
+                className="ai-create-cv-button"
               >
-
-
-                <textarea
-                  value={
-                    mensaje
-                  }
-                  onChange={
-                    (e) =>
-                      setMensaje(
-                        e.target.value
-                      )
-                  }
-                  placeholder={
-                    curriculumSeleccionado
-                      ? "Escribe tu consulta o cuéntame tu experiencia..."
-                      : "Selecciona primero un currículum"
-                  }
-                  disabled={
-                    !curriculumSeleccionado ||
-                    cargando
-                  }
-                  rows="3"
-                />
-
-
-                <div className="ai-input-footer">
-
-
-                  <span>
-                    Puedes escribir de forma
-                    natural. PoliCV puede ayudarte
-                    a organizar y mejorar la
-                    redacción de la información
-                    que proporciones.
-                  </span>
-
-
-                  <button
-                    type="submit"
-                    disabled={
-                      !curriculumSeleccionado ||
-                      cargando ||
-                      !mensaje.trim()
-                    }
-                  >
-
-                    {cargando
-                      ? "Enviando..."
-                      : "Enviar mensaje"}
-
-                  </button>
-
-
-                </div>
-
-
-              </form>
+                Mejorar currículum existente
+              </Link>
 
 
             </article>
+
+
+          </section>
+
+
+          {/* =================================================
+              REGLA DE LA IA
+          ================================================= */}
+
+          <section className="ai-page-heading">
+
+
+            <div>
+
+              <span>
+                CONTROL DEL ESTUDIANTE
+              </span>
+
+              <h2>
+                La IA ayuda, pero no inventa información
+              </h2>
+
+              <p>
+                PoliCV puede interpretar errores
+                ortográficos, corregir la gramática,
+                organizar ideas y mejorar la forma
+                de presentar la información. Sin embargo,
+                no agregará estudios, habilidades,
+                tecnologías, experiencia, responsabilidades
+                o logros que no hayas proporcionado.
+              </p>
+
+            </div>
 
 
           </section>
