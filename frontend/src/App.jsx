@@ -1,196 +1,259 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import HomePage from "./pages/HomePage";
-import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import ProfilePage from "./pages/ProfilePage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
-import AdminDashboardPage from "./pages/AdminDashboardPage";
-import StudentDashboardPage from "./pages/StudentDashboardPage";
-import ProtectedRoute from "./components/ProtectedRoute";
-import AdminUsersPage from "./pages/AdminUsersPage";
-import AdminSectionsPage from "./pages/AdminSectionsPage";
-import AdminTemplatesPage from "./pages/AdminTemplatesPage";
-import StudentProposalsPage from "./pages/StudentProposalsPage";
-import AdminProposalsPage from "./pages/AdminProposalsPage";
-import AdminStatisticsPage from "./pages/AdminStatisticsPage";
-import StudentCVPage from "./pages/StudentCVPage";
-import StudentCVDetailPage from "./pages/StudentCVDetailPage";
-import StudentAIAssistantPage from "./pages/StudentAIAssistantPage";
-import StudentAICreateCVPage from "./pages/StudentAICreateCVPage";
-import StudentProfileGuard from "./components/StudentProfileGuard";
-import StudentWelcomePage from "./pages/StudentWelcomePage"; 
-import StudentAIImproveCVPage from "./pages/StudentAIImproveCVPage";
 
+/* PÁGINAS PÚBLICAS */
+import PaginaInicio from "./pages/publicas/PaginaInicio";
+import PaginaTerminosPrivacidad from "./pages/publicas/PaginaTerminosPrivacidad";
+
+/* AUTENTICACIÓN */
+import PaginaInicioSesion from "./pages/autenticacion/PaginaInicioSesion";
+import PaginaRegistro from "./pages/autenticacion/PaginaRegistro";
+import PaginaRecuperarContrasena from "./pages/autenticacion/PaginaRecuperarContrasena";
+import PaginaRestablecerContrasena from "./pages/autenticacion/PaginaRestablecerContrasena";
+import PaginaVerificarCorreo from "./pages/autenticacion/PaginaVerificarCorreo";
+
+/* ADMINISTRADOR */
+import PaginaEstadisticasAdministrador from "./pages/administrador/PaginaEstadisticasAdministrador";
+import PaginaUsuariosAdministrador from "./pages/administrador/PaginaUsuariosAdministrador";
+import PaginaSeccionesAdministrador from "./pages/administrador/PaginaSeccionesAdministrador";
+import PaginaPlantillasAdministrador from "./pages/administrador/PaginaPlantillasAdministrador";
+import PaginaPropuestasAdministrador from "./pages/administrador/PaginaPropuestasAdministrador";
+
+/* ESTUDIANTE */
+import PaginaBienvenidaEstudiante from "./pages/estudiante/PaginaBienvenidaEstudiante";
+import PaginaPanelEstudiante from "./pages/estudiante/PaginaPanelEstudiante";
+import PaginaPerfil from "./pages/estudiante/PaginaPerfil";
+import PaginaCurriculumsEstudiante from "./pages/estudiante/PaginaCurriculumsEstudiante";
+import PaginaDetalleCurriculum from "./pages/estudiante/PaginaDetalleCurriculum";
+import PaginaPropuestasEstudiante from "./pages/estudiante/PaginaPropuestasEstudiante";
+import PaginaAsistenteIAEstudiante from "./pages/estudiante/PaginaAsistenteIAEstudiante";
+import PaginaCrearCVconIA from "./pages/estudiante/PaginaCrearCVconIA";
+import PaginaMejorarCVconIA from "./pages/estudiante/PaginaMejorarCVconIA";
+
+/* PROTECCIÓN DE RUTAS */
+import RutaProtegida from "./components/rutas/RutaProtegida";
+import GuardiaPerfilEstudiante from "./components/rutas/GuardiaPerfilEstudiante";
+
+/* =========================================================
+   PROTECCIÓN ADMINISTRADOR
+========================================================= */
+function RutaAdministrador({ children }) {
+  return (
+    <RutaProtegida allowedRoles={["Administrador"]}>
+      {children}
+    </RutaProtegida>
+  );
+}
+
+/* =========================================================
+   PROTECCIÓN ESTUDIANTE
+   Verifica:
+   1. Que tenga rol Estudiante
+   2. Que haya completado su configuración inicial
+========================================================= */
+function RutaEstudiante({ children }) {
+  return (
+    <RutaProtegida allowedRoles={["Estudiante"]}>
+      <GuardiaPerfilEstudiante>
+        {children}
+      </GuardiaPerfilEstudiante>
+    </RutaProtegida>
+  );
+}
+
+/* =========================================================
+   APP
+========================================================= */
 function App() {
   return (
     <BrowserRouter>
       <Routes>
 
-        <Route
-          path="/"
-          element={<HomePage />}
-        />
+        {/* ==================== PÚBLICAS ==================== */}
+        <Route path="/" element={<PaginaInicio />} />
 
         <Route
+          path="/terminos-y-privacidad"
+          element={<PaginaTerminosPrivacidad />}
+        />
+
+        {/* ================= AUTENTICACIÓN ================= */}
+        <Route
           path="/iniciar-sesion"
-          element={<LoginPage />}
+          element={<PaginaInicioSesion />}
         />
 
         <Route
           path="/registrarse"
-          element={<RegisterPage />}
+          element={<PaginaRegistro />}
         />
 
         <Route
-          path="/recuperar-password"
-          element={<ForgotPasswordPage />}
+          path="/recuperar-contrasena"
+          element={<PaginaRecuperarContrasena />}
         />
 
         <Route
-          path="/restablecer-password"
-          element={<ResetPasswordPage />}
+          path="/restablecer-contrasena"
+          element={<PaginaRestablecerContrasena />}
         />
+        <Route 
+        path="/verificar-correo" 
+        element={<PaginaVerificarCorreo />} />
 
-        <Route
-          path="/perfil"
-          element={<ProfilePage />}
-        />
+        {/* =================================================
+            ADMINISTRADOR
+        ================================================= */}
 
-        <Route
-          path="/estudiante"
-          element={
-            <ProtectedRoute allowedRoles={["Estudiante"]}>
-              <StudentDashboardPage />
-            </ProtectedRoute>
-          }
-        />
-
+        {/* El administrador inicia directamente en Estadísticas */}
         <Route
           path="/admin"
           element={
-            <ProtectedRoute allowedRoles={["Administrador"]}>
-              <AdminDashboardPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/admin/usuarios"
-          element={
-            <ProtectedRoute allowedRoles={["Administrador"]}>
-              <AdminUsersPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/admin/secciones"
-          element={
-            <ProtectedRoute allowedRoles={["Administrador"]}>
-              <AdminSectionsPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/admin/plantillas"
-          element={
-            <ProtectedRoute allowedRoles={["Administrador"]}>
-              <AdminTemplatesPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/admin/propuestas"
-          element={
-            <ProtectedRoute allowedRoles={["Administrador"]}>
-              <AdminProposalsPage />
-            </ProtectedRoute>
+            <RutaAdministrador>
+              <PaginaEstadisticasAdministrador />
+            </RutaAdministrador>
           }
         />
 
         <Route
           path="/admin/estadisticas"
           element={
-            <ProtectedRoute allowedRoles={["Administrador"]}>
-              <AdminStatisticsPage />
-            </ProtectedRoute>
+            <RutaAdministrador>
+              <PaginaEstadisticasAdministrador />
+            </RutaAdministrador>
           }
         />
 
         <Route
-          path="/estudiante/propuestas"
+          path="/admin/usuarios"
           element={
-            <ProtectedRoute allowedRoles={["Estudiante"]}>
-              <StudentProposalsPage />
-            </ProtectedRoute>
+            <RutaAdministrador>
+              <PaginaUsuariosAdministrador />
+            </RutaAdministrador>
+          }
+        />
+
+        <Route
+          path="/admin/secciones"
+          element={
+            <RutaAdministrador>
+              <PaginaSeccionesAdministrador />
+            </RutaAdministrador>
+          }
+        />
+
+        <Route
+          path="/admin/plantillas"
+          element={
+            <RutaAdministrador>
+              <PaginaPlantillasAdministrador />
+            </RutaAdministrador>
+          }
+        />
+
+        <Route
+          path="/admin/propuestas"
+          element={
+            <RutaAdministrador>
+              <PaginaPropuestasAdministrador />
+            </RutaAdministrador>
+          }
+        />
+
+        {/* =================================================
+            ESTUDIANTE - PRIMER INGRESO
+        ================================================= */}
+
+        {/*
+          Esta página NO usa GuardiaPerfilEstudiante porque precisamente se muestra cuando el perfil todavía
+          no está completado.
+        */}
+        <Route
+          path="/bienvenida"
+          element={
+            <RutaProtegida allowedRoles={["Estudiante"]}>
+              <PaginaBienvenidaEstudiante />
+            </RutaProtegida>
+          }
+        />
+
+        {/* =================================================
+            ESTUDIANTE - PERFIL COMPLETADO
+        ================================================= */}
+
+        <Route
+          path="/estudiante"
+          element={
+            <RutaEstudiante>
+              <PaginaPanelEstudiante />
+            </RutaEstudiante>
+          }
+        />
+
+        <Route
+          path="/perfil"
+          element={
+            <RutaEstudiante>
+              <PaginaPerfil />
+            </RutaEstudiante>
           }
         />
 
         <Route
           path="/estudiante/curriculums"
           element={
-            <ProtectedRoute allowedRoles={["Estudiante"]}>
-              <StudentCVPage />
-            </ProtectedRoute>
+            <RutaEstudiante>
+              <PaginaCurriculumsEstudiante />
+            </RutaEstudiante>
           }
         />
 
         <Route
           path="/estudiante/curriculums/:id"
           element={
-            <ProtectedRoute allowedRoles={["Estudiante"]}>
-              <StudentCVDetailPage />
-            </ProtectedRoute>
+            <RutaEstudiante>
+              <PaginaDetalleCurriculum />
+            </RutaEstudiante>
           }
         />
 
         <Route
-          path="/estudiante/asistente-ia"
+          path="/estudiante/propuestas"
           element={
-            <ProtectedRoute allowedRoles={["Estudiante"]}>
-              <StudentAIAssistantPage />
-            </ProtectedRoute>
+            <RutaEstudiante>
+              <PaginaPropuestasEstudiante />
+            </RutaEstudiante>
           }
         />
+
+        {/* ==================== IA ==================== */}
+
+        <Route
+          path="/estudiante/asistente-ia"
+          element={
+            <RutaEstudiante>
+              <PaginaAsistenteIAEstudiante />
+            </RutaEstudiante>
+          }
+        />
+
         <Route
           path="/estudiante/crear-cv-ia"
           element={
-            <ProtectedRoute allowedRoles={["Estudiante"]}>
-              <StudentAICreateCVPage />
-            </ProtectedRoute>
+            <RutaEstudiante>
+              <PaginaCrearCVconIA />
+            </RutaEstudiante>
           }
         />
-        <Route
-          path="/bienvenida"
-          element={
-            <ProtectedRoute allowedRoles={["Estudiante"]}>
-              <StudentWelcomePage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/estudiante"
-          element={
-            <ProtectedRoute allowedRoles={["Estudiante"]}>
-              <StudentProfileGuard>
-                <StudentDashboardPage />
-              </StudentProfileGuard>
-            </ProtectedRoute>
-          }
-        />
+
         <Route
           path="/estudiante/asistente-ia/mejorar"
           element={
-            <ProtectedRoute rolPermitido="Estudiante">
-              <StudentProfileGuard>
-                <StudentAIImproveCVPage />
-              </StudentProfileGuard>
-            </ProtectedRoute>
+            <RutaEstudiante>
+              <PaginaMejorarCVconIA />
+            </RutaEstudiante>
           }
         />
+
       </Routes>
     </BrowserRouter>
   );

@@ -5,7 +5,7 @@ const perfilController =
 
 const {
   verificarToken
-} = require("../middlewares/authMiddleware");
+} = require("../middlewares/AutenticacionMiddleware");
 
 const router = express.Router();
 

@@ -12,14 +12,14 @@ const {
   verificarToken
 } =
   require(
-    "../middlewares/authMiddleware"
+    "../middlewares/AutenticacionMiddleware"
   );
 
 const {
   verificarRol
 } =
   require(
-    "../middlewares/roleMiddleware"
+    "../middlewares/RolMiddleware"
   );
 
 

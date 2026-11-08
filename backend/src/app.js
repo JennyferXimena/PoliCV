@@ -1,78 +1,134 @@
-// Servidor base real 
+// Servidor principal
 require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
-const pool = require("./config/database"); 
-const authRoutes = require("./routes/authRoutes"); 
-const perfilRoutes = require("./routes/perfilRoutes");
-const adminUsuarioRoutes = require("./routes/adminUsuarioRoutes");
-const app = express();
-const adminSeccionRoutes = require("./routes/adminSeccionRoutes");
-const adminPlantillaRoutes = require("./routes/adminPlantillaRoutes");
-const propuestaRoutes = require("./routes/propuestaRoutes");
-const adminPropuestaRoutes = require("./routes/adminPropuestaRoutes");
-const adminEstadisticaRoutes = require("./routes/adminEstadisticaRoutes");
-const curriculumRoutes = require("./routes/curriculumRoutes");
-const aiRoutes = require("./routes/aiRoutes");
-const configuracionInicialRoutes = require("./routes/configuracionInicialRoutes");
-const detalleCurriculumRoutes = require("./routes/detalleCurriculumRoutes");
-const pdfRoutes = require("./routes/pdfRoutes");
+const pool = require("./config/database");
 
-// Middlewares generales
+// Rutas de autenticación
+const rutasAutenticacion = require("./routes/autenticacionRoutes");
+
+// Rutas del estudiante
+const rutasPerfil = require("./routes/perfilRoutes");
+const rutasPropuestas = require("./routes/propuestaRoutes");
+const rutasCurriculum = require("./routes/curriculumRoutes");
+const rutasIA = require("./routes/iaRoutes");
+const rutasConfiguracionInicial = require("./routes/configuracionInicialRoutes");
+const rutasDetalleCurriculum = require("./routes/detalleCurriculumRoutes");
+const rutasPDF = require("./routes/pdfRoutes");
+
+// Rutas del administrador
+const rutasUsuariosAdministrador = require("./routes/usuarioAdministradorRoutes");
+const rutasSeccionesAdministrador = require("./routes/seccionAdministradorRoutes");
+const rutasPlantillasAdministrador = require("./routes/plantillaAdministradorRoutes");
+const rutasPropuestasAdministrador = require("./routes/propuestaAdministradorRoutes");
+const rutasEstadisticasAdministrador = require("./routes/estadisticaAdministradorRoutes");
+
+const app = express();
+
+/* =========================
+   MIDDLEWARES GENERALES
+========================= */
+
 app.use(cors());
 app.use(express.json());
 
-// Rutas
-app.use("/api/auth", authRoutes);
-app.use("/api/perfil", perfilRoutes);
-app.use("/api/admin/usuarios", adminUsuarioRoutes);
-app.use("/api/admin/secciones",adminSeccionRoutes);
-app.use("/api/admin/plantillas",adminPlantillaRoutes);
-app.use("/api/propuestas",propuestaRoutes);
-app.use("/api/admin/propuestas",adminPropuestaRoutes);
-app.use("/api/admin/estadisticas",adminEstadisticaRoutes);
-app.use("/api/curriculums",curriculumRoutes);
-app.use("/api/ia", aiRoutes);
-app.use("/api/curriculums",detalleCurriculumRoutes);
-app.use("/api/curriculums",pdfRoutes);
+/* =========================
+   AUTENTICACIÓN
+========================= */
 
-// Rutas de configuracion inicial
+app.use("/api/auth", rutasAutenticacion);
+
+/* =========================
+   ESTUDIANTE
+========================= */
+
+app.use("/api/perfil", rutasPerfil);
+
 app.use(
   "/api/configuracion-inicial",
-  configuracionInicialRoutes
+  rutasConfiguracionInicial
 );
 
-// Rutas principales 
+app.use("/api/propuestas", rutasPropuestas);
+
+app.use("/api/curriculums", rutasCurriculum);
+app.use("/api/curriculums", rutasDetalleCurriculum);
+app.use("/api/curriculums", rutasPDF);
+
+app.use("/api/ia", rutasIA);
+
+/* =========================
+   ADMINISTRADOR
+========================= */
+
+app.use(
+  "/api/admin/usuarios",
+  rutasUsuariosAdministrador
+);
+
+app.use(
+  "/api/admin/secciones",
+  rutasSeccionesAdministrador
+);
+
+app.use(
+  "/api/admin/plantillas",
+  rutasPlantillasAdministrador
+);
+
+app.use(
+  "/api/admin/propuestas",
+  rutasPropuestasAdministrador
+);
+
+app.use(
+  "/api/admin/estadisticas",
+  rutasEstadisticasAdministrador
+);
+
+/* =========================
+   RUTAS GENERALES
+========================= */
+
 app.get("/", (req, res) => {
   res.status(200).json({
-    nombre: "PoliCV API",
+    nombre: "TalentoESFOT API",
     estado: "Servidor funcionando"
   });
 });
 
-// Rutas de comprobacion 
 app.get("/api/health", (req, res) => {
   res.status(200).json({
-    mensaje: "Servidor PoliCV funcionando correctamente"
+    mensaje: "Servidor TalentoESFOT funcionando correctamente"
   });
 });
 
+/* =========================
+   INICIAR SERVIDOR
+========================= */
+
 const PORT = process.env.PORT || 3000;
 
-async function iniciarServidor(){
-  try{
+async function iniciarServidor() {
+  try {
     await pool.query("SELECT 1");
-    console.log("Conexion exitosa con MySQL");
+
+    console.log("Conexión exitosa con MySQL");
+
     app.listen(PORT, () => {
       console.log(
-        `Servidor PoliCV ejecutandose en http://localhost:${PORT}` 
+        `Servidor TalentoESFOT ejecutándose en http://localhost:${PORT}`
       );
     });
-  } catch (error){
-    console.error("Error al conectar con MySQL:", error.message);
+  } catch (error) {
+    console.error(
+      "Error al conectar con MySQL:",
+      error.message
+    );
+
     process.exit(1);
   }
 }
 
-iniciarServidor(); 
+iniciarServidor();

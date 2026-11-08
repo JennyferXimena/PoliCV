@@ -5,11 +5,11 @@ const propuestaController =
 
 const {
   verificarToken
-} = require("../middlewares/authMiddleware");
+} = require("../middlewares/AutenticacionMiddleware");
 
 const {
   verificarRol
-} = require("../middlewares/roleMiddleware");
+} = require("../middlewares/RolMiddleware");
 
 const router = express.Router();
 
