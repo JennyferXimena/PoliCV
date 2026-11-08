@@ -59,7 +59,7 @@ async function registrarUsuario(req, res) {
 
     if (usuarioExistente) {
       await conexion.rollback();
-      return res.status(409).json({ mensaje: "No fue posible registrar la cuenta con esos datos" });
+      return res.status(409).json({ mensaje: "No fue posible crear la cuenta. Verifica los datos ingresados o inicia sesión si ya tienes una cuenta." });
     }
 
     const rolEstudiante = await rolModel.buscarPorNombre("Estudiante", conexion);

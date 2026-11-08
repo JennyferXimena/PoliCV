@@ -48,24 +48,19 @@
   line-height:1.5;
 }
 
-.verificacion-registro {
-  padding:20px;
-  border-radius:12px;
-  background:var(--verde-suave);
-  text-align:center;
+.aceptar-terminos input {
+  accent-color:var(--verde);
 }
 
-.verificacion-registro h3 {
-  margin:0 0 8px;
+.aceptar-terminos a {
+  color:var(--verde);
+  text-decoration:none;
+  font-weight:800;
+}
+
+.aceptar-terminos a:hover {
   color:var(--verde-oscuro);
-  font-family:var(--fuente-titulos);
-  font-size:24px;
-}
-
-.verificacion-registro p {
-  margin:0 0 18px;
-  color:var(--texto-suave);
-  font-size:11px;
+  text-decoration:underline;
 }
 
 @media (max-width:600px) {

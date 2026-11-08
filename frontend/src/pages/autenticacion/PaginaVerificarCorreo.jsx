@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import "../../styles/autenticacion/inicioSesion.css";
 
@@ -6,109 +6,125 @@ const URL_API = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 function PaginaVerificarCorreo() {
   const [parametros] = useSearchParams();
-  const token = parametros.get("token");
+  const correo = parametros.get("email") || sessionStorage.getItem("correo_verificacion") || "";
 
-  const [estado, setEstado] = useState(token ? "verificando" : "error");
-  const [mensaje, setMensaje] = useState(
-    token
-      ? "Estamos verificando tu correo institucional."
-      : "El enlace de verificación no es válido."
-  );
+  const [codigo, setCodigo] = useState("");
+  const [mensaje, setMensaje] = useState("");
+  const [exito, setExito] = useState(false);
+  const [cargando, setCargando] = useState(false);
+  const [reenviando, setReenviando] = useState(false);
 
-  useEffect(() => {
-    if (!token) return;
+  const verificar = async (evento) => {
+    evento.preventDefault();
+    setMensaje("");
 
-    const verificarCorreo = async () => {
-      try {
-        const respuesta = await fetch(`${URL_API}/api/auth/verificar-correo`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token })
-        });
+    if (!correo) {
+      setMensaje("No se encontró el correo que deseas verificar.");
+      return;
+    }
 
-        const datos = await respuesta.json();
+    if (!/^\d{6}$/.test(codigo)) {
+      setMensaje("Ingresa el código de 6 dígitos.");
+      return;
+    }
 
-        if (!respuesta.ok) {
-          setEstado("error");
-          setMensaje(datos.mensaje || "No se pudo verificar el correo.");
-          return;
-        }
+    setCargando(true);
 
-        setEstado("exito");
-        setMensaje("Tu correo fue verificado correctamente. Ya puedes iniciar sesión.");
-      } catch {
-        setEstado("error");
-        setMensaje("No se pudo conectar con el servidor.");
+    try {
+      const respuesta = await fetch(`${URL_API}/api/auth/verificar-correo`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: correo, codigo })
+      });
+
+      const datos = await respuesta.json();
+
+      if (!respuesta.ok) {
+        setMensaje(datos.mensaje || "No se pudo verificar la cuenta.");
+        return;
       }
-    };
 
-    verificarCorreo();
-  }, [token]);
+      sessionStorage.removeItem("correo_verificacion");
+      setExito(true);
+      setMensaje(datos.mensaje);
+    } catch {
+      setMensaje("No se pudo conectar con el servidor.");
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const reenviar = async () => {
+    if (!correo) return;
+
+    setReenviando(true);
+    setMensaje("");
+
+    try {
+      const respuesta = await fetch(`${URL_API}/api/auth/reenviar-verificacion`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: correo })
+      });
+
+      const datos = await respuesta.json();
+      setMensaje(datos.mensaje || "Código reenviado.");
+    } catch {
+      setMensaje("No se pudo reenviar el código.");
+    } finally {
+      setReenviando(false);
+    }
+  };
 
   return (
     <div className="pagina-acceso">
-      <header className="encabezado-acceso">
-        <div className="contenedor-encabezado-acceso">
-          <Link to="/" className="marca-acceso">
-            <strong>TalentoESFOT</strong>
-            <span>Escuela Politécnica Nacional</span>
-          </Link>
-
-          <nav className="menu-acceso">
-            <Link to="/">INICIO</Link>
-            <Link to="/iniciar-sesion">INICIAR SESIÓN</Link>
-            <Link to="/registrarse" className="boton-registro-menu">CREAR CUENTA</Link>
-          </nav>
-        </div>
-      </header>
-
       <main className="contenido-verificacion">
-        <section className="tarjeta-verificacion">
+        <form className="tarjeta-verificacion" onSubmit={verificar}>
           <span className="etiqueta-acceso">VERIFICACIÓN DE CUENTA</span>
+          <h1>{exito ? "Cuenta verificada" : "Verifica tu correo"}</h1>
 
-          {estado === "verificando" && (
+          {!exito ? (
             <>
-              <div className="icono-verificacion">⌛</div>
-              <h1>Verificando correo</h1>
-              <p>{mensaje}</p>
+              <p>
+                Enviamos un código de 6 dígitos a<br />
+                <strong>{correo}</strong>
+              </p>
+
+              {mensaje && <div className="mensaje-error-acceso">{mensaje}</div>}
+
+              <div className="grupo-acceso">
+                <label>Código de verificación</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={codigo}
+                  placeholder="000000"
+                  onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ""))}
+                />
+              </div>
+
+              <button type="submit" className="boton-principal-acceso" disabled={cargando}>
+                {cargando ? "Verificando..." : "Verificar cuenta"}
+              </button>
+
+              <div className="cambio-acceso">
+                <span>¿No recibiste el código?</span>
+                <button type="button" className="boton-texto-acceso" onClick={reenviar} disabled={reenviando}>
+                  {reenviando ? "Enviando..." : "Reenviar código"}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="mensaje-exito-acceso">{mensaje}</div>
+              <Link to="/iniciar-sesion" className="boton-principal-acceso">
+                Iniciar sesión
+              </Link>
             </>
           )}
-
-          {estado === "exito" && (
-            <>
-              <div className="icono-verificacion exito">✓</div>
-              <h1>Cuenta verificada</h1>
-              <p>{mensaje}</p>
-              <Link to="/iniciar-sesion" className="boton-principal-acceso">Iniciar sesión</Link>
-            </>
-          )}
-
-          {estado === "error" && (
-            <>
-              <div className="icono-verificacion error">!</div>
-              <h1>No pudimos verificar tu cuenta</h1>
-              <p>{mensaje}</p>
-              <Link to="/iniciar-sesion" className="boton-principal-acceso">Volver a iniciar sesión</Link>
-            </>
-          )}
-        </section>
+        </form>
       </main>
-
-      <footer className="pie-acceso">
-        <div className="enlaces-pie-acceso">
-          <strong>TalentoESFOT</strong>
-          <div>
-            <Link to="/terminos-y-privacidad#terminos">Términos y condiciones</Link>
-            <Link to="/terminos-y-privacidad#privacidad">Política de privacidad</Link>
-          </div>
-        </div>
-
-        <div className="barra-inferior-acceso">
-          <span>© 2026 TalentoESFOT</span>
-          <span>Proyecto de integración curricular - ESFOT - EPN</span>
-          <span>Todos los derechos reservados.</span>
-        </div>
-      </footer>
     </div>
   );
 }

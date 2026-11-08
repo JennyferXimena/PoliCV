@@ -1,24 +1,24 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { EncabezadoAcceso, ImagenAcceso, PieAcceso } from "./PaginaInicioSesion";
 import "../../styles/autenticacion/recuperarContrasena.css";
 
 const URL_API = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 function PaginaRecuperarContrasena() {
+  const navegar = useNavigate();
   const [correo, setCorreo] = useState("");
   const [mensaje, setMensaje] = useState("");
-  const [enviado, setEnviado] = useState(false);
   const [cargando, setCargando] = useState(false);
 
-  const enviarRecuperacion = async (evento) => {
+  const enviarCodigo = async (evento) => {
     evento.preventDefault();
     setMensaje("");
 
     const correoLimpio = correo.trim().toLowerCase();
 
-    if (!correoLimpio || !correoLimpio.endsWith("@epn.edu.ec")) {
-      setMensaje("Ingresa un correo institucional válido.");
+    if (!/^[A-Za-z0-9._%+-]+@epn\.edu\.ec$/i.test(correoLimpio)) {
+      setMensaje("Ingresa un correo institucional @epn.edu.ec válido.");
       return;
     }
 
@@ -31,10 +31,15 @@ function PaginaRecuperarContrasena() {
         body: JSON.stringify({ email: correoLimpio })
       });
 
-      await respuesta.json().catch(() => null);
+      const datos = await respuesta.json();
 
-      setEnviado(true);
-      setMensaje("Si el correo pertenece a una cuenta registrada, recibirás las instrucciones para restablecer tu contraseña.");
+      if (!respuesta.ok) {
+        setMensaje(datos.mensaje || "No se pudo solicitar la recuperación.");
+        return;
+      }
+
+      sessionStorage.setItem("correo_recuperacion", correoLimpio);
+      navegar("/restablecer-contrasena");
     } catch {
       setMensaje("No se pudo conectar con el servidor.");
     } finally {
@@ -45,44 +50,32 @@ function PaginaRecuperarContrasena() {
   return (
     <div className="pagina-acceso">
       <EncabezadoAcceso />
-
       <main className="contenido-acceso">
         <ImagenAcceso />
 
         <section className="zona-formulario-acceso">
-          <form className="formulario-acceso formulario-recuperar" onSubmit={enviarRecuperacion}>
+          <form className="formulario-acceso" onSubmit={enviarCodigo}>
             <span className="etiqueta-acceso">RECUPERACIÓN DE ACCESO</span>
             <h1>Recuperar contraseña</h1>
-
             <p className="descripcion-acceso">
-              Ingresa tu correo institucional y te enviaremos las instrucciones para recuperar tu cuenta.
+              Ingresa tu correo institucional y recibirás un código de recuperación válido durante 5 minutos.
             </p>
 
-            {mensaje && (
-              <div className={enviado ? "mensaje-exito-acceso" : "mensaje-error-acceso"}>
-                {mensaje}
-              </div>
-            )}
+            {mensaje && <div className="mensaje-error-acceso">{mensaje}</div>}
 
-            {!enviado && (
-              <>
-                <div className="grupo-acceso">
-                  <label>Correo institucional</label>
+            <div className="grupo-acceso">
+              <label>Correo institucional</label>
+              <input
+                type="email"
+                value={correo}
+                placeholder="usuario@epn.edu.ec"
+                onChange={(e) => setCorreo(e.target.value)}
+              />
+            </div>
 
-                  <input
-                    type="email"
-                    value={correo}
-                    onChange={(e) => setCorreo(e.target.value)}
-                    placeholder="usuario@epn.edu.ec"
-                    autoComplete="email"
-                  />
-                </div>
-
-                <button type="submit" className="boton-principal-acceso" disabled={cargando}>
-                  {cargando ? "Enviando..." : "Enviar enlace"}
-                </button>
-              </>
-            )}
+            <button type="submit" className="boton-principal-acceso" disabled={cargando}>
+              {cargando ? "Enviando..." : "Enviar código"}
+            </button>
 
             <div className="cambio-acceso">
               <Link to="/iniciar-sesion">← Volver a iniciar sesión</Link>

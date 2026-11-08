@@ -306,3 +306,28 @@ body {
     font-size:29px;
   }
 }
+
+
+
+/* =========================================================
+     vOLVER A REGISTRO
+========================================================= */
+
+.boton-volver-registro {
+  width:max-content;
+  margin-bottom:24px;
+  padding:11px 20px;
+  display:inline-flex;
+  border-radius:999px;
+  color:white;
+  background:#24b84b;
+  text-decoration:none;
+  font-size:12px;
+  font-weight:800;
+  transition:.25s;
+}
+
+.boton-volver-registro:hover {
+  color:#103f33;
+  background:#ffd52b;
+}

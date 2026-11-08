@@ -511,3 +511,27 @@ body { margin:0; }
   color:white;
   background:#c94b4b;
 }
+
+/* =========================================================
+   Regresar a la página de registro 
+========================================================= */
+
+.boton-texto-acceso {
+  padding:0;
+  border:0;
+  color:var(--verde);
+  background:transparent;
+  cursor:pointer;
+  font:inherit;
+  font-weight:800;
+}
+
+.boton-texto-acceso:hover {
+  color:var(--verde-oscuro);
+  text-decoration:underline;
+}
+
+.boton-texto-acceso:disabled {
+  opacity:.6;
+  cursor:not-allowed;
+}
