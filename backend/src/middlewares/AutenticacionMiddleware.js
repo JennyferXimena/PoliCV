@@ -1,30 +1,51 @@
 const jwt = require("jsonwebtoken");
+const pool = require("../config/database");
 
-function verificarToken(req, res, next) {
-  const authorization = req.headers.authorization;
+async function verificarToken(req, res, next) {
+  const autorizacion = req.headers.authorization;
 
-  if (!authorization || !authorization.startsWith("Bearer ")) {
-    return res.status(401).json({
-      mensaje: "Token de acceso requerido"
-    });
+  if (!autorizacion?.startsWith("Bearer ")) {
+    return res.status(401).json({ mensaje:"Token de acceso requerido" });
   }
 
-  const token = authorization.split(" ")[1];
+  const token = autorizacion.split(" ")[1];
 
   try {
-    const datos = jwt.verify(token, process.env.JWT_SECRET);
+    const datosToken = jwt.verify(token, process.env.JWT_SECRET);
 
-    req.usuario = datos;
+    const [filas] = await pool.execute(
+      `SELECT u.id_usuario,u.id_rol,u.estado,u.correo_verificado,r.nombre AS rol
+       FROM usuarios u
+       INNER JOIN roles r ON u.id_rol = r.id_rol
+       WHERE u.id_usuario = ?
+       LIMIT 1`,
+      [datosToken.id_usuario]
+    );
+
+    const usuario = filas[0];
+
+    if (!usuario) {
+      return res.status(401).json({ mensaje:"La cuenta ya no existe" });
+    }
+
+    if (!usuario.estado) {
+      return res.status(403).json({ mensaje:"La cuenta se encuentra desactivada" });
+    }
+
+    if (!usuario.correo_verificado) {
+      return res.status(403).json({ mensaje:"La cuenta requiere verificación de correo" });
+    }
+
+    req.usuario = {
+      id_usuario:usuario.id_usuario,
+      id_rol:usuario.id_rol,
+      rol:usuario.rol
+    };
 
     next();
-
-  } catch (error) {
-    return res.status(401).json({
-      mensaje: "Token inválido o expirado"
-    });
+  } catch {
+    return res.status(401).json({ mensaje:"Token inválido o expirado" });
   }
 }
 
-module.exports = {
-  verificarToken
-};
+module.exports = { verificarToken };

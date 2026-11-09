@@ -1,136 +1,127 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
+import MenuLateral from "../../components/comunes/MenuLateral";
 import api from "../../services/api";
-import "../../styles/administrador/administrador.css";
+import "../../styles/administrador/administradorBase.css";
+import "../../styles/administrador/propuestas.css";
 
-function AdminProposalsPage() {
-  const navigate = useNavigate();
+const NOMBRES_ESTADO = {
+  pendiente:"Pendiente",
+  en_revision:"En revisión",
+  aceptada:"Aceptada",
+  rechazada:"Rechazada"
+};
 
+function PaginaPropuestasAdministrador() {
+  const [parametros, setParametros] = useSearchParams();
   const [propuestas, setPropuestas] = useState([]);
+  const [resumen, setResumen] = useState({});
+  const [buscar, setBuscar] = useState(
+    parametros.get("buscar") || ""
+  );
+  const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
-  const [cargando, setCargando] = useState(true);
 
-  const usuarioGuardado =
-    localStorage.getItem("usuario") ||
-    sessionStorage.getItem("usuario");
-
-  const usuarioActual = usuarioGuardado
-    ? JSON.parse(usuarioGuardado)
-    : null;
-
-  const cerrarSesion = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("usuario");
-
-    sessionStorage.removeItem("token");
-    sessionStorage.removeItem("usuario");
-
-    navigate("/iniciar-sesion");
-  };
-
-  const cargarPropuestas = async () => {
-    try {
-      setCargando(true);
-      setError("");
-
-      const response = await api.get(
-        "/admin/propuestas"
-      );
-
-      setPropuestas(
-        response.data.propuestas || []
-      );
-
-    } catch (error) {
-      setError(
-        error.response?.data?.mensaje ||
-        "No se pudieron cargar las propuestas"
-      );
-
-    } finally {
-      setCargando(false);
-    }
-  };
+  const filtrosActuales = parametros.toString();
 
   useEffect(() => {
-    let activo = true;
+    let cancelado = false;
 
-    const cargarInicial = async () => {
-      try {
-        const response = await api.get(
-          "/admin/propuestas"
-        );
-
-        if (!activo) {
-          return;
-        }
-
-        setPropuestas(
-          response.data.propuestas || []
-        );
-
-      } catch (error) {
-        if (!activo) {
-          return;
-        }
-
-        setError(
-          error.response?.data?.mensaje ||
-          "No se pudieron cargar las propuestas"
-        );
-
-      } finally {
-        if (activo) {
-          setCargando(false);
-        }
-      }
-    };
-
-    cargarInicial();
-
-    return () => {
-      activo = false;
-    };
-  }, []);
-
-  const actualizarPropuesta = async (
-    propuesta,
-    nuevoEstado
-  ) => {
-    let respuestaAdmin =
-      propuesta.respuesta_admin || "";
-
-    if (
-      nuevoEstado === "aceptada" ||
-      nuevoEstado === "rechazada"
-    ) {
-      const respuesta = window.prompt(
-        nuevoEstado === "aceptada"
-          ? "Escribe una respuesta para aceptar la propuesta:"
-          : "Escribe una respuesta para rechazar la propuesta:",
-        respuestaAdmin
-      );
-
-      if (respuesta === null) {
-        return;
-      }
-
-      respuestaAdmin =
-        respuesta.trim();
-    }
-
-    const nombresEstados = {
-      en_revision: "marcar en revisión",
-      aceptada: "aceptar",
-      rechazada: "rechazar"
-    };
-
-    const confirmar = window.confirm(
-      `¿Deseas ${nombresEstados[nuevoEstado]} la propuesta "${propuesta.titulo}"?`
+    const params = Object.fromEntries(
+      new URLSearchParams(filtrosActuales)
     );
 
-    if (!confirmar) {
+    api.get("/admin/propuestas", { params })
+      .then((respuesta) => {
+        if (!cancelado) {
+          setPropuestas(
+            respuesta.data.propuestas || []
+          );
+
+          setResumen(
+            respuesta.data.resumen || {}
+          );
+        }
+      })
+      .catch((error) => {
+        if (!cancelado) {
+          setError(
+            error.response?.data?.mensaje ||
+            "No se pudieron cargar las propuestas"
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelado) {
+          setCargando(false);
+        }
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [filtrosActuales]);
+
+  const recargarPropuestas = async () => {
+    const params = Object.fromEntries(
+      new URLSearchParams(filtrosActuales)
+    );
+
+    const respuesta = await api.get(
+      "/admin/propuestas",
+      { params }
+    );
+
+    setPropuestas(
+      respuesta.data.propuestas || []
+    );
+
+    setResumen(
+      respuesta.data.resumen || {}
+    );
+  };
+
+  const cambiarFiltro = (estado = "") => {
+    const nuevos = new URLSearchParams(parametros);
+
+    if (estado) {
+      nuevos.set("estado", estado);
+    } else {
+      nuevos.delete("estado");
+    }
+
+    setParametros(nuevos);
+  };
+
+  const buscarPropuestas = (e) => {
+    e.preventDefault();
+
+    const nuevos = new URLSearchParams(parametros);
+
+    if (buscar.trim()) {
+      nuevos.set(
+        "buscar",
+        buscar.trim()
+      );
+    } else {
+      nuevos.delete("buscar");
+    }
+
+    setParametros(nuevos);
+  };
+
+  const limpiar = () => {
+    setBuscar("");
+    setParametros({});
+  };
+
+  const marcarRevision = async (propuesta) => {
+    if (
+      !window.confirm(
+        `¿Deseas marcar "${propuesta.titulo}" como En revisión?`
+      )
+    ) {
       return;
     }
 
@@ -138,21 +129,16 @@ function AdminProposalsPage() {
       setError("");
       setMensaje("");
 
-      const response = await api.patch(
+      const respuesta = await api.patch(
         `/admin/propuestas/${propuesta.id_propuesta}`,
         {
-          estado: nuevoEstado,
-          respuesta_admin:
-            respuestaAdmin || null
+          estado:"en_revision",
+          respuesta_admin:null
         }
       );
 
-      setMensaje(
-        response.data.mensaje
-      );
-
-      await cargarPropuestas();
-
+      setMensaje(respuesta.data.mensaje);
+      await recargarPropuestas();
     } catch (error) {
       setError(
         error.response?.data?.mensaje ||
@@ -161,557 +147,334 @@ function AdminProposalsPage() {
     }
   };
 
-  const obtenerNombreEstudiante = (
-    propuesta
-  ) => {
-    const nombre =
-      `${propuesta.nombres || ""} ${propuesta.apellidos || ""}`
-        .trim();
-
-    return nombre ||
-      "Estudiante";
-  };
-
-  const obtenerEstadoTexto = (
+  const finalizar = async (
+    propuesta,
     estado
   ) => {
-    const estados = {
-      pendiente: "Pendiente",
-      en_revision: "En revisión",
-      aceptada: "Aceptada",
-      rechazada: "Rechazada"
-    };
+    const accion =
+      estado === "aceptada"
+        ? "aceptar"
+        : "rechazar";
 
-    return estados[estado] ||
-      estado;
+    const respuestaAdmin = window.prompt(
+      `Escribe la respuesta administrativa para ${accion} la propuesta.\nEntre 10 y 500 caracteres:`
+    );
+
+    if (respuestaAdmin === null) {
+      return;
+    }
+
+    const respuestaLimpia =
+      respuestaAdmin.trim();
+
+    if (
+      respuestaLimpia.length < 10 ||
+      respuestaLimpia.length > 500
+    ) {
+      setError(
+        "La respuesta debe tener entre 10 y 500 caracteres"
+      );
+      return;
+    }
+
+    if (
+      !window.confirm(
+        `¿Confirmas que deseas ${accion} esta propuesta?`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setError("");
+      setMensaje("");
+
+      const respuesta = await api.patch(
+        `/admin/propuestas/${propuesta.id_propuesta}`,
+        {
+          estado,
+          respuesta_admin:respuestaLimpia
+        }
+      );
+
+      setMensaje(
+        respuesta.data.mensaje
+      );
+
+      await recargarPropuestas();
+    } catch (error) {
+      setError(
+        error.response?.data?.mensaje ||
+        "No se pudo actualizar la propuesta"
+      );
+    }
   };
 
-  const contarEstado = (estado) => {
-    return propuestas.filter(
-      (propuesta) =>
-        propuesta.estado === estado
-    ).length;
-  };
+  const total = Number(resumen.total || 0);
+  const pendientes = Number(
+    resumen.pendientes || 0
+  );
+  const revision = Number(
+    resumen.revision || 0
+  );
+  const aceptadas = Number(
+    resumen.aceptadas || 0
+  );
+  const rechazadas = Number(
+    resumen.rechazadas || 0
+  );
 
   return (
-    <div className="admin-page">
+    <div className="admin-layout">
+      <MenuLateral />
 
-      {/* SIDEBAR */}
-      <aside className="admin-sidebar">
-
-        <div className="admin-brand">
-
-          <div className="admin-brand-logo">
-            P
-          </div>
-
-          <div>
-            <h2>PoliCV</h2>
-            <span>Administración</span>
-          </div>
-
-        </div>
-
-
-        <div className="admin-profile">
-
-          <div className="admin-avatar">
-            {usuarioActual?.email
-              ? usuarioActual.email
-                  .charAt(0)
-                  .toUpperCase()
-              : "A"}
-          </div>
-
-          <div>
-            <strong>
-              Administrador
-            </strong>
-
-            <span>
-              {usuarioActual?.email}
-            </span>
-          </div>
-
-        </div>
-
-
-        <nav className="admin-menu">
-
-          <Link to="/admin">
-            <span>01</span>
-            Panel principal
-          </Link>
-
-          <Link to="/admin/usuarios">
-            <span>02</span>
-            Gestionar usuarios
-          </Link>
-
-          <Link to="/admin/secciones">
-            <span>03</span>
-            Secciones del CV
-          </Link>
-
-          <Link to="/admin/plantillas">
-            <span>04</span>
-            Plantillas
-          </Link>
-
-          <Link to="/admin/estadisticas">
-            <span>05</span>
-            Estadísticas
-          </Link>
-
-          <Link
-            to="/admin/propuestas"
-            className="active"
-          >
-            <span>06</span>
-            Propuestas
-          </Link>
-
-        </nav>
-
-
-        <button
-          type="button"
-          className="admin-logout"
-          onClick={cerrarSesion}
-        >
-          Cerrar sesión
-        </button>
-
-      </aside>
-
-
-      {/* CONTENIDO */}
       <main className="admin-main">
-
         <header className="admin-header">
-
           <div>
-
-            <span className="admin-header-label">
+            <span className="admin-eyebrow">
               MEJORA CONTINUA
             </span>
-
-            <h1>
-              Propuestas de mejora
-            </h1>
-
+            <h1>Propuestas</h1>
             <p>
-              Revisa las sugerencias enviadas
-              por los estudiantes y registra
-              una respuesta administrativa.
+              Revisa y responde las sugerencias
+              enviadas por los estudiantes.
             </p>
-
           </div>
 
-
-          <div className="admin-header-account">
-
-            <div>
-              <span>
-                Sesión iniciada como
-              </span>
-
-              <strong>
-                {usuarioActual?.email}
-              </strong>
-            </div>
-
-            <div className="admin-header-avatar">
-              {usuarioActual?.email
-                ? usuarioActual.email
-                    .charAt(0)
-                    .toUpperCase()
-                : "A"}
-            </div>
-
+          <div className="admin-header-badge">
+            {propuestas.length} mostradas
           </div>
-
         </header>
 
-
         <div className="admin-content">
-
-          {/* ENCABEZADO */}
-          <section className="proposals-heading">
-
-            <div>
-
-              <span>
-                PARTICIPACIÓN ESTUDIANTIL
-              </span>
-
-              <h2>
-                Gestionar propuestas
-              </h2>
-
-              <p>
-                Consulta las sugerencias enviadas
-                por los estudiantes, revisa su
-                estado y responde cada solicitud.
-              </p>
-
-            </div>
-
-
-            <Link
-              to="/admin"
-              className="users-back-link"
+          <section className="propuestas-resumen">
+            <button
+              type="button"
+              onClick={() => cambiarFiltro()}
             >
-              Volver al panel
-            </Link>
+              <span>TOTAL</span>
+              <strong>{total}</strong>
+              <small>Propuestas recibidas</small>
+            </button>
 
+            <button
+              type="button"
+              onClick={() =>
+                cambiarFiltro("pendiente")
+              }
+            >
+              <span>PENDIENTES</span>
+              <strong>{pendientes}</strong>
+              <small>Esperando revisión</small>
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                cambiarFiltro("en_revision")
+              }
+            >
+              <span>EN REVISIÓN</span>
+              <strong>{revision}</strong>
+              <small>Actualmente revisadas</small>
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                cambiarFiltro("aceptada")
+              }
+            >
+              <span>ACEPTADAS</span>
+              <strong>{aceptadas}</strong>
+              <small>Propuestas aprobadas</small>
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                cambiarFiltro("rechazada")
+              }
+            >
+              <span>RECHAZADAS</span>
+              <strong>{rechazadas}</strong>
+              <small>Propuestas descartadas</small>
+            </button>
           </section>
 
+          <section className="propuestas-buscador">
+            <form onSubmit={buscarPropuestas}>
+              <input
+                type="text"
+                maxLength={100}
+                value={buscar}
+                onChange={(e) =>
+                  setBuscar(e.target.value)
+                }
+                placeholder="Buscar por estudiante, correo, título o descripción..."
+              />
 
-          {/* RESUMEN */}
-          <section className="proposals-summary">
+              <button type="submit">
+                Buscar
+              </button>
 
-            <article>
-              <span>
-                TOTAL
-              </span>
-
-              <strong>
-                {propuestas.length}
-              </strong>
-
-              <p>
-                Propuestas recibidas
-              </p>
-            </article>
-
-
-            <article>
-              <span>
-                PENDIENTES
-              </span>
-
-              <strong>
-                {contarEstado(
-                  "pendiente"
-                )}
-              </strong>
-
-              <p>
-                Esperando revisión
-              </p>
-            </article>
-
-
-            <article>
-              <span>
-                EN REVISIÓN
-              </span>
-
-              <strong>
-                {contarEstado(
-                  "en_revision"
-                )}
-              </strong>
-
-              <p>
-                Actualmente revisadas
-              </p>
-            </article>
-
-
-            <article>
-              <span>
-                ACEPTADAS
-              </span>
-
-              <strong>
-                {contarEstado(
-                  "aceptada"
-                )}
-              </strong>
-
-              <p>
-                Propuestas aprobadas
-              </p>
-            </article>
-
-
-            <article>
-              <span>
-                RECHAZADAS
-              </span>
-
-              <strong>
-                {contarEstado(
-                  "rechazada"
-                )}
-              </strong>
-
-              <p>
-                Propuestas descartadas
-              </p>
-            </article>
-
+              <button
+                type="button"
+                className="secundario"
+                onClick={limpiar}
+              >
+                Limpiar
+              </button>
+            </form>
           </section>
 
-
-          {/* MENSAJES */}
           {error && (
-            <div className="users-message error">
+            <div className="admin-message error">
               {error}
             </div>
           )}
 
           {mensaje && (
-            <div className="users-message success">
+            <div className="propuestas-mensaje">
               {mensaje}
             </div>
           )}
 
-
-          {/* TABLA */}
-          <section className="proposals-table-card">
-
-            <div className="proposals-table-header">
-
-              <div>
-
-                <span>
-                  PROPUESTAS REGISTRADAS
-                </span>
-
-                <h3>
-                  Solicitudes de mejora
-                </h3>
-
-              </div>
-
-              <p>
-                Administra el estado de
-                cada propuesta recibida.
-              </p>
-
-            </div>
-
-
+          <section className="propuestas-listado">
             {cargando ? (
-
-              <div className="users-loading">
+              <div className="propuestas-vacio">
                 Cargando propuestas...
               </div>
-
             ) : propuestas.length === 0 ? (
-
-              <div className="users-empty">
-
-                <strong>
-                  No existen propuestas registradas
-                </strong>
-
-                <p>
-                  Las propuestas enviadas por
-                  los estudiantes aparecerán aquí.
-                </p>
-
+              <div className="propuestas-vacio">
+                No existen propuestas con estos filtros.
               </div>
-
             ) : (
+              propuestas.map((propuesta) => {
+                const nombre =
+                  `${propuesta.nombres || ""} ${propuesta.apellidos || ""}`.trim() ||
+                  "Estudiante";
 
-              <div className="users-table-wrapper">
+                return (
+                  <article
+                    className="propuesta-card"
+                    key={propuesta.id_propuesta}
+                  >
+                    <div className="propuesta-superior">
+                      <div className="propuesta-estudiante">
+                        <div>
+                          {nombre
+                            .charAt(0)
+                            .toUpperCase()}
+                        </div>
 
-                <table className="proposals-table">
+                        <span>
+                          <strong>
+                            {nombre}
+                          </strong>
 
-                  <thead>
+                          <small>
+                            {propuesta.email}
+                          </small>
+                        </span>
+                      </div>
 
-                    <tr>
-                      <th>Estudiante</th>
-                      <th>Propuesta</th>
-                      <th>Descripción</th>
-                      <th>Estado</th>
-                      <th>Respuesta</th>
-                      <th>Acciones</th>
-                    </tr>
+                      <span
+                        className={`propuesta-estado ${propuesta.estado}`}
+                      >
+                        {NOMBRES_ESTADO[
+                          propuesta.estado
+                        ] || propuesta.estado}
+                      </span>
+                    </div>
 
-                  </thead>
+                    <div className="propuesta-contenido">
+                      <h2>
+                        {propuesta.titulo}
+                      </h2>
 
+                      <p>
+                        {propuesta.descripcion}
+                      </p>
+                    </div>
 
-                  <tbody>
+                    {propuesta.respuesta_admin && (
+                      <div className="propuesta-respuesta">
+                        <strong>
+                          Respuesta administrativa
+                        </strong>
 
-                    {propuestas.map(
-                      (propuesta) => (
-
-                        <tr
-                          key={
-                            propuesta.id_propuesta
-                          }
-                        >
-
-                          {/* ESTUDIANTE */}
-                          <td>
-
-                            <div className="proposal-student">
-
-                              <div className="proposal-avatar">
-
-                                {obtenerNombreEstudiante(
-                                  propuesta
-                                )
-                                  .charAt(0)
-                                  .toUpperCase()}
-
-                              </div>
-
-                              <div>
-
-                                <strong>
-                                  {obtenerNombreEstudiante(
-                                    propuesta
-                                  )}
-                                </strong>
-
-                                <span>
-                                  {propuesta.email}
-                                </span>
-
-                              </div>
-
-                            </div>
-
-                          </td>
-
-
-                          {/* TITULO */}
-                          <td>
-
-                            <strong className="proposal-title">
-                              {propuesta.titulo}
-                            </strong>
-
-                          </td>
-
-
-                          {/* DESCRIPCION */}
-                          <td>
-
-                            <p className="proposal-description">
-                              {propuesta.descripcion}
-                            </p>
-
-                          </td>
-
-
-                          {/* ESTADO */}
-                          <td>
-
-                            <span
-                              className={
-                                `proposal-status ${
-                                  propuesta.estado
-                                }`
-                              }
-                            >
-                              {obtenerEstadoTexto(
-                                propuesta.estado
-                              )}
-                            </span>
-
-                          </td>
-
-
-                          {/* RESPUESTA */}
-                          <td>
-
-                            {propuesta.respuesta_admin ? (
-
-                              <p className="proposal-response">
-                                {
-                                  propuesta.respuesta_admin
-                                }
-                              </p>
-
-                            ) : (
-
-                              <span className="proposal-no-response">
-                                Sin respuesta
-                              </span>
-
-                            )}
-
-                          </td>
-
-
-                          {/* ACCIONES */}
-                          <td>
-
-                            <div className="proposal-actions">
-
-                              <button
-                                type="button"
-                                className="proposal-review-btn"
-                                onClick={() =>
-                                  actualizarPropuesta(
-                                    propuesta,
-                                    "en_revision"
-                                  )
-                                }
-                              >
-                                Revisar
-                              </button>
-
-
-                              <button
-                                type="button"
-                                className="proposal-accept-btn"
-                                onClick={() =>
-                                  actualizarPropuesta(
-                                    propuesta,
-                                    "aceptada"
-                                  )
-                                }
-                              >
-                                Aceptar
-                              </button>
-
-
-                              <button
-                                type="button"
-                                className="proposal-reject-btn"
-                                onClick={() =>
-                                  actualizarPropuesta(
-                                    propuesta,
-                                    "rechazada"
-                                  )
-                                }
-                              >
-                                Rechazar
-                              </button>
-
-                            </div>
-
-                          </td>
-
-                        </tr>
-
-                      )
+                        <p>
+                          {propuesta.respuesta_admin}
+                        </p>
+                      </div>
                     )}
 
-                  </tbody>
+                    <div className="propuesta-acciones">
+                      {propuesta.estado ===
+                        "pendiente" && (
+                        <button
+                          type="button"
+                          className="revisar"
+                          onClick={() =>
+                            marcarRevision(
+                              propuesta
+                            )
+                          }
+                        >
+                          Marcar en revisión
+                        </button>
+                      )}
 
-                </table>
+                      {propuesta.estado ===
+                        "en_revision" && (
+                        <>
+                          <button
+                            type="button"
+                            className="aceptar"
+                            onClick={() =>
+                              finalizar(
+                                propuesta,
+                                "aceptada"
+                              )
+                            }
+                          >
+                            Aceptar
+                          </button>
 
-              </div>
+                          <button
+                            type="button"
+                            className="rechazar"
+                            onClick={() =>
+                              finalizar(
+                                propuesta,
+                                "rechazada"
+                              )
+                            }
+                          >
+                            Rechazar
+                          </button>
+                        </>
+                      )}
 
+                      {(propuesta.estado ===
+                        "aceptada" ||
+                        propuesta.estado ===
+                          "rechazada") && (
+                        <span className="propuesta-finalizada">
+                          Propuesta finalizada
+                        </span>
+                      )}
+                    </div>
+                  </article>
+                );
+              })
             )}
-
           </section>
-
         </div>
-
       </main>
-
     </div>
   );
 }
 
-export default AdminProposalsPage;
+export default PaginaPropuestasAdministrador;

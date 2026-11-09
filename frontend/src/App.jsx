@@ -1,24 +1,21 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter,Routes,Route } from "react-router-dom";
 
-/* PÁGINAS PÚBLICAS */
 import PaginaInicio from "./pages/publicas/PaginaInicio";
 import PaginaTerminosPrivacidad from "./pages/publicas/PaginaTerminosPrivacidad";
 
-/* AUTENTICACIÓN */
 import PaginaInicioSesion from "./pages/autenticacion/PaginaInicioSesion";
 import PaginaRegistro from "./pages/autenticacion/PaginaRegistro";
 import PaginaRecuperarContrasena from "./pages/autenticacion/PaginaRecuperarContrasena";
 import PaginaRestablecerContrasena from "./pages/autenticacion/PaginaRestablecerContrasena";
 import PaginaVerificarCorreo from "./pages/autenticacion/PaginaVerificarCorreo";
 
-/* ADMINISTRADOR */
 import PaginaEstadisticasAdministrador from "./pages/administrador/PaginaEstadisticasAdministrador";
 import PaginaUsuariosAdministrador from "./pages/administrador/PaginaUsuariosAdministrador";
 import PaginaSeccionesAdministrador from "./pages/administrador/PaginaSeccionesAdministrador";
 import PaginaPlantillasAdministrador from "./pages/administrador/PaginaPlantillasAdministrador";
 import PaginaPropuestasAdministrador from "./pages/administrador/PaginaPropuestasAdministrador";
+import PaginaPerfilAdministrador from "./pages/administrador/PaginaPerfilAdministrador";
 
-/* ESTUDIANTE */
 import PaginaBienvenidaEstudiante from "./pages/estudiante/PaginaBienvenidaEstudiante";
 import PaginaPanelEstudiante from "./pages/estudiante/PaginaPanelEstudiante";
 import PaginaPerfil from "./pages/estudiante/PaginaPerfil";
@@ -28,14 +25,11 @@ import PaginaPropuestasEstudiante from "./pages/estudiante/PaginaPropuestasEstud
 import PaginaAsistenteIAEstudiante from "./pages/estudiante/PaginaAsistenteIAEstudiante";
 import PaginaCrearCVconIA from "./pages/estudiante/PaginaCrearCVconIA";
 import PaginaMejorarCVconIA from "./pages/estudiante/PaginaMejorarCVconIA";
+import PaginaEstadisticasCurriculumsAdministrador from "./pages/administrador/PaginaEstadisticasCurriculumsAdministrador";
 
-/* PROTECCIÓN DE RUTAS */
 import RutaProtegida from "./components/rutas/RutaProtegida";
 import GuardiaPerfilEstudiante from "./components/rutas/GuardiaPerfilEstudiante";
 
-/* =========================================================
-   PROTECCIÓN ADMINISTRADOR
-========================================================= */
 function RutaAdministrador({ children }) {
   return (
     <RutaProtegida allowedRoles={["Administrador"]}>
@@ -44,12 +38,6 @@ function RutaAdministrador({ children }) {
   );
 }
 
-/* =========================================================
-   PROTECCIÓN ESTUDIANTE
-   Verifica:
-   1. Que tenga rol Estudiante
-   2. Que haya completado su configuración inicial
-========================================================= */
 function RutaEstudiante({ children }) {
   return (
     <RutaProtegida allowedRoles={["Estudiante"]}>
@@ -60,15 +48,10 @@ function RutaEstudiante({ children }) {
   );
 }
 
-/* =========================================================
-   APP
-========================================================= */
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-
-        {/* ==================== PÚBLICAS ==================== */}
         <Route path="/" element={<PaginaInicio />} />
 
         <Route
@@ -76,7 +59,6 @@ function App() {
           element={<PaginaTerminosPrivacidad />}
         />
 
-        {/* ================= AUTENTICACIÓN ================= */}
         <Route
           path="/iniciar-sesion"
           element={<PaginaInicioSesion />}
@@ -96,15 +78,12 @@ function App() {
           path="/restablecer-contrasena"
           element={<PaginaRestablecerContrasena />}
         />
-        <Route 
-        path="/verificar-correo" 
-        element={<PaginaVerificarCorreo />} />
 
-        {/* =================================================
-            ADMINISTRADOR
-        ================================================= */}
+        <Route
+          path="/verificar-correo"
+          element={<PaginaVerificarCorreo />}
+        />
 
-        {/* El administrador inicia directamente en Estadísticas */}
         <Route
           path="/admin"
           element={
@@ -119,6 +98,15 @@ function App() {
           element={
             <RutaAdministrador>
               <PaginaEstadisticasAdministrador />
+            </RutaAdministrador>
+          }
+        />
+
+        <Route
+          path="/admin/perfil"
+          element={
+            <RutaAdministrador>
+              <PaginaPerfilAdministrador />
             </RutaAdministrador>
           }
         />
@@ -159,14 +147,6 @@ function App() {
           }
         />
 
-        {/* =================================================
-            ESTUDIANTE - PRIMER INGRESO
-        ================================================= */}
-
-        {/*
-          Esta página NO usa GuardiaPerfilEstudiante porque precisamente se muestra cuando el perfil todavía
-          no está completado.
-        */}
         <Route
           path="/bienvenida"
           element={
@@ -175,10 +155,6 @@ function App() {
             </RutaProtegida>
           }
         />
-
-        {/* =================================================
-            ESTUDIANTE - PERFIL COMPLETADO
-        ================================================= */}
 
         <Route
           path="/estudiante"
@@ -225,8 +201,6 @@ function App() {
           }
         />
 
-        {/* ==================== IA ==================== */}
-
         <Route
           path="/estudiante/asistente-ia"
           element={
@@ -253,7 +227,15 @@ function App() {
             </RutaEstudiante>
           }
         />
-
+        
+        <Route
+          path="/admin/curriculums-estadisticas"
+          element={
+            <RutaAdministrador>
+              <PaginaEstadisticasCurriculumsAdministrador />
+            </RutaAdministrador>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );

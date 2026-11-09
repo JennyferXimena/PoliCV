@@ -1,0 +1,118 @@
+.estadisticas-intro{
+  margin-bottom:25px;
+  padding:26px;
+  border:1.5px solid var(--admin-borde);
+  border-radius:14px;
+  background:#fff;
+  box-shadow:var(--admin-sombra);
+}
+
+.estadisticas-intro>span{
+  color:var(--admin-verde);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:1.3px;
+}
+
+.estadisticas-intro h2{
+  margin:6px 0 8px;
+  color:#111;
+  font-size:29px;
+}
+
+.estadisticas-intro p{
+  margin:0;
+  color:#4f5d57;
+  font-size:13px;
+}
+
+.estadisticas-modulos{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(170px,1fr));
+  gap:17px;
+}
+
+.estadistica-modulo{
+  min-height:225px;
+  padding:23px;
+  display:flex;
+  flex-direction:column;
+  position:relative;
+  overflow:hidden;
+  border:1.5px solid #c8d7cf;
+  border-radius:14px;
+  background:#fff;
+  color:#111;
+  text-decoration:none;
+  box-shadow:var(--admin-sombra);
+  transition:.2s ease;
+}
+
+.estadistica-modulo::before{
+  content:"";
+  width:100%;
+  height:6px;
+  position:absolute;
+  top:0;
+  left:0;
+}
+
+.estadistica-modulo.usuarios::before{background:#24b84b;}
+.estadistica-modulo.curriculums::before{background:#35a5d5;}
+.estadistica-modulo.secciones::before{background:#7a69d4;}
+.estadistica-modulo.plantillas::before{background:#eeb723;}
+.estadistica-modulo.propuestas::before{background:#ee7543;}
+
+a.estadistica-modulo:hover{
+  transform:translateY(-4px);
+  border-color:#9cbea9;
+  box-shadow:0 14px 30px rgba(16,63,51,.13);
+}
+
+.estadistica-modulo>span{
+  margin-top:6px;
+  color:#53625b;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:1px;
+}
+
+.estadistica-modulo>strong{
+  margin-top:12px;
+  color:#111;
+  font-family:Georgia,Cambria,"Times New Roman",serif;
+  font-size:44px;
+}
+
+.estadistica-modulo h3{
+  margin:8px 0 5px;
+  color:#111;
+  font-size:18px;
+}
+
+.estadistica-modulo p{
+  margin:0;
+  color:#4d5c55;
+  font-size:12px;
+  line-height:1.55;
+}
+
+.estadistica-modulo small{
+  margin-top:auto;
+  padding-top:15px;
+  color:#164f3f;
+  font-size:11px;
+  font-weight:800;
+}
+
+@media(max-width:1250px){
+  .estadisticas-modulos{
+    grid-template-columns:repeat(3,1fr);
+  }
+}
+
+@media(max-width:750px){
+  .estadisticas-modulos{
+    grid-template-columns:1fr;
+  }
+}

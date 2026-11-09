@@ -1,39 +1,28 @@
 const pool = require("../config/database");
 
-async function crearPerfil(idUsuario, nombres = null, apellidos = null, db = pool) {
+async function crearPerfil(idUsuario,nombres = null,apellidos = null,db = pool) {
   await db.execute(
-    `INSERT INTO perfiles (id_usuario, nombres, apellidos)
-     VALUES (?, ?, ?)`,
-    [idUsuario, nombres, apellidos]
+    `INSERT INTO perfiles (id_usuario,nombres,apellidos)
+     VALUES (?,?,?)`,
+    [idUsuario,nombres,apellidos]
   );
-} 
-
+}
 
 async function obtenerPorUsuario(idUsuario) {
-  const [rows] = await pool.execute(
-    `SELECT
-        p.id_perfil,
-        p.id_usuario,
-        u.email,
-        p.nombres,
-        p.apellidos,
-        p.telefono,
-        p.direccion,
-        p.fotografia_url,
-        p.linkedin_url,
-        p.github_url,
-        p.sitio_web
+  const [filas] = await pool.execute(
+    `SELECT p.id_perfil,p.id_usuario,u.email,p.nombres,p.apellidos,
+            p.telefono,p.direccion,p.fotografia_url,p.linkedin_url,
+            p.github_url,p.sitio_web
      FROM perfiles p
-     INNER JOIN usuarios u
-        ON p.id_usuario = u.id_usuario
-     WHERE p.id_usuario = ?`,
+     INNER JOIN usuarios u ON p.id_usuario=u.id_usuario
+     WHERE p.id_usuario=?`,
     [idUsuario]
   );
 
-  return rows[0];
+  return filas[0];
 }
 
-async function actualizarPerfil(idUsuario, datos) {
+async function actualizarPerfil(idUsuario,datos) {
   const {
     nombres,
     apellidos,
@@ -47,15 +36,9 @@ async function actualizarPerfil(idUsuario, datos) {
 
   await pool.execute(
     `UPDATE perfiles
-     SET nombres = ?,
-         apellidos = ?,
-         telefono = ?,
-         direccion = ?,
-         fotografia_url = ?,
-         linkedin_url = ?,
-         github_url = ?,
-         sitio_web = ?
-     WHERE id_usuario = ?`,
+     SET nombres=?,apellidos=?,telefono=?,direccion=?,
+         fotografia_url=?,linkedin_url=?,github_url=?,sitio_web=?
+     WHERE id_usuario=?`,
     [
       nombres || null,
       apellidos || null,
@@ -70,8 +53,20 @@ async function actualizarPerfil(idUsuario, datos) {
   );
 }
 
+async function actualizarFotografia(idUsuario,fotografiaUrl) {
+  const [resultado] = await pool.execute(
+    `UPDATE perfiles
+     SET fotografia_url=?
+     WHERE id_usuario=?`,
+    [fotografiaUrl,idUsuario]
+  );
+
+  return resultado.affectedRows;
+}
+
 module.exports = {
   crearPerfil,
   obtenerPorUsuario,
-  actualizarPerfil
+  actualizarPerfil,
+  actualizarFotografia
 };

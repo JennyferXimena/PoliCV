@@ -1,1077 +1,460 @@
-import {
-  useEffect,
-  useState
-} from "react";
-
-import {
-  Link
-} from "react-router-dom";
-
+import { useEffect, useState } from "react";
+import MenuLateral from "../../components/comunes/MenuLateral";
 import api from "../../services/api";
-import "../../styles/administrador/administrador.css";
-
-
-function AdminSectionsPage() {
-
-  const [
-    secciones,
-    setSecciones
-  ] = useState([]);
-
-
-  const [
-    carreras,
-    setCarreras
-  ] = useState([]);
-
-
-  const [
-    carreraSeleccionada,
-    setCarreraSeleccionada
-  ] = useState("");
-
-
-  const [
-    estadisticas,
-    setEstadisticas
-  ] = useState(null);
-
-
-  const [
-    seccionAbierta,
-    setSeccionAbierta
-  ] = useState(null);
-
-
-  const [
-    arrastrando,
-    setArrastrando
-  ] = useState(null);
-
-
-  const [
-    cargando,
-    setCargando
-  ] = useState(true);
-
-
-  const [
-    guardandoOrden,
-    setGuardandoOrden
-  ] = useState(false);
-
-
-  const [
-    error,
-    setError
-  ] = useState("");
-
-
-  const [
-    mensaje,
-    setMensaje
-  ] = useState("");
-
-
-  useEffect(() => {
-
-    let activo = true;
-
-
-    const cargarInicial =
-      async () => {
-
-        try {
-
-          const [
-            responseSecciones,
-            responseCarreras
-          ] =
-            await Promise.all([
-              api.get(
-                "/admin/secciones"
-              ),
-
-              api.get(
-                "/admin/secciones/carreras"
-              )
-            ]);
-
-
-          if (!activo) {
-            return;
-          }
-
-
-          setSecciones(
-            responseSecciones
-              .data
-              ?.secciones ||
-            []
-          );
-
-
-          setCarreras(
-            responseCarreras
-              .data
-              ?.carreras ||
-            []
-          );
-
-
-        } catch (error) {
-
-          if (!activo) {
-            return;
-          }
-
-
-          setError(
-            error.response
-              ?.data
-              ?.mensaje ||
-
-            "No se pudo cargar la configuración de las secciones"
-          );
-
-
-        } finally {
-
-          if (activo) {
-            setCargando(false);
-          }
-
-        }
-
-      };
-
-
-    cargarInicial();
-
-
-    return () => {
-      activo = false;
-    };
-
-  }, []);
-
-
-  const abrirSeccion =
-    (idSeccion) => {
-
-      setSeccionAbierta(
-        (actual) =>
-          actual === idSeccion
-            ? null
-            : idSeccion
-      );
-
-    };
-
-
-  /* ================================================
-     ARRASTRAR
-  ================================================ */
-
-  const iniciarArrastre =
-    (idSeccion) => {
-
-      setArrastrando(
-        idSeccion
-      );
-
-    };
-
-
-  const permitirSoltar =
-    (e) => {
-
-      e.preventDefault();
-
-    };
-
-
-  const soltarSeccion =
-    (
-      idDestino
-    ) => {
-
-      if (
-        arrastrando === null ||
-        arrastrando === idDestino
-      ) {
-        return;
-      }
-
-
-      setSecciones(
-        (actuales) => {
-
-          const nuevaLista =
-            [...actuales];
-
-
-          const indiceOrigen =
-            nuevaLista.findIndex(
-              (item) =>
-                item.id_seccion ===
-                arrastrando
-            );
-
-
-          const indiceDestino =
-            nuevaLista.findIndex(
-              (item) =>
-                item.id_seccion ===
-                idDestino
-            );
-
-
-          if (
-            indiceOrigen === -1 ||
-            indiceDestino === -1
-          ) {
-            return actuales;
-          }
-
-
-          const [
-            elemento
-          ] =
-            nuevaLista.splice(
-              indiceOrigen,
-              1
-            );
-
-
-          nuevaLista.splice(
-            indiceDestino,
-            0,
-            elemento
-          );
-
-
-          return nuevaLista.map(
-            (
-              item,
-              index
-            ) => ({
-              ...item,
-              orden:
-                index + 1
-            })
-          );
-
-        }
-      );
-
-
-      setArrastrando(
-        null
-      );
-
-    };
-
-
-  const guardarOrden =
-    async () => {
-
-      setError("");
-
-      setMensaje("");
-
-      setGuardandoOrden(
-        true
-      );
-
-
-      try {
-
-        const orden =
-          secciones.map(
-            (item) =>
-              item.id_seccion
-          );
-
-
-        const response =
-          await api.put(
-            "/admin/secciones/orden",
-            {
-              orden
-            }
-          );
-
-
-        setSecciones(
-          response.data
-            ?.secciones ||
-          secciones
-        );
-
-
-        setMensaje(
-          "Orden guardado correctamente"
-        );
-
-
-      } catch (error) {
-
-        setError(
-          error.response
-            ?.data
-            ?.mensaje ||
-
-          "No se pudo guardar el orden"
-        );
-
-
-      } finally {
-
-        setGuardandoOrden(
-          false
-        );
-
-      }
-
-    };
-
-
-  /* ================================================
-     ESTADÍSTICAS
-  ================================================ */
-
-  const verEstadisticas =
-    async () => {
-
-      if (
-        !carreraSeleccionada
-      ) {
-
-        setError(
-          "Selecciona una carrera"
-        );
-
-        return;
-
-      }
-
-
-      setError("");
-
-      setEstadisticas(
-        null
-      );
-
-
-      try {
-
-        const response =
-          await api.get(
-            `/admin/secciones/estadisticas?carrera=${carreraSeleccionada}`
-          );
-
-
-        setEstadisticas(
-          response.data
-        );
-
-
-      } catch (error) {
-
-        setError(
-          error.response
-            ?.data
-            ?.mensaje ||
-
-          "No se pudieron consultar las estadísticas"
-        );
-
-      }
-
-    };
-
-
-  const obtenerMayorUso =
-    () => {
-
-      if (
-        !estadisticas
-          ?.secciones
-          ?.length
-      ) {
-        return null;
-      }
-
-
-      return [
-        ...estadisticas.secciones
-      ].sort(
-        (a, b) =>
-          b.porcentaje -
-          a.porcentaje
-      )[0];
-
-    };
-
-
-  const obtenerMenorUso =
-    () => {
-
-      if (
-        !estadisticas
-          ?.secciones
-          ?.length
-      ) {
-        return null;
-      }
-
-
-      return [
-        ...estadisticas.secciones
-      ].sort(
-        (a, b) =>
-          a.porcentaje -
-          b.porcentaje
-      )[0];
-
-    };
-
-
-  const mayorUso =
-    obtenerMayorUso();
-
-
-  const menorUso =
-    obtenerMenorUso();
-
-
-  if (cargando) {
-
-    return (
-      <main className="admin-content">
-        Cargando secciones...
-      </main>
-    );
-
+import "../../styles/administrador/administradorBase.css";
+import "../../styles/administrador/secciones.css";
+
+const REGLAS = {
+  1:{
+    tipo:"Obligatoria",
+    limite:"Datos principales requeridos"
+  },
+  12:{
+    tipo:"Obligatoria",
+    limite:"Descripción de 30 a 120 palabras"
+  },
+  3:{
+    tipo:"Obligatoria",
+    limite:"Máximo 3 estudios adicionales"
+  },
+  9:{
+    tipo:"Obligatoria",
+    limite:"Inglés + máximo 2 idiomas adicionales"
+  },
+  8:{
+    tipo:"Obligatoria",
+    limite:"5 técnicas + 5 blandas"
+  },
+  7:{
+    tipo:"Opcional",
+    limite:"Máximo 5 cursos o certificaciones"
+  },
+  6:{
+    tipo:"Obligatoria",
+    limite:"Mínimo 1 y máximo 3 proyectos"
+  },
+  5:{
+    tipo:"Opcional",
+    limite:"Máximo 4 prácticas"
+  },
+  4:{
+    tipo:"Opcional",
+    limite:"Máximo 3 experiencias"
+  },
+  10:{
+    tipo:"Opcional",
+    limite:"Máximo 5 referencias"
+  }
+};
+
+function descripcionRegla(campo) {
+  if (
+    campo.tipo_campo === "texto_largo" &&
+    campo.minimo !== null &&
+    campo.maximo !== null
+  ) {
+    return `${campo.minimo} a ${campo.maximo} palabras`;
   }
 
+  if (
+    campo.nombre === "Horas" &&
+    campo.minimo !== null &&
+    campo.maximo !== null
+  ) {
+    return `${campo.minimo} a ${campo.maximo} horas`;
+  }
+
+  if (
+    campo.maximo !== null &&
+    campo.minimo === null
+  ) {
+    return `Máximo ${campo.maximo}`;
+  }
+
+  return null;
+}
+
+function PaginaSeccionesAdministrador() {
+  const [secciones,setSecciones] = useState([]);
+  const [abiertas,setAbiertas] = useState([]);
+  const [estadisticas,setEstadisticas] = useState(null);
+  const [carrera,setCarrera] = useState("");
+  const [cargando,setCargando] = useState(true);
+  const [error,setError] = useState("");
+
+  const cargarEstadisticas = async (idCarrera = "") => {
+    try {
+      const respuesta = await api.get(
+        "/admin/secciones/estadisticas",
+        {
+          params:idCarrera
+            ? { carrera:idCarrera }
+            : {}
+        }
+      );
+
+      setEstadisticas(respuesta.data);
+    } catch(error) {
+      setError(
+        error.response?.data?.mensaje ||
+        "No se pudieron cargar las estadísticas"
+      );
+    }
+  };
+
+  useEffect(() => {
+    let cancelado = false;
+
+    Promise.all([
+      api.get("/admin/secciones"),
+      api.get("/admin/secciones/estadisticas")
+    ])
+      .then(([respuestaSecciones,respuestaEstadisticas]) => {
+        if (cancelado) return;
+
+        setSecciones(
+          respuestaSecciones.data.secciones || []
+        );
+
+        setEstadisticas(
+          respuestaEstadisticas.data || null
+        );
+      })
+      .catch((error) => {
+        if (!cancelado) {
+          setError(
+            error.response?.data?.mensaje ||
+            "No se pudo cargar la información de las secciones"
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelado) setCargando(false);
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+
+  const alternar = (id) => {
+    setAbiertas((actuales) =>
+      actuales.includes(id)
+        ? actuales.filter((item) => item !== id)
+        : [...actuales,id]
+    );
+  };
+
+  const contarCampos = (seccion) =>
+    (seccion.campos?.length || 0) +
+    (seccion.subsecciones || []).reduce(
+      (total,item) =>
+        total + (item.campos?.length || 0),
+      0
+    );
+
+  const cambiarCarrera = async (e) => {
+    const valor = e.target.value;
+
+    setCarrera(valor);
+    await cargarEstadisticas(valor);
+  };
 
   return (
+    <div className="admin-layout">
+      <MenuLateral />
 
-    <main className="admin-content">
-
-
-      <section className="sections-heading">
-
-        <div>
-
-          <span className="sections-label">
-            CONFIGURACIÓN DEL CURRÍCULUM
-          </span>
-
-          <h2>
-            Secciones del currículum
-          </h2>
-
-          <p>
-            Las secciones, subsecciones y
-            campos son predeterminados y
-            permanentes. Puedes consultar
-            su estructura y modificar
-            únicamente el orden.
-          </p>
-
-        </div>
-
-
-        <div className="sections-counter">
-
-          <span>
-            Secciones
-          </span>
-
-          <strong>
-            {secciones.length}
-          </strong>
-
-        </div>
-
-      </section>
-
-
-      {error && (
-        <p className="users-message error">
-          {error}
-        </p>
-      )}
-
-
-      {mensaje && (
-        <p className="users-message success">
-          {mensaje}
-        </p>
-      )}
-
-
-      <section className="sections-table-card">
-
-
-        <div className="sections-table-header">
-
+      <main className="admin-main">
+        <header className="admin-header">
           <div>
-
-            <span>
-              ESTRUCTURA PREDETERMINADA
+            <span className="admin-eyebrow">
+              ESTRUCTURA DEL CURRÍCULUM
             </span>
 
-            <h3>
-              Secciones disponibles
-            </h3>
-
-          </div>
-
-
-          <button
-            type="button"
-            className="sections-btn-primary"
-            onClick={guardarOrden}
-            disabled={guardandoOrden}
-          >
-            {guardandoOrden
-              ? "Guardando..."
-              : "Guardar orden"}
-          </button>
-
-        </div>
-
-
-        <div>
-
-          {secciones.map(
-            (
-              seccion,
-              index
-            ) => (
-
-              <article
-                key={
-                  seccion.id_seccion
-                }
-                draggable
-                onDragStart={() =>
-                  iniciarArrastre(
-                    seccion.id_seccion
-                  )
-                }
-                onDragOver={
-                  permitirSoltar
-                }
-                onDrop={() =>
-                  soltarSeccion(
-                    seccion.id_seccion
-                  )
-                }
-                style={{
-                  padding:
-                    "18px 22px",
-
-                  borderBottom:
-                    "1px solid #e4eeee",
-
-                  background:
-                    arrastrando ===
-                    seccion.id_seccion
-                      ? "#eef9f8"
-                      : "#ffffff",
-
-                  cursor:
-                    "grab"
-                }}
-              >
-
-
-                <div
-                  style={{
-                    display:
-                      "flex",
-
-                    alignItems:
-                      "center",
-
-                    gap:
-                      "16px"
-                  }}
-                >
-
-                  <strong
-                    style={{
-                      minWidth:
-                        "30px"
-                    }}
-                  >
-                    {index + 1}
-                  </strong>
-
-
-                  <div
-                    style={{
-                      flex:
-                        1
-                    }}
-                  >
-
-                    <strong>
-                      {seccion.nombre}
-                    </strong>
-
-                    <p>
-                      {seccion.descripcion}
-                    </p>
-
-                  </div>
-
-
-                  <button
-                    type="button"
-                    className="section-edit-btn"
-                    onClick={() =>
-                      abrirSeccion(
-                        seccion.id_seccion
-                      )
-                    }
-                  >
-                    {seccionAbierta ===
-                    seccion.id_seccion
-                      ? "Ocultar"
-                      : "Ver estructura"}
-                  </button>
-
-                </div>
-
-
-                {seccionAbierta ===
-                  seccion.id_seccion && (
-
-                  <div
-                    style={{
-                      marginTop:
-                        "18px",
-
-                      paddingTop:
-                        "18px",
-
-                      borderTop:
-                        "1px solid #edf3f3"
-                    }}
-                  >
-
-
-                    {seccion.campos
-                      ?.length > 0 && (
-
-                      <div>
-
-                        <strong>
-                          Campos
-                        </strong>
-
-                        {seccion.campos.map(
-                          (campo) => (
-
-                            <p
-                              key={
-                                campo.id_campo
-                              }
-                            >
-                              • {campo.nombre}
-
-                              {campo.obligatorio
-                                ? " — Obligatorio"
-                                : " — Opcional"}
-
-                              {campo.minimo !==
-                                null &&
-                                campo.maximo !==
-                                null
-                                ? ` — ${campo.minimo} a ${campo.maximo}`
-                                : ""}
-                            </p>
-
-                          )
-                        )}
-
-                      </div>
-
-                    )}
-
-
-                    {seccion.subsecciones
-                      ?.map(
-                        (subseccion) => (
-
-                          <div
-                            key={
-                              subseccion.id_subseccion
-                            }
-                            style={{
-                              marginTop:
-                                "15px"
-                            }}
-                          >
-
-                            <strong>
-                              {
-                                subseccion.nombre
-                              }
-                            </strong>
-
-                            <p>
-                              {
-                                subseccion.descripcion
-                              }
-                            </p>
-
-
-                            {subseccion.campos
-                              ?.map(
-                                (campo) => (
-
-                                  <p
-                                    key={
-                                      campo.id_campo
-                                    }
-                                  >
-                                    • {
-                                      campo.nombre
-                                    }
-
-                                    {campo.obligatorio
-                                      ? " — Obligatorio"
-                                      : " — Opcional"}
-
-                                    {campo.minimo !==
-                                      null &&
-                                      campo.maximo !==
-                                      null
-                                      ? ` — ${campo.minimo} a ${campo.maximo}`
-                                      : ""}
-                                  </p>
-
-                                )
-                              )}
-
-                          </div>
-
-                        )
-                      )}
-
-                  </div>
-
-                )}
-
-              </article>
-
-            )
-          )}
-
-        </div>
-
-      </section>
-
-
-      {/* ===============================================
-          ESTADÍSTICAS POR CARRERA
-      =============================================== */}
-
-      <section
-        style={{
-          marginTop:
-            "35px"
-        }}
-      >
-
-        <div className="sections-heading">
-
-          <div>
-
-            <span className="sections-label">
-              ESTADÍSTICAS
-            </span>
-
-            <h2>
-              Uso de secciones por carrera
-            </h2>
+            <h1>Secciones del CV</h1>
 
             <p>
-              Selecciona una carrera para
-              conocer qué secciones utilizan
-              sus estudiantes.
+              Consulta la estructura, reglas y uso real de cada sección.
             </p>
-
           </div>
 
-        </div>
-
-
-        <div className="sections-form-card">
-
-          <div className="sections-form-info">
-
-            <span>
-              CARRERA
-            </span>
-
-            <h3>
-              Consultar estadísticas
-            </h3>
-
-            <p>
-              Los porcentajes se calculan
-              según los estudiantes que
-              utilizan cada sección.
-            </p>
-
+          <div className="admin-header-badge">
+            {secciones.length} secciones
           </div>
+        </header>
 
+        <div className="admin-content">
+          <section className="secciones-intro">
+            <div>
+              <span>ESTRUCTURA PREDETERMINADA</span>
 
-          <div>
-
-            <select
-              value={
-                carreraSeleccionada
-              }
-              onChange={(e) =>
-                setCarreraSeleccionada(
-                  e.target.value
-                )
-              }
-              style={{
-                width:
-                  "100%",
-
-                minHeight:
-                  "43px",
-
-                marginBottom:
-                  "12px"
-              }}
-            >
-
-              <option value="">
-                Selecciona una carrera
-              </option>
-
-              {carreras.map(
-                (carrera) => (
-
-                  <option
-                    key={
-                      carrera.id_carrera
-                    }
-                    value={
-                      carrera.id_carrera
-                    }
-                  >
-                    {carrera.nombre}
-                  </option>
-
-                )
-              )}
-
-            </select>
-
-
-            <button
-              type="button"
-              className="sections-btn-primary"
-              onClick={
-                verEstadisticas
-              }
-            >
-              Ver estadísticas
-            </button>
-
-          </div>
-
-        </div>
-
-
-        {estadisticas && (
-
-          <div className="statistics-card">
-
-            <div className="statistics-card-heading">
-
-              <div>
-
-                <span>
-                  {
-                    estadisticas
-                      .carrera
-                      .nombre
-                  }
-                </span>
-
-                <h3>
-                  Uso de las secciones
-                </h3>
-
-              </div>
-
+              <h2>Configuración del currículum</h2>
 
               <p>
-                {
-                  estadisticas
-                    .total_estudiantes
-                }
-                {" "}
-                estudiantes
+                Las diez secciones mantienen un orden fijo. Las etiquetas indican si la sección completa es obligatoria u opcional y qué campos deben completarse cuando el estudiante agrega un registro.
               </p>
-
             </div>
 
+            <strong>{secciones.length}</strong>
+          </section>
 
-            <div className="statistics-bars">
+          {error && (
+            <div className="admin-message error">
+              {error}
+            </div>
+          )}
 
-              {estadisticas
-                .secciones
-                .map(
-                  (seccion) => (
+          {cargando ? (
+            <div className="admin-state-card">
+              Cargando secciones...
+            </div>
+          ) : (
+            <section className="secciones-acordeon">
+              {secciones.map((seccion,indice) => {
+                const abierta =
+                  abiertas.includes(seccion.id_seccion);
 
-                    <div
-                      key={
-                        seccion.id_seccion
+                const regla =
+                  REGLAS[Number(seccion.id_seccion)] || {};
+
+                return (
+                  <article
+                    className="seccion-item"
+                    key={seccion.id_seccion}
+                  >
+                    <button
+                      type="button"
+                      className="seccion-item-cabecera"
+                      onClick={() =>
+                        alternar(seccion.id_seccion)
                       }
                     >
-
-                      <div className="statistics-bar-info">
-
-                        <span>
-                          {seccion.nombre}
-                        </span>
-
-                        <strong>
-                          {
-                            seccion.porcentaje
-                          }
-                          %
-                        </strong>
-
+                      <div className="seccion-numero">
+                        {String(indice + 1).padStart(2,"0")}
                       </div>
 
+                      <div className="seccion-resumen">
+                        <div>
+                          <h2>{seccion.nombre}</h2>
 
-                      <div className="statistics-bar-track">
+                          <p>{seccion.descripcion}</p>
+                        </div>
 
-                        <div
-                          className="statistics-bar-fill teal"
-                          style={{
-                            width:
-                              `${seccion.porcentaje}%`
-                          }}
-                        />
+                        <div className="seccion-etiquetas">
+                          <span
+                            className={`seccion-tipo ${
+                              regla.tipo === "Obligatoria"
+                                ? "obligatoria"
+                                : "opcional"
+                            }`}
+                          >
+                            Sección {regla.tipo?.toLowerCase()}
+                          </span>
 
+                          <span>
+                            {regla.limite}
+                          </span>
+
+                          <span>
+                            {contarCampos(seccion)} campos
+                          </span>
+                        </div>
                       </div>
 
+                      <div className="seccion-flecha">
+                        {abierta ? "−" : "+"}
+                      </div>
+                    </button>
 
-                      <small>
-                        {
-                          seccion.estudiantes
-                        }
-                        {" de "}
-                        {
-                          seccion.total_estudiantes
-                        }
-                        {" estudiantes"}
-                      </small>
+                    {abierta && (
+                      <div className="seccion-item-contenido">
+                        {seccion.campos?.length > 0 && (
+                          <div className="seccion-grupo">
+                            <h3>Campos principales</h3>
 
-                    </div>
+                            <div className="seccion-campos">
+                              {seccion.campos.map((campo) => (
+                                <div
+                                  className="seccion-campo"
+                                  key={campo.id_campo}
+                                >
+                                  <strong>{campo.nombre}</strong>
 
-                  )
-                )}
+                                  <p>
+                                    {campo.descripcion ||
+                                      "Campo definido para esta sección."}
+                                  </p>
 
-            </div>
+                                  <div>
+                                    <span>
+                                      {campo.obligatorio
+                                        ? regla.tipo === "Opcional"
+                                          ? "Requerido al agregar"
+                                          : "Obligatorio"
+                                        : "Opcional"}
+                                    </span>
 
+                                    {descripcionRegla(campo) && (
+                                      <span>
+                                        {descripcionRegla(campo)}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
-            {mayorUso && menorUso && (
+                        {seccion.subsecciones?.map(
+                          (subseccion) => (
+                            <div
+                              className="seccion-grupo"
+                              key={subseccion.id_subseccion}
+                            >
+                              <h3>{subseccion.nombre}</h3>
 
-              <div
-                style={{
-                  marginTop:
-                    "25px",
+                              <p className="seccion-subdescripcion">
+                                {subseccion.descripcion}
+                              </p>
 
-                  display:
-                    "grid",
+                              <div className="seccion-campos">
+                                {subseccion.campos?.map(
+                                  (campo) => (
+                                    <div
+                                      className="seccion-campo"
+                                      key={campo.id_campo}
+                                    >
+                                      <strong>
+                                        {campo.nombre}
+                                      </strong>
 
-                  gridTemplateColumns:
-                    "1fr 1fr",
+                                      <p>
+                                        {campo.descripcion ||
+                                          "Campo definido para esta subsección."}
+                                      </p>
 
-                  gap:
-                    "15px"
-                }}
-              >
+                                      <div>
+                                        <span>
+                                          {campo.obligatorio
+                                            ? regla.tipo === "Opcional"
+                                              ? "Requerido al agregar"
+                                              : "Obligatorio"
+                                            : "Opcional"}
+                                        </span>
 
+                                        {descripcionRegla(campo) && (
+                                          <span>
+                                            {descripcionRegla(campo)}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )
+                                )}
+                              </div>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+            </section>
+          )}
+
+          {estadisticas && (
+            <section className="secciones-estadisticas">
+              <div className="secciones-estadisticas-titulo">
                 <div>
+                  <span>ESTADÍSTICAS DE USO</span>
 
-                  <strong>
-                    Sección más utilizada
-                  </strong>
+                  <h2>
+                    Uso de las secciones en los currículums
+                  </h2>
 
                   <p>
-                    {mayorUso.nombre}
-                    {" — "}
-                    {mayorUso.porcentaje}%
+                    Una sección se considera utilizada cuando el currículum contiene información registrada en ella.
                   </p>
-
                 </div>
 
+                <select
+                  value={carrera}
+                  onChange={cambiarCarrera}
+                >
+                  <option value="">
+                    Todas las carreras
+                  </option>
 
-                <div>
-
-                  <strong>
-                    Sección menos utilizada
-                  </strong>
-
-                  <p>
-                    {menorUso.nombre}
-                    {" — "}
-                    {menorUso.porcentaje}%
-                  </p>
-
-                </div>
-
+                  {estadisticas.carreras?.map(
+                    (item) => (
+                      <option
+                        key={item.id_carrera}
+                        value={item.id_carrera}
+                      >
+                        {item.nombre}
+                      </option>
+                    )
+                  )}
+                </select>
               </div>
 
-            )}
+              <div className="secciones-estadisticas-resumen">
+                <div>
+                  <span>CV analizados</span>
+                  <strong>
+                    {estadisticas.total_curriculums || 0}
+                  </strong>
+                </div>
 
-          </div>
+                <div>
+                  <span>Sección más utilizada</span>
+                  <strong>
+                    {estadisticas.mayor_uso?.nombre || "Sin datos"}
+                  </strong>
+                </div>
 
-        )}
+                <div>
+                  <span>Sección menos utilizada</span>
+                  <strong>
+                    {estadisticas.menor_uso?.nombre || "Sin datos"}
+                  </strong>
+                </div>
+              </div>
 
-      </section>
+              <div className="secciones-barras">
+                {estadisticas.secciones?.map((item) => (
+                  <div
+                    className="seccion-barra"
+                    key={item.id_seccion}
+                  >
+                    <div>
+                      <span>{item.nombre}</span>
 
+                      <strong>
+                        {item.curriculums} de{" "}
+                        {item.total_curriculums} CV ·{" "}
+                        {item.porcentaje}%
+                      </strong>
+                    </div>
 
-      <div
-        style={{
-          marginTop:
-            "30px"
-        }}
-      >
-
-        <Link
-          to="/admin"
-          className="users-back-link"
-        >
-          Volver al panel principal
-        </Link>
-
-      </div>
-
-
-    </main>
-
+                    <div className="seccion-barra-fondo">
+                      <div
+                        style={{
+                          width:`${item.porcentaje}%`
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+      </main>
+    </div>
   );
 }
 
-
-export default AdminSectionsPage;
+export default PaginaSeccionesAdministrador;

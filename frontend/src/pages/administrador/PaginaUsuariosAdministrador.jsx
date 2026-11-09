@@ -1,142 +1,128 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
+import MenuLateral from "../../components/comunes/MenuLateral";
 import api from "../../services/api";
-import "../../styles/administrador/administrador.css";
+import "../../styles/administrador/administradorBase.css";
+import "../../styles/administrador/usuarios.css";
 
-function AdminUsersPage() {
-  const navigate = useNavigate();
+const obtenerUsuarioActual = () => {
+  try {
+    const guardado =
+      localStorage.getItem("usuario") ||
+      sessionStorage.getItem("usuario");
 
+    return guardado ? JSON.parse(guardado) : null;
+  } catch {
+    return null;
+  }
+};
+
+function PaginaUsuariosAdministrador() {
+  const [parametros, setParametros] = useSearchParams();
   const [usuarios, setUsuarios] = useState([]);
-  const [buscar, setBuscar] = useState("");
+  const [carreras, setCarreras] = useState([]);
+  const [resumen, setResumen] = useState({});
+  const [buscar, setBuscar] = useState(
+    parametros.get("buscar") || ""
+  );
+  const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
-  const [cargando, setCargando] = useState(true);
 
-  const usuarioGuardado =
-    localStorage.getItem("usuario") ||
-    sessionStorage.getItem("usuario");
-
-  const usuarioActual = usuarioGuardado
-    ? JSON.parse(usuarioGuardado)
-    : null;
-
-  const cerrarSesion = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("usuario");
-
-    sessionStorage.removeItem("token");
-    sessionStorage.removeItem("usuario");
-
-    navigate("/iniciar-sesion");
-  };
-
-  const cargarUsuarios = async (termino = "") => {
-    try {
-      setCargando(true);
-      setError("");
-
-      const response = await api.get(
-        "/admin/usuarios",
-        {
-          params: {
-            buscar: termino
-          }
-        }
-      );
-
-      setUsuarios(
-        response.data.usuarios || []
-      );
-
-    } catch (error) {
-      setError(
-        error.response?.data?.mensaje ||
-        "No se pudieron cargar los usuarios"
-      );
-
-    } finally {
-      setCargando(false);
-    }
-  };
+  const usuarioActual = obtenerUsuarioActual();
+  const filtrosActuales = parametros.toString();
 
   useEffect(() => {
-    let activo = true;
+    let cancelado = false;
 
-    const cargarInicial = async () => {
-      try {
-        const response = await api.get(
-          "/admin/usuarios",
-          {
-            params: {
-              buscar: ""
-            }
-          }
-        );
+    const params = Object.fromEntries(
+      new URLSearchParams(filtrosActuales)
+    );
 
-        if (!activo) {
-          return;
+    api.get("/admin/usuarios", { params })
+      .then((respuesta) => {
+        if (!cancelado) {
+          setUsuarios(respuesta.data.usuarios || []);
+          setCarreras(respuesta.data.carreras || []);
+          setResumen(respuesta.data.resumen || {});
         }
-
-        setUsuarios(
-          response.data.usuarios || []
-        );
-
-      } catch (error) {
-        if (!activo) {
-          return;
+      })
+      .catch((error) => {
+        if (!cancelado) {
+          setError(
+            error.response?.data?.mensaje ||
+            "No se pudieron cargar los usuarios"
+          );
         }
-
-        setError(
-          error.response?.data?.mensaje ||
-          "No se pudieron cargar los usuarios"
-        );
-
-      } finally {
-        if (activo) {
+      })
+      .finally(() => {
+        if (!cancelado) {
           setCargando(false);
         }
-      }
-    };
-
-    cargarInicial();
+      });
 
     return () => {
-      activo = false;
+      cancelado = true;
     };
-  }, []);
+  }, [filtrosActuales]);
 
-  const buscarUsuarios = async (e) => {
-    e.preventDefault();
+  const actualizarParametros = (cambios) => {
+    const nuevos = new URLSearchParams(parametros);
 
-    setMensaje("");
+    Object.entries(cambios).forEach(([clave, valor]) => {
+      if (
+        valor === "" ||
+        valor === null ||
+        valor === undefined
+      ) {
+        nuevos.delete(clave);
+      } else {
+        nuevos.set(clave, valor);
+      }
+    });
 
-    await cargarUsuarios(
-      buscar.trim()
-    );
+    setParametros(nuevos);
   };
 
-  const mostrarTodos = async () => {
-    setBuscar("");
-    setMensaje("");
-    setError("");
+  const buscarUsuarios = (e) => {
+    e.preventDefault();
 
-    await cargarUsuarios();
+    actualizarParametros({
+      buscar:buscar.trim()
+    });
+  };
+
+  const limpiarFiltros = () => {
+    setBuscar("");
+    setParametros({});
+  };
+
+  const recargarUsuarios = async () => {
+    const params = Object.fromEntries(
+      new URLSearchParams(filtrosActuales)
+    );
+
+    const respuesta = await api.get(
+      "/admin/usuarios",
+      { params }
+    );
+
+    setUsuarios(respuesta.data.usuarios || []);
+    setCarreras(respuesta.data.carreras || []);
+    setResumen(respuesta.data.resumen || {});
   };
 
   const cambiarEstado = async (usuario) => {
-    const nuevoEstado =
-      !usuario.estado;
+    const nuevoEstado = !usuario.estado;
+    const accion = nuevoEstado
+      ? "activar"
+      : "desactivar";
 
-    const accion =
-      nuevoEstado
-        ? "activar"
-        : "desactivar";
-
-    const confirmar = window.confirm(
-      `¿Deseas ${accion} la cuenta de ${usuario.email}?`
-    );
-
-    if (!confirmar) {
+    if (
+      !window.confirm(
+        `¿Deseas ${accion} la cuenta ${usuario.email}?`
+      )
+    ) {
       return;
     }
 
@@ -144,492 +130,418 @@ function AdminUsersPage() {
       setError("");
       setMensaje("");
 
-      const response = await api.patch(
+      const respuesta = await api.patch(
         `/admin/usuarios/${usuario.id_usuario}/estado`,
         {
-          estado: nuevoEstado
+          estado:nuevoEstado
         }
       );
 
-      setMensaje(
-        response.data.mensaje
-      );
-
-      await cargarUsuarios(
-        buscar.trim()
-      );
-
+      setMensaje(respuesta.data.mensaje);
+      await recargarUsuarios();
     } catch (error) {
       setError(
         error.response?.data?.mensaje ||
-        "No se pudo actualizar el estado del usuario"
+        "No se pudo actualizar el usuario"
       );
     }
   };
 
+  const total = Number(resumen.total || 0);
+  const estudiantes = Number(resumen.estudiantes || 0);
+  const administradores = Number(resumen.administradores || 0);
+  const activos = Number(resumen.activos || 0);
+  const inactivos = Number(resumen.inactivos || 0);
+  const verificados = Number(resumen.verificados || 0);
+  const pendientes = Number(
+    resumen.pendientes_verificacion || 0
+  );
+
   return (
-    <div className="admin-page">
+    <div className="admin-layout">
+      <MenuLateral />
 
-      {/* SIDEBAR */}
-      <aside className="admin-sidebar">
-
-        <div className="admin-brand">
-
-          <div className="admin-brand-logo">
-            P
-          </div>
-
-          <div>
-            <h2>PoliCV</h2>
-            <span>Administración</span>
-          </div>
-
-        </div>
-
-
-        <div className="admin-profile">
-
-          <div className="admin-avatar">
-            {usuarioActual?.email
-              ? usuarioActual.email
-                  .charAt(0)
-                  .toUpperCase()
-              : "A"}
-          </div>
-
-          <div>
-            <strong>
-              Administrador
-            </strong>
-
-            <span>
-              {usuarioActual?.email}
-            </span>
-          </div>
-
-        </div>
-
-
-        <nav className="admin-menu">
-
-          <Link to="/admin">
-            <span>01</span>
-            Panel principal
-          </Link>
-
-          <Link
-            to="/admin/usuarios"
-            className="active"
-          >
-            <span>02</span>
-            Gestionar usuarios
-          </Link>
-
-          <Link to="/admin/secciones">
-            <span>03</span>
-            Secciones del CV
-          </Link>
-
-          <Link to="/admin/plantillas">
-            <span>04</span>
-            Plantillas
-          </Link>
-
-          <Link to="/admin/estadisticas">
-            <span>05</span>
-            Estadísticas
-          </Link>
-
-          <Link to="/admin/propuestas">
-            <span>06</span>
-            Propuestas
-          </Link>
-
-        </nav>
-
-
-        <button
-          type="button"
-          className="admin-logout"
-          onClick={cerrarSesion}
-        >
-          Cerrar sesión
-        </button>
-
-      </aside>
-
-
-      {/* CONTENIDO */}
       <main className="admin-main">
-
         <header className="admin-header">
-
           <div>
-
-            <span className="admin-header-label">
+            <span className="admin-eyebrow">
               GESTIÓN DE USUARIOS
             </span>
-
-            <h1>
-              Usuarios registrados
-            </h1>
-
+            <h1>Usuarios</h1>
             <p>
-              Consulta, busca y administra
-              el estado de las cuentas
-              registradas en PoliCV.
+              Consulta, filtra y administra el acceso de las
+              cuentas de TalentoESFOT.
             </p>
-
           </div>
 
-
-          <div className="admin-header-account">
-
-            <div>
-              <span>
-                Sesión iniciada como
-              </span>
-
-              <strong>
-                {usuarioActual?.email}
-              </strong>
-            </div>
-
-            <div className="admin-header-avatar">
-              {usuarioActual?.email
-                ? usuarioActual.email
-                    .charAt(0)
-                    .toUpperCase()
-                : "A"}
-            </div>
-
+          <div className="admin-header-badge">
+            {usuarios.length} mostrados
           </div>
-
         </header>
 
-
         <div className="admin-content">
+          <section className="usuarios-resumen">
+            <button
+              type="button"
+              onClick={limpiarFiltros}
+            >
+              <span>TOTAL</span>
+              <strong>{total}</strong>
+              <small>Usuarios registrados</small>
+            </button>
 
-          {/* ENCABEZADO */}
-          <section className="users-heading">
+            <button
+              type="button"
+              onClick={() =>
+                actualizarParametros({
+                  rol:"Estudiante"
+                })
+              }
+            >
+              <span>ESTUDIANTES</span>
+              <strong>{estudiantes}</strong>
+              <small>Cuentas de estudiantes</small>
+            </button>
 
-            <div>
+            <button
+              type="button"
+              onClick={() =>
+                actualizarParametros({
+                  rol:"Administrador"
+                })
+              }
+            >
+              <span>ADMINISTRADORES</span>
+              <strong>{administradores}</strong>
+              <small>Cuentas administrativas</small>
+            </button>
 
-              <span className="users-label">
-                ADMINISTRACIÓN
-              </span>
+            <button
+              type="button"
+              onClick={() =>
+                actualizarParametros({
+                  estado:"activo"
+                })
+              }
+            >
+              <span>ACTIVOS</span>
+              <strong>{activos}</strong>
+              <small>Cuentas habilitadas</small>
+            </button>
 
-              <h2>
-                Gestionar usuarios
-              </h2>
+            <button
+              type="button"
+              onClick={() =>
+                actualizarParametros({
+                  estado:"inactivo"
+                })
+              }
+            >
+              <span>INACTIVOS</span>
+              <strong>{inactivos}</strong>
+              <small>Cuentas deshabilitadas</small>
+            </button>
 
-              <p>
-                Revisa las cuentas existentes,
-                identifica su rol y administra
-                su acceso a la plataforma.
-              </p>
+            <button
+              type="button"
+              onClick={() =>
+                actualizarParametros({
+                  verificacion:"verificado"
+                })
+              }
+            >
+              <span>VERIFICADOS</span>
+              <strong>{verificados}</strong>
+              <small>Correos confirmados</small>
+            </button>
 
-            </div>
-
-
-            <div className="users-counter">
-
-              <span>
-                Usuarios mostrados
-              </span>
-
-              <strong>
-                {usuarios.length}
-              </strong>
-
-            </div>
-
+            <button
+              type="button"
+              onClick={() =>
+                actualizarParametros({
+                  verificacion:"pendiente"
+                })
+              }
+            >
+              <span>POR VERIFICAR</span>
+              <strong>{pendientes}</strong>
+              <small>Correos pendientes</small>
+            </button>
           </section>
 
-
-          {/* BUSCADOR */}
-          <section className="users-search-card">
-
-            <div className="users-search-title">
-
-              <div>
-
-                <span>
-                  BÚSQUEDA
-                </span>
-
-                <h3>
-                  Buscar usuario
-                </h3>
-
-              </div>
-
-              <p>
-                Busca por nombre,
-                apellido o correo institucional.
-              </p>
-
+          <section className="usuarios-filtros">
+            <div className="usuarios-filtros-titulo">
+              <span>FILTROS</span>
+              <h2>Buscar y filtrar cuentas</h2>
             </div>
 
-
             <form
-              className="users-search-form"
               onSubmit={buscarUsuarios}
+              className="usuarios-filtros-grid"
             >
-
               <input
                 type="text"
+                maxLength={100}
                 value={buscar}
                 onChange={(e) =>
-                  setBuscar(
-                    e.target.value
-                  )
+                  setBuscar(e.target.value)
                 }
                 placeholder="Nombre, apellido o correo..."
               />
 
+              <select
+                value={parametros.get("rol") || ""}
+                onChange={(e) =>
+                  actualizarParametros({
+                    rol:e.target.value
+                  })
+                }
+              >
+                <option value="">
+                  Todos los roles
+                </option>
+                <option value="Estudiante">
+                  Estudiantes
+                </option>
+                <option value="Administrador">
+                  Administradores
+                </option>
+              </select>
+
+              <select
+                value={parametros.get("estado") || ""}
+                onChange={(e) =>
+                  actualizarParametros({
+                    estado:e.target.value
+                  })
+                }
+              >
+                <option value="">
+                  Todos los estados
+                </option>
+                <option value="activo">
+                  Activos
+                </option>
+                <option value="inactivo">
+                  Inactivos
+                </option>
+              </select>
+
+              <select
+                value={
+                  parametros.get("verificacion") || ""
+                }
+                onChange={(e) =>
+                  actualizarParametros({
+                    verificacion:e.target.value
+                  })
+                }
+              >
+                <option value="">
+                  Toda verificación
+                </option>
+                <option value="verificado">
+                  Verificados
+                </option>
+                <option value="pendiente">
+                  Por verificar
+                </option>
+              </select>
+
+              <select
+                value={parametros.get("carrera") || ""}
+                onChange={(e) =>
+                  actualizarParametros({
+                    carrera:e.target.value
+                  })
+                }
+              >
+                <option value="">
+                  Todas las carreras
+                </option>
+
+                {carreras.map((carrera) => (
+                  <option
+                    key={carrera.id_carrera}
+                    value={carrera.id_carrera}
+                  >
+                    {carrera.nombre}
+                  </option>
+                ))}
+              </select>
+
               <button
                 type="submit"
-                className="users-btn-primary"
+                className="usuarios-btn-buscar"
               >
                 Buscar
               </button>
 
               <button
                 type="button"
-                className="users-btn-secondary"
-                onClick={mostrarTodos}
+                className="usuarios-btn-limpiar"
+                onClick={limpiarFiltros}
               >
-                Mostrar todos
+                Limpiar
               </button>
-
             </form>
-
           </section>
 
-
-          {/* MENSAJES */}
           {error && (
-            <div className="users-message error">
+            <div className="admin-message error">
               {error}
             </div>
           )}
 
-
           {mensaje && (
-            <div className="users-message success">
+            <div className="usuarios-mensaje-exito">
               {mensaje}
             </div>
           )}
 
-
-          {/* TABLA */}
-          <section className="users-table-card">
-
-            <div className="users-table-header">
-
+          <section className="usuarios-tabla-card">
+            <div className="usuarios-tabla-titulo">
               <div>
-
-                <span>
-                  LISTADO
-                </span>
-
-                <h3>
-                  Usuarios de PoliCV
-                </h3>
-
+                <span>CUENTAS REGISTRADAS</span>
+                <h2>Listado de usuarios</h2>
               </div>
 
-
-              <Link
-                to="/admin"
-                className="users-back-link"
-              >
-                Volver al panel
-              </Link>
-
+              <strong>{usuarios.length}</strong>
             </div>
 
-
             {cargando ? (
-
-              <div className="users-loading">
+              <div className="usuarios-estado">
                 Cargando usuarios...
               </div>
-
             ) : usuarios.length === 0 ? (
-
-              <div className="users-empty">
-
-                <strong>
-                  No se encontraron usuarios
-                </strong>
-
-                <p>
-                  Intenta realizar otra búsqueda
-                  o selecciona Mostrar todos.
-                </p>
-
+              <div className="usuarios-estado">
+                No existen usuarios que coincidan
+                con los filtros.
               </div>
-
             ) : (
-
-              <div className="users-table-wrapper">
-
-                <table className="users-table">
-
+              <div className="usuarios-tabla-scroll">
+                <table className="usuarios-tabla">
                   <thead>
-
                     <tr>
-                      <th>ID</th>
                       <th>Usuario</th>
-                      <th>Correo institucional</th>
+                      <th>Correo</th>
                       <th>Rol</th>
+                      <th>Carrera</th>
+                      <th>Verificación</th>
                       <th>Estado</th>
                       <th>Acción</th>
                     </tr>
-
                   </thead>
 
-
                   <tbody>
-
                     {usuarios.map((usuario) => {
+                      const nombre =
+                        `${usuario.nombres || ""} ${usuario.apellidos || ""}`.trim();
 
-                      const nombreCompleto =
-                        `${usuario.nombres || ""} ${usuario.apellidos || ""}`
-                          .trim();
-
-                      const estaActivo =
-                        usuario.estado;
+                      const esPropio =
+                        Number(usuarioActual?.id_usuario) ===
+                        Number(usuario.id_usuario);
 
                       return (
-                        <tr
-                          key={
-                            usuario.id_usuario
-                          }
-                        >
-
-                          <td className="user-id">
-                            #{usuario.id_usuario}
-                          </td>
-
-
+                        <tr key={usuario.id_usuario}>
                           <td>
-
-                            <div className="user-cell">
-
-                              <div className="user-table-avatar">
-
-                                {nombreCompleto
-                                  ? nombreCompleto
-                                      .charAt(0)
-                                      .toUpperCase()
-                                  : usuario.email
-                                      ?.charAt(0)
-                                      .toUpperCase()
-                                }
-
-                              </div>
-
-
+                            <div className="usuario-identidad">
                               <div>
-
-                                <strong>
-                                  {nombreCompleto ||
-                                    "Sin nombre registrado"}
-                                </strong>
-
-                                <span>
-                                  Usuario PoliCV
-                                </span>
-
+                                {(nombre || usuario.email)
+                                  ?.charAt(0)
+                                  .toUpperCase()}
                               </div>
 
+                              <span>
+                                <strong>
+                                  {nombre || "Sin nombre"}
+                                </strong>
+                                <small>
+                                  #{usuario.id_usuario}
+                                </small>
+                              </span>
                             </div>
-
                           </td>
 
+                          <td>{usuario.email}</td>
 
                           <td>
-                            {usuario.email}
-                          </td>
-
-
-                          <td>
-
                             <span
-                              className={
-                                usuario.rol ===
-                                "Administrador"
-                                  ? "role-badge admin"
-                                  : "role-badge student"
-                              }
+                              className={`usuario-rol ${
+                                usuario.rol === "Administrador"
+                                  ? "admin"
+                                  : "estudiante"
+                              }`}
                             >
                               {usuario.rol}
                             </span>
-
                           </td>
 
+                          <td>
+                            {usuario.carrera ||
+                              "Sin definir"}
+                          </td>
 
                           <td>
-
                             <span
-                              className={
-                                estaActivo
-                                  ? "status-badge active"
-                                  : "status-badge inactive"
-                              }
+                              className={`usuario-verificacion ${
+                                usuario.correo_verificado
+                                  ? "si"
+                                  : "no"
+                              }`}
                             >
-                              {estaActivo
+                              {usuario.correo_verificado
+                                ? "Verificado"
+                                : "Pendiente"}
+                            </span>
+                          </td>
+
+                          <td>
+                            <span
+                              className={`usuario-estado ${
+                                usuario.estado
+                                  ? "activo"
+                                  : "inactivo"
+                              }`}
+                            >
+                              {usuario.estado
                                 ? "Activo"
                                 : "Inactivo"}
                             </span>
-
                           </td>
-
 
                           <td>
-
                             <button
                               type="button"
-                              className={
-                                estaActivo
-                                  ? "user-action deactivate"
-                                  : "user-action activate"
-                              }
+                              disabled={esPropio}
+                              className={`usuario-accion ${
+                                usuario.estado
+                                  ? "desactivar"
+                                  : "activar"
+                              }`}
                               onClick={() =>
-                                cambiarEstado(
-                                  usuario
-                                )
+                                cambiarEstado(usuario)
                               }
                             >
-                              {estaActivo
-                                ? "Desactivar"
-                                : "Activar"}
+                              {esPropio
+                                ? "Cuenta actual"
+                                : usuario.estado
+                                  ? "Desactivar"
+                                  : "Activar"}
                             </button>
-
                           </td>
-
                         </tr>
                       );
                     })}
-
                   </tbody>
-
                 </table>
-
               </div>
             )}
-
           </section>
-
         </div>
-
       </main>
-
     </div>
   );
 }
 
-export default AdminUsersPage;
+export default PaginaUsuariosAdministrador;

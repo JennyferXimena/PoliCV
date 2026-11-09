@@ -1,771 +1,536 @@
-import {
-  useEffect,
-  useState
-} from "react";
-
-import {
-  Link,
-  useNavigate
-} from "react-router-dom";
-
+import { useEffect,useState } from "react";
+import MenuLateral from "../../components/comunes/MenuLateral";
 import api from "../../services/api";
-import "../../styles/administrador/administrador.css";
+import "../../styles/administrador/administradorBase.css";
+import "../../styles/administrador/plantillas.css";
 
+const URL_BACKEND = "http://localhost:3000";
 
-function AdminTemplatesPage() {
+const normalizar = (texto = "") =>
+  texto
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g,"")
+    .toLowerCase();
 
-  const navigate =
-    useNavigate();
+function obtenerUrlImagen(ruta) {
+  if (!ruta) return "";
+  return ruta.startsWith("/") ? `${URL_BACKEND}${ruta}` : ruta;
+}
 
+function VistaPlantilla({ plantilla,grande = false }) {
+  const imagen = obtenerUrlImagen(plantilla.imagen_url);
 
-  const [
-    plantillas,
-    setPlantillas
-  ] = useState([]);
+  if (imagen) {
+    return (
+      <img
+        src={imagen}
+        alt={`Vista previa de ${plantilla.nombre}`}
+        className={grande ? "plantilla-imagen-grande" : ""}
+      />
+    );
+  }
 
+  return (
+    <div className={`plantilla-hoja ${grande ? "grande" : ""}`}>
+      <div />
+      <span />
+      <span />
+      <span />
+      <small />
+      <small />
+    </div>
+  );
+}
 
-  const [
-    error,
-    setError
-  ] = useState("");
+function PaginaPlantillasAdministrador() {
+  const [plantillas,setPlantillas] = useState([]);
+  const [totalCurriculums,setTotalCurriculums] = useState(0);
+  const [seleccionada,setSeleccionada] = useState(null);
+  const [cargando,setCargando] = useState(true);
+  const [error,setError] = useState("");
+  const [mensaje,setMensaje] = useState("");
 
+  const cargarPlantillas = async () => {
+    const respuesta = await api.get("/admin/plantillas");
 
-  const [
-    mensaje,
-    setMensaje
-  ] = useState("");
-
-
-  const [
-    cargando,
-    setCargando
-  ] = useState(true);
-
-
-  const usuarioGuardado =
-    localStorage.getItem("usuario") ||
-    sessionStorage.getItem("usuario");
-
-
-  const usuarioActual =
-    usuarioGuardado
-      ? JSON.parse(usuarioGuardado)
-      : null;
-
-
-  /* =========================================================
-     CERRAR SESIÓN
-  ========================================================= */
-
-  const cerrarSesion = () => {
-
-    localStorage.removeItem(
-      "token"
+    setPlantillas(
+      respuesta.data.plantillas || []
     );
 
-    localStorage.removeItem(
-      "usuario"
+    setTotalCurriculums(
+      Number(respuesta.data.total_curriculums || 0)
     );
 
-    sessionStorage.removeItem(
-      "token"
-    );
-
-    sessionStorage.removeItem(
-      "usuario"
-    );
-
-    navigate(
-      "/iniciar-sesion"
-    );
+    return respuesta.data.plantillas || [];
   };
 
+  useEffect(() => {
+    let cancelado = false;
 
-  /* =========================================================
-     CARGAR PLANTILLAS
-  ========================================================= */
-
-  const cargarPlantillas =
-    async () => {
-
-      try {
-
-        setCargando(true);
-        setError("");
-
-
-        const response =
-          await api.get(
-            "/admin/plantillas"
-          );
-
+    api.get("/admin/plantillas")
+      .then((respuesta) => {
+        if (cancelado) return;
 
         setPlantillas(
-          response.data.plantillas ||
-          []
+          respuesta.data.plantillas || []
         );
 
-
-      } catch (error) {
-
-        setError(
-          error.response?.data?.mensaje ||
-          "No se pudieron cargar las plantillas"
+        setTotalCurriculums(
+          Number(respuesta.data.total_curriculums || 0)
         );
-
-
-      } finally {
-
-        setCargando(false);
-
-      }
-    };
-
-
-  useEffect(() => {
-
-    let activo = true;
-
-
-    const cargarInicial =
-      async () => {
-
-        try {
-
-          const response =
-            await api.get(
-              "/admin/plantillas"
-            );
-
-
-          if (!activo) {
-            return;
-          }
-
-
-          setPlantillas(
-            response.data.plantillas ||
-            []
-          );
-
-
-        } catch (error) {
-
-          if (!activo) {
-            return;
-          }
-
-
+      })
+      .catch((error) => {
+        if (!cancelado) {
           setError(
             error.response?.data?.mensaje ||
             "No se pudieron cargar las plantillas"
           );
-
-
-        } finally {
-
-          if (activo) {
-            setCargando(false);
-          }
-
         }
-      };
-
-
-    cargarInicial();
-
+      })
+      .finally(() => {
+        if (!cancelado) {
+          setCargando(false);
+        }
+      });
 
     return () => {
-      activo = false;
+      cancelado = true;
     };
-
   }, []);
 
+  const esClasica = (plantilla) =>
+    normalizar(plantilla.nombre) === "clasica" ||
+    normalizar(plantilla.codigo) === "clasica";
 
-  /* =========================================================
-     ACTIVAR / DESACTIVAR
-  ========================================================= */
+  const cambiarEstado = async (e,plantilla) => {
+    e.stopPropagation();
 
-  const cambiarEstado =
-    async (plantilla) => {
+    const nuevoEstado = !plantilla.estado;
 
-      const nuevoEstado =
-          !plantilla.estado
+    if (
+      !window.confirm(
+        `¿Deseas ${nuevoEstado ? "activar" : "desactivar"} la plantilla "${plantilla.nombre}"?`
+      )
+    ) {
+      return;
+    }
 
-      const accion =
-        nuevoEstado
-          ? "activar"
-          : "desactivar";
+    try {
+      setError("");
+      setMensaje("");
 
+      const respuesta = await api.patch(
+        `/admin/plantillas/${plantilla.id_plantilla}/estado`,
+        {
+          estado:nuevoEstado
+        }
+      );
 
-      const confirmar =
-        window.confirm(
-          `¿Deseas ${accion} la plantilla "${plantilla.nombre}"?`
+      setMensaje(respuesta.data.mensaje);
+
+      const actualizadas = await cargarPlantillas();
+
+      if (
+        seleccionada?.id_plantilla ===
+        plantilla.id_plantilla
+      ) {
+        const actualizada = actualizadas.find(
+          (item) =>
+            item.id_plantilla ===
+            plantilla.id_plantilla
         );
 
-
-      if (!confirmar) {
-        return;
+        setSeleccionada(actualizada || null);
       }
-
-
-      try {
-
-        setError("");
-        setMensaje("");
-
-
-        const response =
-          await api.patch(
-            `/admin/plantillas/${plantilla.id_plantilla}/estado`,
-            {
-              estado:
-                nuevoEstado
-            }
-          );
-
-
-        setMensaje(
-          response.data.mensaje
-        );
-
-
-        await cargarPlantillas();
-
-
-      } catch (error) {
-
-        setError(
-          error.response?.data?.mensaje ||
-          "No se pudo actualizar el estado de la plantilla"
-        );
-
-      }
-    };
-
-
-  /* =========================================================
-     INTERFAZ
-  ========================================================= */
+    } catch(error) {
+      setError(
+        error.response?.data?.mensaje ||
+        "No se pudo actualizar la plantilla"
+      );
+    }
+  };
 
   return (
-
-    <div className="admin-page">
-
-
-      {/* SIDEBAR */}
-
-      <aside className="admin-sidebar">
-
-
-        <div className="admin-brand">
-
-          <div className="admin-brand-logo">
-            P
-          </div>
-
-
-          <div>
-
-            <h2>
-              PoliCV
-            </h2>
-
-            <span>
-              Administración
-            </span>
-
-          </div>
-
-        </div>
-
-
-        <div className="admin-profile">
-
-
-          <div className="admin-avatar">
-
-            {usuarioActual?.email
-              ? usuarioActual.email
-                  .charAt(0)
-                  .toUpperCase()
-              : "A"}
-
-          </div>
-
-
-          <div>
-
-            <strong>
-              Administrador
-            </strong>
-
-            <span>
-              {usuarioActual?.email}
-            </span>
-
-          </div>
-
-        </div>
-
-
-        <nav className="admin-menu">
-
-
-          <Link to="/admin">
-
-            <span>
-              01
-            </span>
-
-            Panel principal
-
-          </Link>
-
-
-          <Link to="/admin/usuarios">
-
-            <span>
-              02
-            </span>
-
-            Gestionar usuarios
-
-          </Link>
-
-
-          <Link to="/admin/secciones">
-
-            <span>
-              03
-            </span>
-
-            Secciones del CV
-
-          </Link>
-
-
-          <Link
-            to="/admin/plantillas"
-            className="active"
-          >
-
-            <span>
-              04
-            </span>
-
-            Plantillas
-
-          </Link>
-
-
-          <Link to="/admin/estadisticas">
-
-            <span>
-              05
-            </span>
-
-            Estadísticas
-
-          </Link>
-
-
-          <Link to="/admin/propuestas">
-
-            <span>
-              06
-            </span>
-
-            Propuestas
-
-          </Link>
-
-
-        </nav>
-
-
-        <button
-          type="button"
-          className="admin-logout"
-          onClick={
-            cerrarSesion
-          }
-        >
-          Cerrar sesión
-        </button>
-
-
-      </aside>
-
-
-      {/* CONTENIDO */}
+    <div className="admin-layout">
+      <MenuLateral />
 
       <main className="admin-main">
-
-
         <header className="admin-header">
-
-
           <div>
-
-            <span className="admin-header-label">
-              CONFIGURACIÓN VISUAL
+            <span className="admin-eyebrow">
+              DISEÑO DEL CURRÍCULUM
             </span>
 
-
-            <h1>
-              Plantillas
-            </h1>
-
+            <h1>Plantillas</h1>
 
             <p>
-              Controla la disponibilidad de
-              los diseños predeterminados de
-              currículum de PoliCV.
+              Consulta los diseños disponibles y analiza cuáles son utilizados por los estudiantes.
             </p>
-
           </div>
 
-
-          <div className="admin-header-account">
-
-
-            <div>
-
-              <span>
-                Sesión iniciada como
-              </span>
-
-              <strong>
-                {usuarioActual?.email}
-              </strong>
-
-            </div>
-
-
-            <div className="admin-header-avatar">
-
-              {usuarioActual?.email
-                ? usuarioActual.email
-                    .charAt(0)
-                    .toUpperCase()
-                : "A"}
-
-            </div>
-
+          <div className="admin-header-badge">
+            {plantillas.length}/3 plantillas
           </div>
-
-
         </header>
 
-
         <div className="admin-content">
-
-
-          {/* ENCABEZADO */}
-
-          <section className="templates-admin-heading">
-
-
+          <section className="plantillas-intro">
             <div>
+              <span>DISEÑOS PREDETERMINADOS</span>
 
-              <span className="templates-admin-label">
-                DISEÑOS PREDETERMINADOS
-              </span>
-
-
-              <h2>
-                Plantillas de PoliCV
-              </h2>
-
+              <h2>Plantillas de TalentoESFOT</h2>
 
               <p>
-                PoliCV dispone de tres diseños
-                predeterminados. El administrador
-                puede controlar cuáles están
-                disponibles para los estudiantes.
+                Selecciona una tarjeta para ampliar su vista previa y consultar información detallada.
               </p>
-
             </div>
 
-
-            <div className="templates-admin-counter">
-
-              <span>
-                Plantillas
-              </span>
-
-              <strong>
-                {plantillas.length}
-              </strong>
-
-            </div>
-
-
+            <strong>
+              {totalCurriculums} CV
+            </strong>
           </section>
-
-
-          {/* MENSAJES */}
 
           {error && (
-
-            <div className="users-message error">
+            <div className="admin-message error">
               {error}
             </div>
-
           )}
-
 
           {mensaje && (
-
-            <div className="users-message success">
+            <div className="plantillas-mensaje">
               {mensaje}
             </div>
-
           )}
 
-
-          {/* PLANTILLAS */}
-
-          <section className="templates-admin-table-card">
-
-
-            <div className="templates-admin-table-header">
-
-
-              <div>
-
-                <span>
-                  DISEÑOS DISPONIBLES
-                </span>
-
-
-                <h3>
-                  Moderna, Clásica y Minimalista
-                </h3>
-
-              </div>
-
-
-              <Link
-                to="/admin"
-                className="users-back-link"
-              >
-                Volver al panel
-              </Link>
-
-
+          {cargando ? (
+            <div className="admin-state-card">
+              Cargando plantillas...
             </div>
+          ) : (
+            <>
+              <section className="plantillas-grid">
+                {plantillas.map((plantilla,indice) => {
+                  const base = esClasica(plantilla);
+                  const estadisticas =
+                    plantilla.estadisticas || {};
 
+                  return (
+                    <article
+                      key={plantilla.id_plantilla}
+                      className={`plantilla-card plantilla-${indice + 1}`}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() =>
+                        setSeleccionada(plantilla)
+                      }
+                      onKeyDown={(e) => {
+                        if (
+                          e.key === "Enter" ||
+                          e.key === " "
+                        ) {
+                          e.preventDefault();
+                          setSeleccionada(plantilla);
+                        }
+                      }}
+                    >
+                      <div className="plantilla-preview">
+                        <VistaPlantilla
+                          plantilla={plantilla}
+                        />
 
-            {cargando ? (
+                        {base && (
+                          <div className="plantilla-base">
+                            BASE
+                          </div>
+                        )}
+                      </div>
 
-              <div className="users-loading">
-                Cargando plantillas...
-              </div>
+                      <div className="plantilla-contenido">
+                        <span>
+                          {plantilla.codigo ||
+                            `PLANTILLA ${indice + 1}`}
+                        </span>
 
-            ) : plantillas.length === 0 ? (
+                        <h2>
+                          {plantilla.nombre}
+                        </h2>
 
-              <div className="users-empty">
+                        <p>
+                          {plantilla.descripcion ||
+                            "Diseño disponible para la presentación profesional del currículum."}
+                        </p>
 
-                <strong>
-                  No se encontraron las plantillas predeterminadas
-                </strong>
+                        <div className="plantilla-estadisticas">
+                          <div>
+                            <span>CV</span>
 
-                <p>
-                  Verifica los registros de la tabla plantillas.
-                </p>
+                            <strong>
+                              {estadisticas.curriculums || 0}
+                            </strong>
+                          </div>
 
-              </div>
+                          <div>
+                            <span>Estudiantes</span>
 
-            ) : (
+                            <strong>
+                              {estadisticas.estudiantes || 0}
+                            </strong>
+                          </div>
 
-              <div className="users-table-wrapper">
+                          <div>
+                            <span>Uso</span>
 
+                            <strong>
+                              {estadisticas.porcentaje || 0}%
+                            </strong>
+                          </div>
+                        </div>
 
-                <table className="templates-admin-table">
+                        <div className="plantilla-pie">
+                          <span
+                            className={`plantilla-estado ${
+                              plantilla.estado
+                                ? "activa"
+                                : "inactiva"
+                            }`}
+                          >
+                            {plantilla.estado
+                              ? "Activa"
+                              : "Inactiva"}
+                          </span>
 
-
-                  <thead>
-
-                    <tr>
-
-                      <th>
-                        ID
-                      </th>
-
-                      <th>
-                        Plantilla
-                      </th>
-
-                      <th>
-                        Código
-                      </th>
-
-                      <th>
-                        Descripción
-                      </th>
-
-                      <th>
-                        Estado
-                      </th>
-
-                      <th>
-                        Acción
-                      </th>
-
-                    </tr>
-
-                  </thead>
-
-
-                  <tbody>
-
-
-                    {plantillas.map(
-                      (plantilla) => {
-
-                        const activa =
-                          Boolean(
-                            plantilla.estado
-                          );
-
-
-                        return (
-
-                          <tr
-                            key={
-                              plantilla.id_plantilla
+                          <button
+                            type="button"
+                            disabled={
+                              base &&
+                              Boolean(plantilla.estado)
+                            }
+                            onClick={(e) =>
+                              cambiarEstado(
+                                e,
+                                plantilla
+                              )
                             }
                           >
+                            {base && plantilla.estado
+                              ? "Plantilla base"
+                              : plantilla.estado
+                                ? "Desactivar"
+                                : "Activar"}
+                          </button>
+                        </div>
 
+                        <small className="plantilla-ver">
+                          Presiona la tarjeta para ver detalles
+                        </small>
+                      </div>
+                    </article>
+                  );
+                })}
+              </section>
 
-                            <td className="user-id">
-                              #{plantilla.id_plantilla}
-                            </td>
+              <section className="plantillas-uso-carreras">
+                <div className="plantillas-uso-titulo">
+                  <span>USO POR CARRERA</span>
 
+                  <h2>
+                    Preferencia de plantillas por carrera
+                  </h2>
 
-                            <td>
+                  <p>
+                    Muestra cuántos currículums de cada carrera utilizan cada diseño.
+                  </p>
+                </div>
 
-                              <div className="template-admin-name-cell">
+                <div className="plantillas-uso-grid">
+                  {plantillas.map((plantilla) => {
+                    const estadisticas =
+                      plantilla.estadisticas || {};
 
+                    const totalPlantilla =
+                      Number(
+                        estadisticas.curriculums || 0
+                      );
 
-                                <div className="template-admin-icon">
-                                  CV
-                                </div>
+                    return (
+                      <article
+                        key={plantilla.id_plantilla}
+                      >
+                        <h3>
+                          {plantilla.nombre}
+                        </h3>
 
+                        {estadisticas.por_carrera?.length ? (
+                          estadisticas.por_carrera.map(
+                            (item) => {
+                              const cantidad =
+                                Number(
+                                  item.curriculums || 0
+                                );
 
-                                <div>
-
-                                  <strong>
-                                    {plantilla.nombre}
-                                  </strong>
-
-                                  <span>
-                                    Diseño predeterminado PoliCV
-                                  </span>
-
-                                </div>
-
-
-                              </div>
-
-                            </td>
-
-
-                            <td>
-
-                              <span className="template-code">
-                                {plantilla.codigo}
-                              </span>
-
-                            </td>
-
-
-                            <td className="template-admin-description">
-
-                              {plantilla.descripcion ||
-                                "Diseño predeterminado de PoliCV"}
-
-                            </td>
-
-
-                            <td>
-
-                              <span
-                                className={
-                                  activa
-                                    ? "status-badge active"
-                                    : "status-badge inactive"
-                                }
-                              >
-
-                                {activa
-                                  ? "Activa"
-                                  : "Inactiva"}
-
-                              </span>
-
-                            </td>
-
-
-                            <td>
-
-                              <button
-                                type="button"
-                                className={
-                                  activa
-                                    ? "user-action deactivate"
-                                    : "user-action activate"
-                                }
-                                onClick={
-                                  () =>
-                                    cambiarEstado(
-                                      plantilla
+                              const porcentaje =
+                                totalPlantilla
+                                  ? Math.round(
+                                      (cantidad /
+                                        totalPlantilla) *
+                                        100
                                     )
-                                }
-                              >
+                                  : 0;
 
-                                {activa
-                                  ? "Desactivar"
-                                  : "Activar"}
+                              return (
+                                <div
+                                  className="plantilla-carrera-barra"
+                                  key={item.id_carrera}
+                                >
+                                  <div>
+                                    <span>
+                                      {item.carrera}
+                                    </span>
 
-                              </button>
+                                    <strong>
+                                      {cantidad} CV ·{" "}
+                                      {porcentaje}%
+                                    </strong>
+                                  </div>
 
-                            </td>
-
-
-                          </tr>
-
-                        );
-                      }
-                    )}
-
-
-                  </tbody>
-
-
-                </table>
-
-
-              </div>
-
-            )}
-
-
-          </section>
-
-
+                                  <div className="plantilla-carrera-fondo">
+                                    <div
+                                      style={{
+                                        width:`${porcentaje}%`
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            }
+                          )
+                        ) : (
+                          <p className="plantilla-sin-uso">
+                            Esta plantilla todavía no registra currículums.
+                          </p>
+                        )}
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
+            </>
+          )}
         </div>
-
-
       </main>
 
+      {seleccionada && (
+        <div
+          className="plantilla-modal-fondo"
+          onClick={() =>
+            setSeleccionada(null)
+          }
+        >
+          <section
+            className="plantilla-modal"
+            onClick={(e) =>
+              e.stopPropagation()
+            }
+          >
+            <button
+              type="button"
+              className="plantilla-modal-cerrar"
+              onClick={() =>
+                setSeleccionada(null)
+              }
+              aria-label="Cerrar"
+            >
+              ×
+            </button>
 
+            <div className="plantilla-modal-preview">
+              <VistaPlantilla
+                plantilla={seleccionada}
+                grande
+              />
+            </div>
+
+            <div className="plantilla-modal-info">
+              <span>PLANTILLA</span>
+
+              <h2>
+                {seleccionada.nombre}
+              </h2>
+
+              <p>
+                {seleccionada.descripcion ||
+                  "Diseño disponible para los currículums de TalentoESFOT."}
+              </p>
+
+              <div className="plantilla-modal-resumen">
+                <div>
+                  <span>
+                    CV que la utilizan
+                  </span>
+
+                  <strong>
+                    {seleccionada.estadisticas
+                      ?.curriculums || 0}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>
+                    Estudiantes distintos
+                  </span>
+
+                  <strong>
+                    {seleccionada.estadisticas
+                      ?.estudiantes || 0}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>
+                    Uso total
+                  </span>
+
+                  <strong>
+                    {seleccionada.estadisticas
+                      ?.porcentaje || 0}%
+                  </strong>
+                </div>
+              </div>
+
+              <h3>
+                Uso por carrera
+              </h3>
+
+              {seleccionada.estadisticas
+                ?.por_carrera?.length ? (
+                <div className="plantilla-carreras">
+                  {seleccionada.estadisticas
+                    .por_carrera.map((item) => (
+                      <div
+                        key={item.id_carrera}
+                      >
+                        <span>
+                          {item.carrera}
+                        </span>
+
+                        <strong>
+                          {item.curriculums} CV ·{" "}
+                          {item.estudiantes} estudiantes
+                        </strong>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <p>
+                  Esta plantilla todavía no registra uso por carrera.
+                </p>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
     </div>
-
   );
 }
 
-
-export default AdminTemplatesPage;
+export default PaginaPlantillasAdministrador;
