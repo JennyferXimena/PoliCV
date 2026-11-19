@@ -1,5 +1,4 @@
-const curriculumModel =
-  require("../models/curriculumModel");
+const curriculumModel = require("../../models/curriculumModel");
 
 // Crear currículum
 async function crear(req, res) {
@@ -10,30 +9,81 @@ async function crear(req, res) {
     id_plantilla
   } = req.body || {};
 
-  if (!nombre?.trim()) {
+  const nombreLimpio =
+    typeof nombre === "string"
+      ? nombre.trim()
+      : "";
+
+  if (!nombreLimpio) {
     return res.status(400).json({
       mensaje: "El nombre del currículum es obligatorio"
     });
   }
 
   if (
-    id_plantilla !== null &&
-    id_plantilla !== undefined &&
-    !Number.isInteger(Number(id_plantilla))
+    id_plantilla === null ||
+    id_plantilla === undefined ||
+    id_plantilla === ""
   ) {
+    return res.status(400).json({
+      mensaje: "Debes seleccionar una plantilla"
+    });
+  }
+
+  const idPlantilla = Number(id_plantilla);
+
+  if (!Number.isInteger(idPlantilla) || idPlantilla <= 0) {
     return res.status(400).json({
       mensaje: "La plantilla seleccionada no es válida"
     });
   }
 
   try {
+    const totalActivos =
+      await curriculumModel.contarActivosPorUsuario(
+        req.usuario.id_usuario
+      );
+
+    if (totalActivos >= 3) {
+      return res.status(400).json({
+        mensaje: "Solo puedes tener un máximo de 3 currículums"
+      });
+    }
+
+    const nombreDuplicado =
+      await curriculumModel.existeNombreActivo(
+        req.usuario.id_usuario,
+        nombreLimpio
+      );
+
+    if (nombreDuplicado) {
+      return res.status(409).json({
+        mensaje: "Ya tienes un currículum activo con ese nombre"
+      });
+    }
+
+    const plantilla =
+      await curriculumModel.obtenerPlantillaActiva(
+        idPlantilla
+      );
+
+    if (!plantilla) {
+      return res.status(400).json({
+        mensaje: "La plantilla seleccionada no está disponible"
+      });
+    }
+
     const idCurriculum =
       await curriculumModel.crearCurriculum(
         req.usuario.id_usuario,
-        nombre.trim(),
-        titulo_profesional?.trim(),
-        resumen_profesional?.trim(),
-        id_plantilla || null
+        nombreLimpio,
+        typeof titulo_profesional === "string"
+          ? titulo_profesional.trim()
+          : null,
+        typeof resumen_profesional === "string"
+          ? resumen_profesional.trim()
+          : null,
+        idPlantilla
       );
 
     return res.status(201).json({
@@ -73,11 +123,31 @@ async function listar(req, res) {
 }
 
 
+// Listar plantillas disponibles para estudiantes
+async function listarPlantillasDisponibles(req, res) {
+  try {
+    const plantillas =
+      await curriculumModel.listarPlantillasActivas();
+
+    return res.status(200).json({
+      plantillas
+    });
+
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      mensaje: "Error al obtener las plantillas disponibles"
+    });
+  }
+}
+
+
 // Obtener un currículum específico
 async function obtenerPorId(req, res) {
   const idCurriculum = Number(req.params.id);
 
-  if (!Number.isInteger(idCurriculum)) {
+  if (!Number.isInteger(idCurriculum) || idCurriculum <= 0) {
     return res.status(400).json({
       mensaje: "Currículum inválido"
     });
@@ -114,7 +184,7 @@ async function obtenerPorId(req, res) {
 async function actualizar(req, res) {
   const idCurriculum = Number(req.params.id);
 
-  if (!Number.isInteger(idCurriculum)) {
+  if (!Number.isInteger(idCurriculum) || idCurriculum <= 0) {
     return res.status(400).json({
       mensaje: "Currículum inválido"
     });
@@ -126,12 +196,6 @@ async function actualizar(req, res) {
     resumen_profesional,
     id_plantilla
   } = req.body || {};
-
-  if (!nombre?.trim()) {
-    return res.status(400).json({
-      mensaje: "El nombre del currículum es obligatorio"
-    });
-  }
 
   try {
     // Primero comprobamos que pertenezca al estudiante
@@ -147,19 +211,75 @@ async function actualizar(req, res) {
       });
     }
 
+    const nombreLimpio =
+      typeof nombre === "string"
+        ? nombre.trim()
+        : "";
+
+    if (!nombreLimpio) {
+      return res.status(400).json({
+        mensaje: "El nombre del currículum es obligatorio"
+      });
+    }
+
+    const nombreDuplicado =
+      await curriculumModel.existeNombreActivo(
+        req.usuario.id_usuario,
+        nombreLimpio,
+        idCurriculum
+      );
+
+    if (nombreDuplicado) {
+      return res.status(409).json({
+        mensaje: "Ya tienes un currículum activo con ese nombre"
+      });
+    }
+
+    if (
+      id_plantilla === null ||
+      id_plantilla === undefined ||
+      id_plantilla === ""
+    ) {
+      return res.status(400).json({
+        mensaje: "Debes seleccionar una plantilla"
+      });
+    }
+
+    const idPlantilla = Number(id_plantilla);
+
+    if (!Number.isInteger(idPlantilla) || idPlantilla <= 0) {
+      return res.status(400).json({
+        mensaje: "La plantilla seleccionada no es válida"
+      });
+    }
+
+    const plantilla =
+      await curriculumModel.obtenerPlantillaActiva(
+        idPlantilla
+      );
+
+    if (!plantilla) {
+      return res.status(400).json({
+        mensaje: "La plantilla seleccionada no está disponible"
+      });
+    }
+
     await curriculumModel.actualizarCurriculum(
       idCurriculum,
       req.usuario.id_usuario,
       {
-        nombre: nombre.trim(),
+        nombre: nombreLimpio,
         titulo_profesional:
-          titulo_profesional?.trim() || null,
+          typeof titulo_profesional === "string"
+            ? titulo_profesional.trim() || null
+            : null,
 
         resumen_profesional:
-          resumen_profesional?.trim() || null,
+          typeof resumen_profesional === "string"
+            ? resumen_profesional.trim() || null
+            : null,
 
-        id_plantilla:
-          id_plantilla || null
+        id_plantilla: idPlantilla
       }
     );
 
@@ -181,7 +301,7 @@ async function actualizar(req, res) {
 async function eliminar(req, res) {
   const idCurriculum = Number(req.params.id);
 
-  if (!Number.isInteger(idCurriculum)) {
+  if (!Number.isInteger(idCurriculum) || idCurriculum <= 0) {
     return res.status(400).json({
       mensaje: "Currículum inválido"
     });
@@ -222,6 +342,7 @@ async function eliminar(req, res) {
 module.exports = {
   crear,
   listar,
+  listarPlantillasDisponibles,
   obtenerPorId,
   actualizar,
   eliminar

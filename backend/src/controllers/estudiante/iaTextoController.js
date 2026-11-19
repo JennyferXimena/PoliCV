@@ -1,6 +1,6 @@
 const {
   enviarMensajeIA
-} = require("../services/aiService");
+} = require("../../services/aiService");
 
 
 /* =========================================================

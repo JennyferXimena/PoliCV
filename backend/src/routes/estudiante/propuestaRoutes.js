@@ -1,15 +1,15 @@
 const express = require("express");
 
 const propuestaController =
-  require("../controllers/propuestaController");
+  require("../../controllers/estudiante/propuestaController");
 
 const {
   verificarToken
-} = require("../middlewares/AutenticacionMiddleware");
+} = require("../../middlewares/AutenticacionMiddleware");
 
 const {
   verificarRol
-} = require("../middlewares/RolMiddleware");
+} = require("../../middlewares/RolMiddleware");
 
 const router = express.Router();
 

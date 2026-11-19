@@ -1,32 +1,28 @@
-import { BrowserRouter,Routes,Route } from "react-router-dom";
-
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import PaginaInicio from "./pages/publicas/PaginaInicio";
 import PaginaTerminosPrivacidad from "./pages/publicas/PaginaTerminosPrivacidad";
-
 import PaginaInicioSesion from "./pages/autenticacion/PaginaInicioSesion";
 import PaginaRegistro from "./pages/autenticacion/PaginaRegistro";
 import PaginaRecuperarContrasena from "./pages/autenticacion/PaginaRecuperarContrasena";
 import PaginaRestablecerContrasena from "./pages/autenticacion/PaginaRestablecerContrasena";
 import PaginaVerificarCorreo from "./pages/autenticacion/PaginaVerificarCorreo";
-
 import PaginaEstadisticasAdministrador from "./pages/administrador/PaginaEstadisticasAdministrador";
 import PaginaUsuariosAdministrador from "./pages/administrador/PaginaUsuariosAdministrador";
 import PaginaSeccionesAdministrador from "./pages/administrador/PaginaSeccionesAdministrador";
 import PaginaPlantillasAdministrador from "./pages/administrador/PaginaPlantillasAdministrador";
 import PaginaPropuestasAdministrador from "./pages/administrador/PaginaPropuestasAdministrador";
 import PaginaPerfilAdministrador from "./pages/administrador/PaginaPerfilAdministrador";
-
+import PaginaEstadisticasCurriculumsAdministrador from "./pages/administrador/PaginaEstadisticasCurriculumsAdministrador";
 import PaginaBienvenidaEstudiante from "./pages/estudiante/PaginaBienvenidaEstudiante";
 import PaginaPanelEstudiante from "./pages/estudiante/PaginaPanelEstudiante";
 import PaginaPerfil from "./pages/estudiante/PaginaPerfil";
 import PaginaCurriculumsEstudiante from "./pages/estudiante/PaginaCurriculumsEstudiante";
 import PaginaDetalleCurriculum from "./pages/estudiante/PaginaDetalleCurriculum";
+import PaginaLandingCurriculum from "./pages/estudiante/PaginaLandingCurriculum";
 import PaginaPropuestasEstudiante from "./pages/estudiante/PaginaPropuestasEstudiante";
 import PaginaAsistenteIAEstudiante from "./pages/estudiante/PaginaAsistenteIAEstudiante";
 import PaginaCrearCVconIA from "./pages/estudiante/PaginaCrearCVconIA";
 import PaginaMejorarCVconIA from "./pages/estudiante/PaginaMejorarCVconIA";
-import PaginaEstadisticasCurriculumsAdministrador from "./pages/administrador/PaginaEstadisticasCurriculumsAdministrador";
-
 import RutaProtegida from "./components/rutas/RutaProtegida";
 import GuardiaPerfilEstudiante from "./components/rutas/GuardiaPerfilEstudiante";
 
@@ -148,6 +144,15 @@ function App() {
         />
 
         <Route
+          path="/admin/curriculums-estadisticas"
+          element={
+            <RutaAdministrador>
+              <PaginaEstadisticasCurriculumsAdministrador />
+            </RutaAdministrador>
+          }
+        />
+
+        <Route
           path="/bienvenida"
           element={
             <RutaProtegida allowedRoles={["Estudiante"]}>
@@ -179,6 +184,15 @@ function App() {
           element={
             <RutaEstudiante>
               <PaginaCurriculumsEstudiante />
+            </RutaEstudiante>
+          }
+        />
+
+        <Route
+          path="/estudiante/curriculums/:id/landing"
+          element={
+            <RutaEstudiante>
+              <PaginaLandingCurriculum />
             </RutaEstudiante>
           }
         />
@@ -225,15 +239,6 @@ function App() {
             <RutaEstudiante>
               <PaginaMejorarCVconIA />
             </RutaEstudiante>
-          }
-        />
-        
-        <Route
-          path="/admin/curriculums-estadisticas"
-          element={
-            <RutaAdministrador>
-              <PaginaEstadisticasCurriculumsAdministrador />
-            </RutaAdministrador>
           }
         />
       </Routes>

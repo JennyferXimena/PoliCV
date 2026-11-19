@@ -4,6 +4,7 @@ import {
 } from "react-router-dom";
 
 import "../../styles/estudiante/estudiante.css";
+import "../../styles/estudiante/asistenteIA.css";
 
 
 function StudentAIAssistantPage() {

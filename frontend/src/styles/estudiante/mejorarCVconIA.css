@@ -1,0 +1,467 @@
+/* SELECT */
+
+.ai-cv-select {
+  width: 100%;
+
+  height: 43px;
+
+  padding:
+    0 11px;
+
+  border:
+    1px solid
+    var(--student-border);
+
+  border-radius: 7px;
+
+  background:
+    #ffffff;
+
+  color:
+    var(--student-text);
+
+  font-size: 10px;
+
+  outline: none;
+}
+
+
+.ai-cv-select:focus {
+  border-color:
+    var(--student-primary);
+
+  box-shadow:
+    0 0 0 3px
+    rgba(103, 173, 150, 0.08);
+}
+
+
+/* =========================================================
+   CHAT
+========================================================= */
+
+.ai-professional-chat {
+  min-width: 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  background:
+    #ffffff;
+}
+
+
+/* HEADER */
+
+.ai-professional-header {
+  min-height: 76px;
+
+  padding:
+    16px 21px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 11px;
+
+  border-bottom:
+    1px solid
+    var(--student-border);
+}
+
+
+.ai-professional-avatar {
+  width: 40px;
+  height: 40px;
+
+  flex-shrink: 0;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border-radius: 8px;
+
+  background:
+    var(--student-light);
+
+  color:
+    var(--student-primary-dark);
+
+  font-size: 9px;
+
+  font-weight: 800;
+}
+
+
+.ai-professional-header h3 {
+  margin:
+    0 0 3px;
+
+  color:
+    var(--student-title);
+
+  font-size: 14px;
+}
+
+
+.ai-professional-header span {
+  color:
+    var(--student-muted);
+
+  font-size: 8px;
+}
+
+
+/* ESTADO */
+
+.ai-professional-status {
+  margin-left: auto;
+
+  padding:
+    5px 10px;
+
+  border:
+    1px solid #c8dfd7;
+
+  border-radius: 20px;
+
+  background:
+    #f2f8f5;
+
+  color:
+    var(--student-primary-dark);
+
+  font-size: 8px;
+
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   MENSAJES
+========================================================= */
+
+.ai-professional-messages {
+  min-height: 410px;
+
+  max-height: 500px;
+
+  padding:
+    25px;
+
+  overflow-y: auto;
+
+  background:
+    #fbfdfc;
+}
+
+
+.ai-professional-row {
+  max-width: 78%;
+
+  margin-bottom: 20px;
+}
+
+
+.ai-professional-row.user {
+  margin-left: auto;
+
+  text-align: right;
+}
+
+
+.ai-professional-row.assistant {
+  margin-right: auto;
+}
+
+
+.ai-professional-author {
+  display: block;
+
+  margin-bottom: 5px;
+
+  color:
+    var(--student-muted);
+
+  font-size: 8px;
+
+  font-weight: 700;
+}
+
+
+/* MENSAJE */
+
+.ai-professional-message {
+  display: inline-block;
+
+  padding:
+    11px 14px;
+
+  border-radius: 10px;
+
+  text-align: left;
+
+  white-space: pre-wrap;
+
+  font-size: 11px;
+
+  line-height: 1.65;
+}
+
+
+.ai-professional-message.assistant {
+  border:
+    1px solid
+    var(--student-border);
+
+  border-top-left-radius: 3px;
+
+  background:
+    #ffffff;
+
+  color:
+    var(--student-text);
+}
+
+
+.ai-professional-message.user {
+  border:
+    1px solid
+    #a9cfc1;
+
+  border-top-right-radius: 3px;
+
+  background:
+    #e8f4ef;
+
+  color:
+    #355e53;
+}
+
+
+/* =========================================================
+   ERROR
+========================================================= */
+
+.ai-professional-error {
+  margin:
+    0 22px 12px;
+
+  padding:
+    11px 13px;
+
+  border:
+    1px solid #e2bcbc;
+
+  border-radius: 7px;
+
+  background:
+    #fff3f3;
+
+  color:
+    var(--student-danger);
+
+  font-size: 9px;
+}
+
+
+/* =========================================================
+   AREA PARA ESCRIBIR
+========================================================= */
+
+.ai-professional-input {
+  padding:
+    18px 20px;
+
+  border-top:
+    1px solid
+    var(--student-border);
+
+  background:
+    #ffffff;
+}
+
+
+.ai-professional-input textarea {
+  width: 100%;
+
+  min-height: 80px;
+
+  padding:
+    12px 14px;
+
+  border:
+    1px solid
+    var(--student-border);
+
+  border-radius: 8px;
+
+  background:
+    #ffffff;
+
+  color:
+    var(--student-text);
+
+  font-size: 11px;
+
+  line-height: 1.5;
+
+  resize: vertical;
+
+  outline: none;
+}
+
+
+.ai-professional-input textarea:focus {
+  border-color:
+    var(--student-primary);
+
+  box-shadow:
+    0 0 0 3px
+    rgba(103, 173, 150, 0.08);
+}
+
+
+.ai-professional-input textarea:disabled {
+  background:
+    #f3f6f5;
+
+  color:
+    #8b9995;
+
+  cursor:
+    not-allowed;
+}
+
+
+/* PIE DEL INPUT */
+
+.ai-input-footer {
+  margin-top: 10px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 20px;
+}
+
+
+.ai-input-footer > span {
+  max-width: 600px;
+
+  color:
+    var(--student-muted);
+
+  font-size: 8px;
+
+  line-height: 1.5;
+}
+
+
+.ai-input-footer button {
+  min-width: 120px;
+
+  min-height: 40px;
+
+  padding:
+    0 16px;
+
+  border:
+    1px solid
+    var(--student-primary);
+
+  border-radius: 7px;
+
+  background:
+    var(--student-primary);
+
+  color:
+    #ffffff;
+
+  font-size: 9px;
+
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    0.2s ease;
+}
+
+
+.ai-input-footer button:hover:not(:disabled) {
+  border-color:
+    var(--student-primary-dark);
+
+  background:
+    var(--student-primary-dark);
+}
+
+
+.ai-input-footer button:disabled {
+  opacity: 0.45;
+
+  cursor:
+    not-allowed;
+}
+
+/* =========================================================
+   RESPONSIVE DE MEJORA CON IA
+========================================================= */
+
+@media (max-width: 700px) {
+  .ai-professional-row {
+    max-width: 92%;
+  }
+
+  .ai-input-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ai-input-footer button {
+    width: 100%;
+  }
+}
+
+/* Reglas responsivas conservadas de la interfaz anterior. */
+@media (max-width: 950px) {
+  .ai-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .ai-control-panel {
+    border-right: none;
+    border-bottom: 1px solid var(--student-border);
+  }
+}
+
+@media (max-width: 700px) {
+  .ai-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .ai-create-button,
+  .ai-input-area button {
+    width: 100%;
+  }
+
+  .ai-input-area {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 500px) {
+  .ai-message-row {
+    max-width: 92%;
+  }
+}

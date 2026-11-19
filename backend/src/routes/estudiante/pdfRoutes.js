@@ -5,21 +5,21 @@ const {
   generarPDF
 } =
   require(
-    "../controllers/pdfController"
+    "../../controllers/estudiante/pdfController"
   );
 
 const {
   verificarToken
 } =
   require(
-    "../middlewares/AutenticacionMiddleware"
+    "../../middlewares/AutenticacionMiddleware"
   );
 
 const {
   verificarRol
 } =
   require(
-    "../middlewares/RolMiddleware"
+    "../../middlewares/RolMiddleware"
   );
 
 

@@ -11,6 +11,7 @@ import {
 import api from "../../services/api";
 
 import "../../styles/estudiante/estudiante.css";
+import "../../styles/estudiante/crearCVconIA.css";
 
 
 const PASOS = [

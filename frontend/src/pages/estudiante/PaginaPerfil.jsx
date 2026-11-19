@@ -9,6 +9,7 @@ import {
 
 import api from "../../services/api";
 import "../../styles/estudiante/estudiante.css";
+import "../../styles/estudiante/perfil.css";
 
 
 function ProfilePage() {

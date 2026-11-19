@@ -1,3 +1,6 @@
+import "../../styles/estudiante/estudiante.css";
+import "../../styles/estudiante/detalleOferta.css";
+
 function PaginaDetalleOferta() {
   return (
     <div>

@@ -1,15 +1,14 @@
 const express = require("express");
 
-const curriculumController =
-  require("../controllers/curriculumController");
+const curriculumController = require("../../controllers/estudiante/curriculumController");
 
 const {
   verificarToken
-} = require("../middlewares/AutenticacionMiddleware");
+} = require("../../middlewares/AutenticacionMiddleware");
 
 const {
   verificarRol
-} = require("../middlewares/RolMiddleware");
+} = require("../../middlewares/RolMiddleware");
 
 
 const router = express.Router();
@@ -22,6 +21,16 @@ const router = express.Router();
 router.use(
   verificarToken,
   verificarRol("Estudiante")
+);
+
+
+/* =========================================================
+   LISTAR PLANTILLAS ACTIVAS
+========================================================= */
+
+router.get(
+  "/plantillas-disponibles",
+  curriculumController.listarPlantillasDisponibles
 );
 
 

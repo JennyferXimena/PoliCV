@@ -4,14 +4,14 @@ const express = require("express");
 const cors = require("cors");
 const pool = require("./config/database");
 
-const autenticacionRoutes = require("./routes/autenticacionRoutes");
-const perfilRoutes = require("./routes/perfilRoutes");
-const propuestaRoutes = require("./routes/propuestaRoutes");
-const curriculumRoutes = require("./routes/curriculumRoutes");
-const iaRoutes = require("./routes/iaRoutes");
-const configuracionInicialRoutes = require("./routes/configuracionInicialRoutes");
-const detalleCurriculumRoutes = require("./routes/detalleCurriculumRoutes");
-const pdfRoutes = require("./routes/pdfRoutes");
+const autenticacionRoutes = require("./routes/estudiante/autenticacionRoutes");
+const perfilRoutes = require("./routes/estudiante/perfilRoutes");
+const propuestaRoutes = require("./routes/estudiante/propuestaRoutes");
+const curriculumRoutes = require("./routes/estudiante/curriculumRoutes");
+const iaRoutes = require("./routes/estudiante/iaRoutes");
+const configuracionInicialRoutes = require("./routes/estudiante/configuracionInicialRoutes");
+const detalleCurriculumRoutes = require("./routes/estudiante/detalleCurriculumRoutes");
+const pdfRoutes = require("./routes/estudiante/pdfRoutes");
 
 const usuarioAdministradorRoutes = require("./routes/administrador/usuarioAdministradorRoutes");
 const seccionAdministradorRoutes = require("./routes/administrador/seccionAdministradorRoutes");
@@ -42,7 +42,6 @@ app.use("/api/admin/secciones",seccionAdministradorRoutes);
 app.use("/api/admin/plantillas",plantillaAdministradorRoutes);
 app.use("/api/admin/propuestas",propuestaAdministradorRoutes);
 app.use("/api/admin/estadisticas",estadisticaAdministradorRoutes);
-app.use("/api/admin/perfil",perfilAdministradorRoutes);
 
 app.get("/", (req,res) => {
   res.status(200).json({

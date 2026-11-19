@@ -1,3 +1,6 @@
+import "../../styles/estudiante/estudiante.css";
+import "../../styles/estudiante/configuracionInicial.css";
+
 function PaginaConfiguracionInicialEstudiante() {
   return (
     <div>

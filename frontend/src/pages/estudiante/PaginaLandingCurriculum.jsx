@@ -1,3 +1,6 @@
+import "../../styles/estudiante/estudiante.css";
+import "../../styles/estudiante/landingCurriculum.css";
+
 function PaginaLandingCurriculum() {
   return (
     <div>

@@ -1,12 +1,12 @@
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
-const pool = require("../config/database");
+const pool = require("../../config/database");
 
-const usuarioModel = require("../models/usuarioModel");
-const rolModel = require("../models/rolModel");
-const perfilModel = require("../models/perfilModel");
-const { enviarCodigoVerificacion, enviarCodigoRecuperacion } = require("../services/correoService");
+const usuarioModel = require("../../models/usuarioModel");
+const rolModel = require("../../models/rolModel");
+const perfilModel = require("../../models/perfilModel");
+const { enviarCodigoVerificacion, enviarCodigoRecuperacion } = require("../../services/correoService");
 
 const CORREO_INSTITUCIONAL = /^[A-Za-z0-9._%+-]+@epn\.edu\.ec$/i;
 const FORMATO_CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

@@ -1,0 +1,687 @@
+/* =========================================================
+   DETALLE DEL CURRÍCULUM
+========================================================= */
+
+.cv-detail-loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--student-background);
+  color: var(--student-muted);
+}
+
+/* =========================================================
+   ENCABEZADO
+========================================================= */
+
+.cv-detail-heading {
+  margin-bottom: 24px;
+  padding: 24px 26px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 25px;
+  border: 1px solid var(--student-border);
+  border-radius: 14px;
+  background: linear-gradient(135deg, #ffffff 0%, #f3faf7 100%);
+  box-shadow: var(--student-shadow);
+}
+
+.cv-detail-heading > div > span {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--student-primary-dark);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 1.3px;
+}
+
+.cv-detail-heading h2 {
+  margin: 0 0 8px;
+  color: var(--student-title);
+  font-size: 28px;
+}
+
+.cv-detail-heading p {
+  max-width: 650px;
+  margin: 0;
+  color: var(--student-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.cv-detail-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+.cv-detail-back {
+  min-height: 40px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--student-border);
+  border-radius: 8px;
+  background: white;
+  color: var(--student-primary-dark);
+  text-decoration: none;
+  font-size: 10px;
+  font-weight: 700;
+  transition: 0.2s ease;
+}
+
+.cv-detail-back:hover {
+  background: var(--student-soft);
+  border-color: #afd2c4;
+}
+
+/* =========================================================
+   PESTAÑAS
+========================================================= */
+
+.cv-detail-tabs {
+  margin-bottom: 20px;
+  padding: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  border: 1px solid var(--student-border);
+  border-radius: 11px;
+  background: var(--student-white);
+  box-shadow: var(--student-shadow);
+}
+
+.cv-detail-tabs button {
+  min-height: 39px;
+  padding: 0 15px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--student-muted);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.cv-detail-tabs button:hover {
+  background: var(--student-soft);
+  color: var(--student-primary-dark);
+}
+
+.cv-detail-tabs button.active {
+  border-color: #b8d9cc;
+  background: var(--student-light);
+  color: var(--student-primary-dark);
+}
+
+/* =========================================================
+   TARJETAS PRINCIPALES
+========================================================= */
+
+.cv-detail-form-card {
+  overflow: hidden;
+  border: 1px solid var(--student-border);
+  border-radius: var(--student-radius);
+  background: var(--student-white);
+  box-shadow: var(--student-shadow);
+}
+
+.cv-detail-card-header {
+  padding: 24px 26px 20px;
+  border-bottom: 1px solid var(--student-border);
+  background: #f5faf8;
+}
+
+.cv-detail-card-header > span {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--student-primary-dark);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+}
+
+.cv-detail-card-header h2 {
+  margin: 0 0 7px;
+  color: var(--student-title);
+  font-size: 21px;
+}
+
+.cv-detail-card-header p {
+  max-width: 760px;
+  margin: 0;
+  color: var(--student-muted);
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+/* =========================================================
+   FORMULARIOS
+========================================================= */
+
+.cv-detail-form {
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cv-detail-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.cv-detail-field.full {
+  grid-column: 1 / -1;
+}
+
+.cv-detail-field label {
+  color: var(--student-title);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.cv-detail-field input,
+.cv-detail-field textarea,
+.cv-detail-field select {
+  width: 100%;
+  border: 1px solid var(--student-border);
+  border-radius: 8px;
+  background: var(--student-surface);
+  color: var(--student-text);
+  font-size: 11px;
+  outline: none;
+  transition: 0.2s ease;
+}
+
+.cv-detail-field input,
+.cv-detail-field select {
+  min-height: 43px;
+  padding: 0 13px;
+}
+
+.cv-detail-field textarea {
+  min-height: 110px;
+  padding: 11px 13px;
+  resize: vertical;
+}
+
+.cv-detail-field input:focus,
+.cv-detail-field textarea:focus,
+.cv-detail-field select:focus {
+  border-color: var(--student-primary);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(103, 173, 150, 0.08);
+}
+
+.cv-detail-field input:disabled {
+  background: #f0f4f2;
+  color: #6d807a;
+  cursor: not-allowed;
+}
+
+.cv-detail-field small {
+  color: var(--student-muted);
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.cv-detail-field input[type="file"] {
+  min-height: auto;
+  padding: 9px;
+  background: #fbfdfc;
+  cursor: pointer;
+}
+
+.cv-detail-field input[type="file"]::file-selector-button {
+  margin-right: 10px;
+  padding: 8px 12px;
+  border: 1px solid #b7d6ca;
+  border-radius: 7px;
+  background: #edf7f3;
+  color: var(--student-primary-dark);
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cv-detail-field input[type="file"]::file-selector-button:hover {
+  background: var(--student-light);
+}
+
+/* =========================================================
+   CHECKBOX
+========================================================= */
+
+.cv-detail-field label:has(input[type="checkbox"]) {
+  min-height: 42px;
+  padding: 10px 13px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid var(--student-border);
+  border-radius: 8px;
+  background: #f7fbf9;
+  cursor: pointer;
+}
+
+.cv-detail-field input[type="checkbox"] {
+  width: 15px;
+  min-height: 15px;
+  height: 15px;
+  padding: 0;
+  accent-color: var(--student-primary);
+}
+
+/* =========================================================
+   MENSAJES
+========================================================= */
+
+.cv-detail-message {
+  margin: 14px 0;
+  padding: 11px 14px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.cv-detail-message.success {
+  border: 1px solid #badbcd;
+  background: var(--student-success-bg);
+  color: var(--student-success);
+}
+
+.cv-detail-message.error {
+  border: 1px solid #e5c1c1;
+  background: var(--student-danger-bg);
+  color: var(--student-danger);
+}
+
+/* =========================================================
+   BOTONES GENERALES
+========================================================= */
+
+.cv-detail-save {
+  min-height: 40px;
+  padding: 0 17px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--student-primary);
+  border-radius: 8px;
+  background: var(--student-primary);
+  color: white;
+  text-decoration: none;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.cv-detail-save:hover:not(:disabled) {
+  background: var(--student-primary-dark);
+}
+
+.cv-detail-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cv-detail-actions button:not(.cv-detail-save) {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--student-border);
+  border-radius: 8px;
+  background: white;
+  color: var(--student-primary-dark);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cv-detail-actions button:not(.cv-detail-save):hover:not(:disabled) {
+  background: var(--student-soft);
+}
+
+.cv-detail-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   TARJETAS DE REGISTROS
+========================================================= */
+
+.cv-project-list {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.cv-project-card {
+  overflow: hidden;
+  border: 1.5px solid #cdded7;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 5px 16px rgba(38, 76, 69, 0.06);
+}
+
+.cv-project-card-title {
+  padding: 17px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid #dce9e4;
+  background: #f3f9f6;
+}
+
+.cv-project-card-title span {
+  display: block;
+  margin-bottom: 4px;
+  color: #4d907a;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.cv-project-card-title h3 {
+  margin: 0;
+  color: #1f413b;
+  font-size: 17px;
+}
+
+.cv-project-delete {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #dfb7b7;
+  border-radius: 7px;
+  background: #fff;
+  color: #a95656;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.cv-project-delete:hover {
+  background: #fff1f1;
+}
+
+.cv-project-fields {
+  padding: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.cv-project-fields .cv-detail-field label {
+  color: #183e36;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.cv-project-fields .cv-detail-field input,
+.cv-project-fields .cv-detail-field textarea,
+.cv-project-fields .cv-detail-field select {
+  font-size: 11px;
+}
+
+.cv-project-fields .cv-detail-field small {
+  color: #718782;
+  font-size: 9px;
+}
+
+.cv-project-add {
+  min-height: 48px;
+  padding: 0 20px;
+  border: 1.5px dashed #79bca5;
+  border-radius: 10px;
+  background: #f4faf7;
+  color: #317b65;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.cv-project-add:hover {
+  border-style: solid;
+  background: #e8f5f0;
+}
+
+.cv-project-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cv-project-actions .cv-detail-save {
+  min-width: 210px;
+  min-height: 44px;
+  font-size: 11px;
+}
+
+/* =========================================================
+   HABILIDADES
+========================================================= */
+
+.cv-skill-group {
+  margin-bottom: 10px;
+}
+
+.cv-skill-group-header {
+  margin-bottom: 15px;
+}
+
+.cv-skill-group-header h3 {
+  margin: 0 0 5px;
+  color: #183e36;
+  font-size: 20px;
+}
+
+.cv-skill-group-header p {
+  margin: 0;
+  color: #657a73;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.cv-skill-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.cv-skill-card {
+  padding: 17px;
+  border: 1.5px solid #cdded7;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.cv-skill-card strong {
+  color: #183e36;
+  font-size: 13px;
+}
+
+.cv-skill-card p {
+  margin: 5px 0 13px;
+  color: #6b7f78;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.cv-skill-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #314e47;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.cv-skill-card select {
+  width: 100%;
+  height: 40px;
+  padding: 0 10px;
+  border: 1.5px solid #c9dbd3;
+  border-radius: 7px;
+  background: #f8fbf9;
+  color: #183e36;
+  font-size: 11px;
+  outline: none;
+}
+
+/* =========================================================
+   DATOS PERSONALES
+========================================================= */
+
+.cv-detail-form > .cv-project-fields:first-child {
+  border-radius: 10px;
+}
+
+.cv-detail-form > .cv-project-fields {
+  padding: 0;
+}
+
+.cv-detail-form > .cv-detail-save {
+  align-self: flex-start;
+}
+
+/* =========================================================
+   EVIDENCIAS
+========================================================= */
+
+.cv-detail-file-saved {
+  margin-top: 4px;
+  padding: 7px 9px;
+  border: 1px solid #c9ded6;
+  border-radius: 7px;
+  background: #f4faf7;
+  color: #437663;
+  font-size: 9px;
+  overflow-wrap: anywhere;
+}
+
+.cv-detail-file-loading {
+  color: var(--student-primary-dark);
+  font-weight: 700;
+}
+
+/* =========================================================
+   ESTADOS DE SECCIONES VACÍAS
+========================================================= */
+
+.cv-detail-empty {
+  padding: 45px 20px;
+  border: 1px dashed var(--student-border);
+  border-radius: 10px;
+  background: #fbfdfc;
+  text-align: center;
+}
+
+.cv-detail-empty strong {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--student-title);
+  font-size: 14px;
+}
+
+.cv-detail-empty p {
+  max-width: 380px;
+  margin: 0 auto;
+  color: var(--student-muted);
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1000px) {
+  .cv-detail-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .cv-detail-actions {
+    justify-content: flex-start;
+  }
+
+  .cv-project-fields,
+  .cv-skill-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cv-project-fields .full {
+    grid-column: 1;
+  }
+}
+
+@media (max-width: 750px) {
+  .cv-detail-heading,
+  .cv-detail-card-header,
+  .cv-detail-form,
+  .cv-project-list {
+    padding: 20px;
+  }
+
+  .cv-detail-tabs {
+    flex-direction: column;
+  }
+
+  .cv-detail-tabs button {
+    width: 100%;
+    text-align: left;
+  }
+
+  .cv-detail-actions {
+    width: 100%;
+  }
+
+  .cv-detail-actions .cv-detail-save,
+  .cv-detail-actions .cv-detail-back {
+    flex: 1;
+  }
+}
+
+@media (max-width: 550px) {
+  .cv-detail-heading h2 {
+    font-size: 23px;
+  }
+
+  .cv-project-card-title {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .cv-project-delete {
+    width: 100%;
+  }
+
+  .cv-project-actions {
+    justify-content: stretch;
+  }
+
+  .cv-project-actions .cv-detail-save {
+    width: 100%;
+  }
+
+  .cv-detail-actions {
+    flex-direction: column;
+  }
+
+  .cv-detail-actions .cv-detail-save,
+  .cv-detail-actions .cv-detail-back {
+    width: 100%;
+  }
+}

@@ -1,9 +1,9 @@
 const detalleCurriculumModel =
-  require("../models/detalleCurriculumModel");
+  require("../../models/detalleCurriculumModel");
 
 const {
   generarPDFGeneral
-} = require("../services/pdfService");
+} = require("../../services/pdfService");
 
 
 function limpiarNombreArchivo(

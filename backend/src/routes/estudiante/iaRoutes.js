@@ -14,7 +14,7 @@ const {
   verificarToken
 } =
   require(
-    "../middlewares/AutenticacionMiddleware"
+    "../../middlewares/AutenticacionMiddleware"
   );
 
 
@@ -22,7 +22,7 @@ const {
   verificarRol
 } =
   require(
-    "../middlewares/RolMiddleware"
+    "../../middlewares/RolMiddleware"
   );
 
 
@@ -36,7 +36,7 @@ const {
   aplicarResumen
 } =
   require(
-    "../controllers/iaController"
+    "../../controllers/estudiante/iaController"
   );
 
 
@@ -49,7 +49,7 @@ const {
   crearCVDesdeIA
 } =
   require(
-    "../controllers/iaCurriculumController"
+    "../../controllers/estudiante/iaCurriculumController"
   );
 
 
@@ -61,7 +61,7 @@ const {
   mejorarTexto
 } =
   require(
-    "../controllers/iaTextoController"
+    "../../controllers/estudiante/iaTextoController"
   );
 
 

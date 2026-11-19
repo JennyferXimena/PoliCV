@@ -1,3 +1,6 @@
+import "../../styles/estudiante/estudiante.css";
+import "../../styles/estudiante/generarCurriculum.css";
+
 function PaginaGenerarCurriculum() {
   return (
     <div>

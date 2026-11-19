@@ -1,0 +1,100 @@
+/* =========================================================
+   ESTRUCTURA
+========================================================= */
+
+.ai-professional-layout {
+  min-height: 620px;
+
+  display: grid;
+
+  grid-template-columns:
+    290px minmax(0, 1fr);
+
+  overflow: hidden;
+
+  border:
+    1px solid
+    var(--student-border);
+
+  border-radius:
+    12px;
+
+  background:
+    var(--student-white);
+
+  box-shadow:
+    var(--student-shadow);
+}
+
+/* =========================================================
+   FUNCIONES DISPONIBLES
+========================================================= */
+
+.ai-help-section {
+  margin-top: 30px;
+
+  padding-top: 20px;
+
+  border-top:
+    1px solid
+    var(--student-border);
+}
+
+
+.ai-help-section > span {
+  display: block;
+
+  margin-bottom: 16px;
+
+  color:
+    var(--student-title);
+
+  font-size: 10px;
+
+  font-weight: 700;
+}
+
+
+.ai-help-section > div {
+  margin-bottom: 16px;
+
+  padding-left: 11px;
+
+  border-left:
+    2px solid
+    #b8d8cc;
+}
+
+
+.ai-help-section strong {
+  display: block;
+
+  margin-bottom: 3px;
+
+  color:
+    var(--student-title);
+
+  font-size: 9px;
+}
+
+
+.ai-help-section p {
+  margin: 0;
+
+  color:
+    var(--student-muted);
+
+  font-size: 8px;
+
+  line-height: 1.5;
+}
+
+/* =========================================================
+   RESPONSIVE DEL ASISTENTE IA
+========================================================= */
+
+@media (max-width: 1000px) {
+  .ai-professional-layout {
+    grid-template-columns: 1fr;
+  }
+}

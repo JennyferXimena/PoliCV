@@ -10,6 +10,7 @@ import {
 
 import api from "../../services/api";
 import "../../styles/estudiante/estudiante.css";
+import "../../styles/estudiante/mejorarCVconIA.css";
 
 
 function StudentAIImproveCVPage() {

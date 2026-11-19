@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import "../../styles/estudiante/estudiante.css";
+import "../../styles/estudiante/panelEstudiante.css";
 
 function StudentDashboardPage() {
   const navigate = useNavigate();

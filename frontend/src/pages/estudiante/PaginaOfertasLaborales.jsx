@@ -1,3 +1,6 @@
+import "../../styles/estudiante/estudiante.css";
+import "../../styles/estudiante/ofertasLaborales.css";
+
 function PaginaOfertasLaborales() {
   return (
     <div>

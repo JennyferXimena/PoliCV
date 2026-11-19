@@ -1,225 +1,151 @@
-import {
-  useEffect,
-  useState
-} from "react";
-
-import {
-  Link,
-  useNavigate,
-  useParams
-} from "react-router-dom";
-
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import api from "../../services/api";
 import "../../styles/estudiante/estudiante.css";
-
+import "../../styles/estudiante/detalleCurriculum.css";
 
 /* =========================================================
    FUNCIONES AUXILIARES
 ========================================================= */
 
 function fechaInput(valor) {
-  if (!valor) {
-    return "";
-  }
-
-  return String(valor).substring(0, 10);
+  return valor ? String(valor).substring(0, 10) : "";
 }
 
+function contarPalabras(texto = "") {
+  return String(texto).trim().split(/\s+/).filter(Boolean).length;
+}
 
-function contarPalabras(texto) {
-  if (!texto?.trim()) {
-    return 0;
-  }
-
-  return texto
+function normalizarTexto(valor = "") {
+  return String(valor)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .length;
+    .toLowerCase();
 }
-
 
 function crearContenidoInicial() {
   return {
     descripcion: "",
-
-    formacion: {
-      fecha_inicio: "",
-      fecha_fin: ""
-    },
-
+    formacion: [],
     idiomas: [],
-
     habilidades: [],
-
     cursos: [],
-
     proyectos: [],
-
     practicas: [],
-
     experiencia: [],
-
     referencias: []
   };
 }
 
-
 function normalizarContenido(respuesta) {
+  const contenido = respuesta.contenido || {};
+
   return {
-    descripcion:
-      respuesta.contenido?.descripcion ||
-      "",
+    descripcion: contenido.descripcion || "",
 
-    formacion:
-      respuesta.contenido?.formacion
-        ? {
-            fecha_inicio:
-              fechaInput(
-                respuesta
-                  .contenido
-                  .formacion
-                  .fecha_inicio
-              ),
+    formacion: (contenido.formacion || []).map((item) => ({
+      ...item,
+      fecha_inicio: fechaInput(item.fecha_inicio),
+      fecha_fin: fechaInput(item.fecha_fin),
+      evidencia_archivo: item.evidencia_archivo || ""
+    })),
 
-            fecha_fin:
-              fechaInput(
-                respuesta
-                  .contenido
-                  .formacion
-                  .fecha_fin
-              )
-          }
-        : {
-            fecha_inicio: "",
-            fecha_fin: ""
-          },
+    idiomas: (contenido.idiomas || []).map((item) => ({
+      ...item,
+      nivel: ["Básico", "Intermedio", "Avanzado"].includes(item.nivel)
+        ? item.nivel
+        : ""
+    })),
 
-    idiomas:
-      respuesta.contenido?.idiomas ||
-      [],
+    habilidades: (contenido.habilidades || []).map((item) => ({
+      ...item,
+      nivel: ["Básico", "Intermedio", "Avanzado"].includes(item.nivel)
+        ? item.nivel
+        : ""
+    })),
 
-    habilidades:
-      respuesta.contenido?.habilidades ||
-      [],
+    cursos: (contenido.cursos || []).map((item) => ({
+      ...item,
+      tipo: item.tipo || "",
+      fecha_obtencion: fechaInput(item.fecha_obtencion),
+      fecha_expiracion: fechaInput(item.fecha_expiracion),
+      descripcion: item.descripcion || "",
+      evidencia_url: item.evidencia_url || item.enlace || "",
+      evidencia_archivo: item.evidencia_archivo || ""
+    })),
 
-    cursos:
-      respuesta.contenido?.cursos ||
-      [],
+    proyectos: (contenido.proyectos || []).map((item) => ({
+      ...item,
+      tipo_proyecto: item.tipo_proyecto || "",
+      rol: item.rol || "",
+      fecha_inicio: fechaInput(item.fecha_inicio),
+      fecha_fin: fechaInput(item.fecha_fin),
+      estado: item.estado || "",
+      evidencia_url: item.evidencia_url || item.enlace || "",
+      evidencia_archivo: item.evidencia_archivo || ""
+    })),
 
-    proyectos:
-      respuesta.contenido?.proyectos ||
-      [],
+    practicas: (contenido.practicas || []).map((item) => ({
+      ...item,
+      area: item.area || item.cargo_area || "",
+      rol_funcion: item.rol_funcion || "",
+      actividades: item.actividades || item.descripcion || "",
+      fecha_inicio: fechaInput(item.fecha_inicio),
+      fecha_fin: fechaInput(item.fecha_fin),
+      modalidad: item.modalidad || "",
+      evidencia_url: item.evidencia_url || "",
+      evidencia_archivo: item.evidencia_archivo || ""
+    })),
 
-    practicas:
-      respuesta.contenido?.practicas ||
-      [],
+    experiencia: (contenido.experiencia || []).map((item) => ({
+      ...item,
+      cargo: item.cargo || "",
+      area: item.area || "",
+      tipo_empleo: item.tipo_empleo || "",
+      fecha_inicio: fechaInput(item.fecha_inicio),
+      fecha_fin: fechaInput(item.fecha_fin),
+      actualmente: Boolean(item.actualmente),
+      modalidad: item.modalidad || "",
+      evidencia_url: item.evidencia_url || "",
+      evidencia_archivo: item.evidencia_archivo || ""
+    })),
 
-    experiencia:
-      respuesta.contenido?.experiencia ||
-      [],
-
-    referencias:
-      respuesta.contenido?.referencias ||
-      []
+    referencias: (contenido.referencias || []).map((item) => ({
+      ...item,
+      tipo_referencia: item.tipo_referencia || "",
+      telefono: item.telefono || "",
+      autorizacion: Boolean(item.autorizacion)
+    }))
   };
 }
-
 
 /* =========================================================
    COMPONENTE
 ========================================================= */
 
-function StudentCVDetailPage() {
-  const { id } =
-    useParams();
+function PaginaDetalleCurriculum() {
+  const { id } = useParams();
+  const navigate = useNavigate();
 
-  const navigate =
-    useNavigate();
-
-
-  /* =======================================================
-     ESTADOS
-  ======================================================= */
-
-  const [
-    datos,
-    setDatos
-  ] = useState(null);
-
-
-  const [
-    seccionActiva,
-    setSeccionActiva
-  ] = useState(
-    "datos_personales"
-  );
-
-
-  const [
-    contenido,
-    setContenido
-  ] = useState(
-    crearContenidoInicial()
-  );
-
-
-  const [
-    cargando,
-    setCargando
-  ] = useState(true);
-
-
-  const [
-    guardando,
-    setGuardando
-  ] = useState(false);
-
-
-  const [
-    generandoPDF,
-    setGenerandoPDF
-  ] = useState(false);
-
-
-  const [
-    mejorando,
-    setMejorando
-  ] = useState(false);
-
-
-  const [
-    error,
-    setError
-  ] = useState("");
-
-
-  const [
-    mensaje,
-    setMensaje
-  ] = useState("");
-
-
-  /* =======================================================
-     USUARIO
-  ======================================================= */
+  const [datos, setDatos] = useState(null);
+  const [seccionActiva, setSeccionActiva] = useState("datos_personales");
+  const [contenido, setContenido] = useState(crearContenidoInicial());
+  const [cargando, setCargando] = useState(true);
+  const [guardando, setGuardando] = useState(false);
+  const [generandoPDF, setGenerandoPDF] = useState(false);
+  const [mejorando, setMejorando] = useState(false);
+  const [subiendoArchivo, setSubiendoArchivo] = useState("");
+  const [error, setError] = useState("");
+  const [mensaje, setMensaje] = useState("");
 
   const usuarioGuardado =
-    localStorage.getItem(
-      "usuario"
-    ) ||
-    sessionStorage.getItem(
-      "usuario"
-    );
+    localStorage.getItem("usuario") ||
+    sessionStorage.getItem("usuario");
 
-
-  const usuario =
-    usuarioGuardado
-      ? JSON.parse(
-          usuarioGuardado
-        )
-      : null;
-
+  const usuario = usuarioGuardado
+    ? JSON.parse(usuarioGuardado)
+    : null;
 
   /* =======================================================
      CARGA INICIAL
@@ -228,1283 +154,988 @@ function StudentCVDetailPage() {
   useEffect(() => {
     let activo = true;
 
+    api
+      .get(`/curriculums/${id}/contenido-fijo`)
+      .then((response) => {
+        if (!activo) return;
 
-    const cargarInicial =
-      async () => {
-        try {
-          const response =
-            await api.get(
-              `/curriculums/${id}/contenido-fijo`
-            );
+        const respuesta = response.data;
 
+        setDatos(respuesta);
+        setContenido(normalizarContenido(respuesta));
 
-          if (!activo) {
-            return;
-          }
-
-
-          const respuesta =
-            response.data;
-
-
-          setDatos(
-            respuesta
-          );
-
-
-          setContenido(
-            normalizarContenido(
-              respuesta
-            )
-          );
-
-
-          if (
-            respuesta.secciones
-              ?.length > 0
-          ) {
-            setSeccionActiva(
-              respuesta
-                .secciones[0]
-                .clave
-            );
-          }
-
-
-        } catch (error) {
-          if (!activo) {
-            return;
-          }
-
-
-          setError(
-            error.response
-              ?.data
-              ?.mensaje ||
-            "No se pudo cargar el currículum"
-          );
-
-
-        } finally {
-          if (activo) {
-            setCargando(
-              false
-            );
-          }
+        if (respuesta.secciones?.length > 0) {
+          setSeccionActiva(respuesta.secciones[0].clave);
         }
-      };
+      })
+      .catch((errorPeticion) => {
+        if (!activo) return;
 
-
-    cargarInicial();
-
+      setError(
+        errorPeticion.response?.data?.detalle ||
+        errorPeticion.response?.data?.mensaje ||
+        "No se pudo cargar el currículum"
+      );
+      })
+      .finally(() => {
+        if (activo) {
+          setCargando(false);
+        }
+      });
 
     return () => {
       activo = false;
     };
-
   }, [id]);
 
+  const recargarContenido = async () => {
+    const response = await api.get(
+      `/curriculums/${id}/contenido-fijo`
+    );
+
+    setDatos(response.data);
+    setContenido(normalizarContenido(response.data));
+  };
 
   /* =======================================================
-     RECARGAR DESPUÉS DE GUARDAR
+     ACCIONES GENERALES
   ======================================================= */
 
-  const recargarContenido =
-    async () => {
-      const response =
-        await api.get(
-          `/curriculums/${id}/contenido-fijo`
-        );
+  const cerrarSesion = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("usuario");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("usuario");
 
+    navigate("/iniciar-sesion");
+  };
 
-      const respuesta =
-        response.data;
+  const guardar = async (seccion, informacion) => {
+    setError("");
+    setMensaje("");
+    setGuardando(true);
 
-
-      setDatos(
-        respuesta
+    try {
+      const response = await api.put(
+        `/curriculums/${id}/contenido-fijo/${seccion}`,
+        { datos: informacion }
       );
 
-
-      setContenido(
-        normalizarContenido(
-          respuesta
-        )
-      );
-    };
-
-
-  /* =======================================================
-     GENERAR PDF
-  ======================================================= */
-
-  const generarPDF =
-    async () => {
-
-      setError("");
-      setMensaje("");
-      setGenerandoPDF(true);
-
-
-      try {
-
-        const response =
-          await api.get(
-            `/curriculums/${id}/pdf`,
-            {
-              responseType:
-                "blob"
-            }
-          );
-
-
-        const archivo =
-          new Blob(
-            [response.data],
-            {
-              type:
-                "application/pdf"
-            }
-          );
-
-
-        const url =
-          window.URL
-            .createObjectURL(
-              archivo
-            );
-
-
-        const enlace =
-          document.createElement(
-            "a"
-          );
-
-
-        enlace.href =
-          url;
-
-
-        const nombreCV =
-          datos
-            ?.curriculum
-            ?.nombre ||
-          "PoliCV";
-
-
-        const nombreSeguro =
-          nombreCV
-            .normalize("NFD")
-            .replace(
-              /[\u0300-\u036f]/g,
-              ""
-            )
-            .replace(
-              /[^a-zA-Z0-9-_]/g,
-              "_"
-            );
-
-
-        enlace.download =
-          `CV_${nombreSeguro}.pdf`;
-
-
-        document.body
-          .appendChild(
-            enlace
-          );
-
-
-        enlace.click();
-
-
-        enlace.remove();
-
-
-        window.URL
-          .revokeObjectURL(
-            url
-          );
-
-
-        setMensaje(
-          "PDF generado correctamente"
-        );
-
-
-      } catch (error) {
-
-        console.error(
-          "Error al generar PDF:",
-          error
-        );
-
-
-        setError(
-          error.response
-            ?.data
-            ?.mensaje ||
-          "No se pudo generar el PDF"
-        );
-
-
-      } finally {
-
-        setGenerandoPDF(false);
-
-      }
-    };
-
-
-  /* =======================================================
-     CERRAR SESIÓN
-  ======================================================= */
-
-  const cerrarSesion =
-    () => {
-      localStorage.removeItem(
-        "token"
+      setMensaje(
+        response.data?.mensaje ||
+        "Información guardada correctamente"
       );
 
-      localStorage.removeItem(
-        "usuario"
+      await recargarContenido();
+      return true;
+    } catch (errorPeticion) {
+      setError(
+        errorPeticion.response?.data?.mensaje ||
+        "No se pudo guardar la información"
       );
 
-      sessionStorage.removeItem(
-        "token"
+      return false;
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const generarPDF = async () => {
+    setError("");
+    setMensaje("");
+    setGenerandoPDF(true);
+
+    try {
+      const response = await api.get(
+        `/curriculums/${id}/pdf`,
+        { responseType: "blob" }
       );
 
-      sessionStorage.removeItem(
-        "usuario"
+      const archivo = new Blob(
+        [response.data],
+        { type: "application/pdf" }
       );
 
+      const url = window.URL.createObjectURL(archivo);
+      const enlace = document.createElement("a");
 
-      navigate(
-        "/iniciar-sesion"
+      const nombreCV =
+        datos?.curriculum?.nombre || "PoliCV";
+
+      const nombreSeguro = nombreCV
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9-_]/g, "_");
+
+      enlace.href = url;
+      enlace.download = `CV_${nombreSeguro}.pdf`;
+
+      document.body.appendChild(enlace);
+      enlace.click();
+      enlace.remove();
+
+      window.URL.revokeObjectURL(url);
+
+      setMensaje("PDF generado correctamente");
+    } catch (errorPeticion) {
+      setError(
+        errorPeticion.response?.data?.mensaje ||
+        "No se pudo generar el PDF"
       );
-    };
+    } finally {
+      setGenerandoPDF(false);
+    }
+  };
 
+  const mejorarDescripcion = async () => {
+    const texto = contenido.descripcion.trim();
 
-  /* =======================================================
-     GUARDAR SECCIÓN
-  ======================================================= */
+    if (!texto) {
+      setError("Escribe primero una descripción");
+      return;
+    }
 
-  const guardar =
-    async (
-      seccion,
-      informacion
-    ) => {
-      setError("");
-      setMensaje("");
-      setGuardando(true);
+    setError("");
+    setMensaje("");
+    setMejorando(true);
 
+    try {
+      const response = await api.post(
+        "/ia/mejorar-texto",
+        {
+          tipo: "perfil_profesional",
+          texto
+        }
+      );
 
-      try {
-        const response =
-          await api.put(
-            `/curriculums/${id}/contenido-fijo/${seccion}`,
-            {
-              datos:
-                informacion
-            }
-          );
+      const sugerencia = response.data?.sugerencia;
 
-
-        setMensaje(
-          response.data?.mensaje ||
-          "Información guardada correctamente"
-        );
-
-
-        await recargarContenido();
-
-
-      } catch (error) {
-        setError(
-          error.response
-            ?.data
-            ?.mensaje ||
-          "No se pudo guardar la información"
-        );
-
-
-      } finally {
-        setGuardando(false);
-      }
-    };
-
-
-  /* =======================================================
-     MEJORAR DESCRIPCIÓN CON IA
-  ======================================================= */
-
-  const mejorarDescripcion =
-    async () => {
-      const texto =
-        contenido
-          .descripcion
-          .trim();
-
-
-      if (!texto) {
-        setError(
-          "Escribe primero una descripción"
-        );
-
+      if (!sugerencia) {
+        setError("La IA no devolvió una sugerencia");
         return;
       }
 
+      setContenido((anterior) => ({
+        ...anterior,
+        descripcion: sugerencia
+      }));
 
-      setError("");
-      setMensaje("");
-      setMejorando(true);
-
-
-      try {
-        const response =
-          await api.post(
-            "/ia/mejorar-texto",
-            {
-              tipo:
-                "perfil_profesional",
-
-              texto
-            }
-          );
-
-
-        const sugerencia =
-          response.data
-            ?.sugerencia;
-
-
-        if (!sugerencia) {
-          setError(
-            "La IA no devolvió una sugerencia"
-          );
-
-          return;
-        }
-
-
-        setContenido(
-          (anterior) => ({
-            ...anterior,
-
-            descripcion:
-              sugerencia
-          })
-        );
-
-
-        setMensaje(
-          "La descripción fue mejorada. Revísala antes de guardar."
-        );
-
-
-      } catch (error) {
-        setError(
-          error.response
-            ?.data
-            ?.mensaje ||
-          "No se pudo mejorar la descripción"
-        );
-
-
-      } finally {
-        setMejorando(false);
-      }
-    };
-
+      setMensaje(
+        "La descripción fue mejorada. Revísala antes de guardar."
+      );
+    } catch (errorPeticion) {
+      setError(
+        errorPeticion.response?.data?.mensaje ||
+        "No se pudo mejorar la descripción"
+      );
+    } finally {
+      setMejorando(false);
+    }
+  };
 
   /* =======================================================
-     ELEMENTOS DE LISTAS
+     LISTAS
   ======================================================= */
 
-  const agregarElemento =
-    (
-      seccion,
-      elemento,
-      maximo
-    ) => {
-      setError("");
+  const agregarElemento = (seccion, elemento, maximo) => {
+    const lista = contenido[seccion] || [];
 
-
-      setContenido(
-        (anterior) => {
-          const lista =
-            anterior[seccion] ||
-            [];
-
-
-          if (
-            lista.length >=
-            maximo
-          ) {
-            setError(
-              `Solo puedes registrar hasta ${maximo} elementos`
-            );
-
-            return anterior;
-          }
-
-
-          return {
-            ...anterior,
-
-            [seccion]: [
-              ...lista,
-              elemento
-            ]
-          };
-        }
+    if (lista.length >= maximo) {
+      setError(
+        `Solo puedes registrar hasta ${maximo} elementos`
       );
-    };
+      return;
+    }
 
+    setContenido((anterior) => ({
+      ...anterior,
+      [seccion]: [
+        ...(anterior[seccion] || []),
+        elemento
+      ]
+    }));
 
-  const modificarElemento =
-    (
-      seccion,
-      indice,
-      campo,
-      valor
-    ) => {
-      setContenido(
-        (anterior) => {
-          const lista = [
-            ...anterior[
-              seccion
-            ]
-          ];
+    setError("");
+    setMensaje("");
+  };
 
+  const modificarElemento = (
+    seccion,
+    indice,
+    campo,
+    valor
+  ) => {
+    setContenido((anterior) => {
+      const lista = [...(anterior[seccion] || [])];
 
-          lista[indice] = {
-            ...lista[indice],
+      lista[indice] = {
+        ...lista[indice],
+        [campo]: valor
+      };
 
-            [campo]:
-              valor
-          };
+      return {
+        ...anterior,
+        [seccion]: lista
+      };
+    });
 
+    setError("");
+    setMensaje("");
+  };
 
-          return {
-            ...anterior,
+  const eliminarElemento = (seccion, indice) => {
+    setContenido((anterior) => ({
+      ...anterior,
+      [seccion]: (anterior[seccion] || []).filter(
+        (_, posicion) => posicion !== indice
+      )
+    }));
 
-            [seccion]:
-              lista
-          };
-        }
+    setError("");
+    setMensaje("");
+  };
+
+  /* =======================================================
+     ARCHIVOS
+  ======================================================= */
+
+  const validarArchivo = (archivo) => {
+    if (!archivo) {
+      return false;
+    }
+
+    const extensiones = [
+      ".pdf",
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".apk"
+    ];
+
+    const nombre = archivo.name.toLowerCase();
+
+    if (!extensiones.some((extension) =>
+      nombre.endsWith(extension)
+    )) {
+      setError(
+        "El archivo debe ser PDF, JPG, JPEG, PNG o APK"
+      );
+      return false;
+    }
+
+    if (archivo.size > 5 * 1024 * 1024) {
+      setError(
+        "El archivo no puede superar 5 MB"
+      );
+      return false;
+    }
+
+    return true;
+  };
+
+  const subirEvidencia = async (
+    seccion,
+    archivo,
+    identificador
+  ) => {
+    if (!validarArchivo(archivo)) {
+      return null;
+    }
+
+    setError("");
+    setMensaje("");
+    setSubiendoArchivo(identificador);
+
+    try {
+      const formulario = new FormData();
+      formulario.append("archivo", archivo);
+
+      const response = await api.post(
+        `/curriculums/${id}/archivo/${seccion}`,
+        formulario
       );
 
-
-      setError("");
-      setMensaje("");
-    };
-
-
-  const eliminarElemento =
-    (
-      seccion,
-      indice
-    ) => {
-      setContenido(
-        (anterior) => ({
-          ...anterior,
-
-          [seccion]:
-            anterior[
-              seccion
-            ].filter(
-              (
-                _,
-                posicion
-              ) =>
-                posicion !==
-                indice
-            )
-        })
+      setMensaje(
+        response.data?.mensaje ||
+        "Archivo subido correctamente"
       );
 
+      return response.data?.archivo?.ruta || null;
+    } catch (errorPeticion) {
+      setError(
+        errorPeticion.response?.data?.mensaje ||
+        "No se pudo subir el archivo"
+      );
 
-      setError("");
-      setMensaje("");
-    };
+      return null;
+    } finally {
+      setSubiendoArchivo("");
+    }
+  };
 
+  const seleccionarEvidencia = async (
+    seccion,
+    indice,
+    archivo
+  ) => {
+    const identificador = `${seccion}-${indice}`;
+
+    const ruta = await subirEvidencia(
+      seccion,
+      archivo,
+      identificador
+    );
+
+    if (ruta) {
+      modificarElemento(
+        seccion === "formacion"
+          ? "formacion"
+          : seccion === "experiencia"
+            ? "experiencia"
+            : seccion,
+        indice,
+        "evidencia_archivo",
+        ruta
+      );
+    }
+  };
 
   /* =======================================================
      IDIOMAS
   ======================================================= */
 
-  const cambiarIdiomaNativo =
-    (
-      idIdioma
-    ) => {
-      if (!idIdioma) {
-        setContenido(
-          (anterior) => ({
-            ...anterior,
+  const idiomaEsIngles = (idioma) => {
+    const catalogoIngles = datos?.catalogos?.idiomas?.find(
+      (item) =>
+        ["ingles", "english"].includes(
+          normalizarTexto(item.nombre)
+        )
+    );
 
-            idiomas:
-              anterior
-                .idiomas
-                .filter(
-                  (idioma) =>
-                    !idioma.es_nativo
-                )
-          })
-        );
+    if (!catalogoIngles) {
+      return ["ingles", "english"].includes(
+        normalizarTexto(idioma?.idioma)
+      );
+    }
 
-        return;
-      }
+    return (
+      Number(idioma?.id_idioma_catalogo) ===
+      Number(catalogoIngles.id_idioma_catalogo)
+    );
+  };
 
+  const actualizarIdiomaIngles = (nivel) => {
+    const catalogoIngles = datos?.catalogos?.idiomas?.find(
+      (item) =>
+        ["ingles", "english"].includes(
+          normalizarTexto(item.nombre)
+        )
+    );
 
-      const seleccionado =
-        datos.catalogos
-          .idiomas
-          .find(
-            (item) =>
-              String(
-                item
-                  .id_idioma_catalogo
-              ) ===
-              String(
-                idIdioma
-              )
-          );
+    if (!catalogoIngles) {
+      setError(
+        "El catálogo de idiomas no tiene configurado Inglés"
+      );
+      return;
+    }
 
+    setContenido((anterior) => {
+      const lista = [...anterior.idiomas];
 
-      if (!seleccionado) {
-        return;
-      }
-
-
-      setContenido(
-        (anterior) => {
-          const adicionales =
-            anterior
-              .idiomas
-              .filter(
-                (idioma) =>
-                  !idioma.es_nativo
-              );
-
-
-          return {
-            ...anterior,
-
-            idiomas: [
-              {
-                id_idioma_catalogo:
-                  seleccionado
-                    .id_idioma_catalogo,
-
-                idioma:
-                  seleccionado.nombre,
-
-                nivel:
-                  "Nativo",
-
-                es_nativo:
-                  true,
-
-                tiene_certificado:
-                  false
-              },
-
-              ...adicionales
-            ]
-          };
-        }
+      const indice = lista.findIndex(
+        (item) =>
+          Number(item.id_idioma_catalogo) ===
+          Number(catalogoIngles.id_idioma_catalogo)
       );
 
+      const ingles = {
+        id_idioma_catalogo:
+          catalogoIngles.id_idioma_catalogo,
+        idioma: catalogoIngles.nombre,
+        nivel
+      };
 
-      setError("");
-    };
-
-
-  const agregarIdioma =
-    () => {
-      const idiomaNativo =
-        contenido
-          .idiomas
-          .find(
-            (idioma) =>
-              idioma.es_nativo
-          );
-
-
-      if (!idiomaNativo) {
-        setError(
-          "Selecciona primero tu idioma nativo"
-        );
-
-        return;
+      if (indice >= 0) {
+        lista[indice] = ingles;
+      } else {
+        lista.unshift(ingles);
       }
 
+      return {
+        ...anterior,
+        idiomas: lista
+      };
+    });
 
-      const adicionales =
-        contenido
-          .idiomas
-          .filter(
-            (idioma) =>
-              !idioma.es_nativo
-          );
+    setError("");
+    setMensaje("");
+  };
 
+  const agregarIdioma = () => {
+    const adicionales = contenido.idiomas.filter(
+      (idioma) => !idiomaEsIngles(idioma)
+    );
+
+    if (adicionales.length >= 2) {
+      setError(
+        "Solo puedes agregar dos idiomas adicionales"
+      );
+      return;
+    }
+
+    setContenido((anterior) => ({
+      ...anterior,
+      idiomas: [
+        ...anterior.idiomas,
+        {
+          id_idioma_catalogo: "",
+          idioma: "",
+          nivel: ""
+        }
+      ]
+    }));
+
+    setError("");
+    setMensaje("");
+  };
+
+  const modificarIdioma = (
+    indiceReal,
+    campo,
+    valor
+  ) => {
+    setContenido((anterior) => {
+      const lista = [...anterior.idiomas];
+
+      const nuevo = {
+        ...lista[indiceReal],
+        [campo]: valor
+      };
+
+      if (campo === "id_idioma_catalogo") {
+        const idioma = datos.catalogos.idiomas.find(
+          (item) =>
+            String(item.id_idioma_catalogo) ===
+            String(valor)
+        );
+
+        nuevo.idioma = idioma?.nombre || "";
+      }
+
+      lista[indiceReal] = nuevo;
+
+      return {
+        ...anterior,
+        idiomas: lista
+      };
+    });
+
+    setError("");
+    setMensaje("");
+  };
+
+  const guardarIdiomas = () => {
+    const catalogoIdiomas =
+      datos.catalogos?.idiomas || [];
+
+    const inglesCatalogo = catalogoIdiomas.find(
+      (item) =>
+        ["ingles", "english"].includes(
+          normalizarTexto(item.nombre)
+        )
+    );
+
+    if (!inglesCatalogo) {
+      setError(
+        "El catálogo no tiene configurado el idioma Inglés"
+      );
+      return;
+    }
+
+    const inglesGuardado = contenido.idiomas.find(
+      (item) => idiomaEsIngles(item)
+    );
+
+    if (
+      !inglesGuardado ||
+      !["Básico", "Intermedio", "Avanzado"].includes(
+        inglesGuardado.nivel
+      )
+    ) {
+      setError(
+        "Selecciona el nivel de Inglés"
+      );
+      return;
+    }
+
+    const adicionales = contenido.idiomas.filter(
+      (item) => !idiomaEsIngles(item)
+    );
+
+    if (adicionales.length > 2) {
+      setError(
+        "Solo puedes registrar hasta dos idiomas adicionales"
+      );
+      return;
+    }
+
+    const idsUsados = new Set([
+      Number(inglesCatalogo.id_idioma_catalogo)
+    ]);
+
+    for (let i = 0; i < adicionales.length; i += 1) {
+      const idioma = adicionales[i];
+
+      if (!idioma.id_idioma_catalogo) {
+        setError(
+          `Selecciona el idioma adicional ${i + 1}`
+        );
+        return;
+      }
 
       if (
-        adicionales.length >=
-        2
+        !["Básico", "Intermedio", "Avanzado"].includes(
+          idioma.nivel
+        )
       ) {
         setError(
-          "Solo puedes agregar dos idiomas adicionales"
+          `Selecciona el nivel del idioma adicional ${i + 1}`
         );
-
         return;
       }
 
-
-      setContenido(
-        (anterior) => ({
-          ...anterior,
-
-          idiomas: [
-            ...anterior.idiomas,
-
-            {
-              id_idioma_catalogo:
-                "",
-
-              idioma:
-                "",
-
-              nivel:
-                "Básico",
-
-              es_nativo:
-                false,
-
-              tiene_certificado:
-                false
-            }
-          ]
-        })
+      const idIdioma = Number(
+        idioma.id_idioma_catalogo
       );
 
+      if (idsUsados.has(idIdioma)) {
+        setError("No puedes repetir un idioma");
+        return;
+      }
 
-      setError("");
-    };
+      idsUsados.add(idIdioma);
+    }
 
-
-  const modificarIdioma =
-    (
-      indice,
-      campo,
-      valor
-    ) => {
-      setContenido(
-        (anterior) => {
-          const lista = [
-            ...anterior.idiomas
-          ];
-
-
-          const nuevo = {
-            ...lista[indice],
-
-            [campo]:
-              valor
-          };
-
-
-          if (
-            campo ===
-            "id_idioma_catalogo"
-          ) {
-            const idioma =
-              datos.catalogos
-                .idiomas
-                .find(
-                  (item) =>
-                    String(
-                      item
-                        .id_idioma_catalogo
-                    ) ===
-                    String(
-                      valor
-                    )
-                );
-
-
-            nuevo.idioma =
-              idioma?.nombre ||
-              "";
-          }
-
-
-          lista[indice] =
-            nuevo;
-
-
-          return {
-            ...anterior,
-
-            idiomas:
-              lista
-          };
-        }
-      );
-
-
-      setError("");
-      setMensaje("");
-    };
-
+    guardar(
+      "idiomas",
+      [
+        {
+          id_idioma_catalogo:
+            inglesCatalogo.id_idioma_catalogo,
+          idioma: inglesCatalogo.nombre,
+          nivel: inglesGuardado.nivel
+        },
+        ...adicionales.map((idioma) => ({
+          id_idioma_catalogo:
+            idioma.id_idioma_catalogo,
+          idioma: idioma.idioma,
+          nivel: idioma.nivel
+        }))
+      ]
+    );
+  };
 
   /* =======================================================
      HABILIDADES
   ======================================================= */
 
-  const habilidadesPorTipo =
-    (tipo) => {
-      return (
-        datos.catalogos
-          ?.habilidades ||
-        []
-      ).filter(
+  const obtenerNivelHabilidad = (habilidad) => {
+    const guardada = contenido.habilidades.find(
+      (item) =>
+        Number(item.id_habilidad_catalogo) ===
+        Number(habilidad.id_habilidad_catalogo)
+    );
+
+    return ["Básico", "Intermedio", "Avanzado"].includes(
+      guardada?.nivel
+    )
+      ? guardada.nivel
+      : "";
+  };
+
+  const cambiarNivelHabilidad = (
+    habilidad,
+    nivel
+  ) => {
+    setContenido((anterior) => {
+      const lista = [...anterior.habilidades];
+
+      const indice = lista.findIndex(
         (item) =>
-          item.tipo ===
-          tipo
-      );
-    };
-
-
-  const habilidadSeleccionada =
-    (
-      idHabilidad
-    ) => {
-      return contenido
-        .habilidades
-        .find(
-          (item) =>
-            Number(
-              item
-                .id_habilidad_catalogo
-            ) ===
-            Number(
-              idHabilidad
-            )
-        );
-    };
-
-
-  const maximoHabilidad =
-    (tipo) => {
-      if (
-        tipo === "blanda"
-      ) {
-        return 5;
-      }
-
-
-      if (
-        tipo === "tecnica"
-      ) {
-        return 5;
-      }
-
-
-      return 3;
-    };
-
-
-  const alternarHabilidad =
-    (
-      habilidad
-    ) => {
-      const existe =
-        habilidadSeleccionada(
-          habilidad
-            .id_habilidad_catalogo
-        );
-
-
-      if (existe) {
-        setContenido(
-          (anterior) => ({
-            ...anterior,
-
-            habilidades:
-              anterior
-                .habilidades
-                .filter(
-                  (item) =>
-                    Number(
-                      item
-                        .id_habilidad_catalogo
-                    ) !==
-                    Number(
-                      habilidad
-                        .id_habilidad_catalogo
-                    )
-                )
-          })
-        );
-
-        return;
-      }
-
-
-      const cantidad =
-        contenido
-          .habilidades
-          .filter(
-            (item) =>
-              item.tipo ===
-              habilidad.tipo
-          )
-          .length;
-
-
-      if (
-        cantidad >=
-        maximoHabilidad(
-          habilidad.tipo
-        )
-      ) {
-        setError(
-          "Alcanzaste el máximo permitido para este tipo de habilidad"
-        );
-
-        return;
-      }
-
-
-      setContenido(
-        (anterior) => ({
-          ...anterior,
-
-          habilidades: [
-            ...anterior
-              .habilidades,
-
-            {
-              id_habilidad_catalogo:
-                habilidad
-                  .id_habilidad_catalogo,
-
-              nombre:
-                habilidad.nombre,
-
-              tipo:
-                habilidad.tipo,
-
-              porcentaje:
-                50,
-
-              nivel:
-                "Habilidad"
-            }
-          ]
-        })
+          Number(item.id_habilidad_catalogo) ===
+          Number(habilidad.id_habilidad_catalogo)
       );
 
+      const nueva = {
+        id_habilidad_catalogo:
+          habilidad.id_habilidad_catalogo,
+        nombre: habilidad.nombre,
+        tipo: habilidad.tipo,
+        nivel
+      };
 
-      setError("");
-    };
+      if (indice >= 0) {
+        lista[indice] = nueva;
+      } else {
+        lista.push(nueva);
+      }
 
+      return {
+        ...anterior,
+        habilidades: lista
+      };
+    });
 
-  const cambiarPorcentaje =
-    (
-      idHabilidad,
-      porcentaje
-    ) => {
-      const numero =
-        Number(
-          porcentaje
-        );
+    setError("");
+    setMensaje("");
+  };
 
+  const guardarHabilidades = () => {
+    const catalogo =
+      datos.catalogos?.habilidades || [];
 
-      setContenido(
-        (anterior) => ({
-          ...anterior,
+    const tecnicas = catalogo
+      .filter((item) => item.tipo === "tecnica")
+      .slice(0, 5);
 
-          habilidades:
-            anterior
-              .habilidades
-              .map(
-                (item) =>
-                  Number(
-                    item
-                      .id_habilidad_catalogo
-                  ) ===
-                  Number(
-                    idHabilidad
-                  )
-                    ? {
-                        ...item,
+    const blandas = catalogo
+      .filter((item) => item.tipo === "blanda")
+      .slice(0, 5);
 
-                        porcentaje:
-                          numero,
-
-                        nivel:
-                          numero < 50
-                            ? "Debilidad"
-                            : "Habilidad"
-                      }
-                    : item
-              )
-        })
+    if (tecnicas.length !== 5) {
+      setError(
+        "La carrera debe tener cinco habilidades técnicas configuradas"
       );
-    };
+      return;
+    }
 
+    if (blandas.length !== 5) {
+      setError(
+        "Deben existir cinco habilidades blandas configuradas"
+      );
+      return;
+    }
+
+    const todas = [...tecnicas, ...blandas];
+
+    const lista = todas.map((habilidad) => ({
+      id_habilidad_catalogo:
+        habilidad.id_habilidad_catalogo,
+      nombre: habilidad.nombre,
+      tipo: habilidad.tipo,
+      nivel: obtenerNivelHabilidad(habilidad)
+    }));
+
+    if (lista.some((item) => !item.nivel)) {
+      setError(
+        "Selecciona el nivel de las diez habilidades"
+      );
+      return;
+    }
+
+    guardar("habilidades", lista);
+  };
 
   /* =======================================================
-     VALIDACIÓN HABILIDADES FRONTEND
+     VALIDACIONES POR SECCIÓN
   ======================================================= */
 
-  const guardarHabilidades =
-    () => {
-      const blandas =
-        contenido
-          .habilidades
-          .filter(
-            (item) =>
-              item.tipo ===
-              "blanda"
-          );
-
-
-      const tecnicas =
-        contenido
-          .habilidades
-          .filter(
-            (item) =>
-              item.tipo ===
-              "tecnica"
-          );
-
-
-      const metodologicas =
-        contenido
-          .habilidades
-          .filter(
-            (item) =>
-              item.tipo ===
-              "metodologica"
-          );
-
-
-      if (
-        blandas.length < 1
-      ) {
-        setError(
-          "Selecciona al menos una habilidad blanda"
-        );
-
-        return;
-      }
-
-
-      if (
-        tecnicas.length < 1
-      ) {
-        setError(
-          "Selecciona al menos una habilidad técnica"
-        );
-
-        return;
-      }
-
-
-      if (
-        metodologicas.length < 1
-      ) {
-        setError(
-          "Selecciona al menos una habilidad metodológica"
-        );
-
-        return;
-      }
-
-
-      guardar(
-        "habilidades",
-        contenido.habilidades
+  const guardarFormacion = () => {
+    if (contenido.formacion.length > 3) {
+      setError(
+        "Solo puedes registrar hasta tres estudios adicionales"
       );
-    };
+      return;
+    }
 
+    guardar("formacion", contenido.formacion);
+  };
+
+  const guardarCursos = () => {
+    guardar("cursos", contenido.cursos);
+  };
+
+  const guardarProyectos = () => {
+    if (contenido.proyectos.length === 0) {
+      setError(
+        "Debes registrar al menos un proyecto"
+      );
+      return;
+    }
+
+    guardar("proyectos", contenido.proyectos);
+  };
+
+  const guardarPracticas = () => {
+    guardar("practicas", contenido.practicas);
+  };
+
+  const guardarExperiencias = () => {
+    guardar("experiencia", contenido.experiencia);
+  };
+
+  const guardarReferencias = () => {
+    guardar("referencias", contenido.referencias);
+  };
 
   /* =======================================================
      CARGANDO
   ======================================================= */
 
-  if (
-    cargando ||
-    !datos
-  ) {
+  if (cargando) {
     return (
-      <main
-        style={{
-          padding: "40px"
-        }}
-      >
+      <main className="cv-detail-loading">
         Cargando currículum...
       </main>
     );
   }
 
+  if (!datos) {
+    return (
+      <main className="cv-detail-loading">
+        <div>
+          <h2>No se pudo cargar el currículum</h2>
 
-  const perfil =
-    datos.perfil;
+          <p>
+            {error || "Ocurrió un error al cargar la información."}
+          </p>
 
+          <Link
+            to="/estudiante/curriculums"
+            className="cv-detail-back"
+          >
+            Volver a mis currículums
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
-  const idiomaNativo =
-    contenido
-      .idiomas
-      .find(
-        (idioma) =>
-          idioma.es_nativo
-      );
-
-
+  const perfil = datos.perfil;
   /* =======================================================
-     RENDERIZAR SECCIÓN ACTIVA
+     RENDERIZAR SECCIÓN
   ======================================================= */
 
-  const renderSeccion =
-    () => {
+  const renderSeccion = () => {
+    /* =====================================================
+       1. DATOS PERSONALES
+    ===================================================== */
 
-      /* =====================================================
-         1. DATOS PERSONALES
-      ===================================================== */
+    if (seccionActiva === "datos_personales") {
+      const datosFaltantes = [];
 
-      if (
-        seccionActiva ===
-        "datos_personales"
-      ) {
-        return (
-          <section className="cv-detail-form-card">
-
-            <div className="cv-detail-card-header">
-
-              <span>
-                DATOS PERSONALES
-              </span>
-
-              <h2>
-                Información personal
-              </h2>
-
-              <p>
-                Esta información se obtiene
-                directamente de tu perfil de PoliCV.
-              </p>
-
-            </div>
-
-
-            <div className="cv-detail-form">
-
-              <p>
-                <strong>
-                  Nombres y apellidos:
-                </strong>{" "}
-                {perfil.nombres}
-                {" "}
-                {perfil.apellidos}
-              </p>
-
-
-              <p>
-                <strong>
-                  Título o perfil profesional:
-                </strong>{" "}
-                {
-                  perfil
-                    .titulo_profesional ||
-                  "No registrado"
-                }
-              </p>
-
-
-              <p>
-                <strong>
-                  Teléfono:
-                </strong>{" "}
-                {
-                  perfil.telefono ||
-                  "No registrado"
-                }
-              </p>
-
-
-              <p>
-                <strong>
-                  Correo:
-                </strong>{" "}
-                {perfil.email}
-              </p>
-
-
-              <p>
-                <strong>
-                  Ciudad y país:
-                </strong>{" "}
-                {
-                  perfil
-                    .ciudad_pais ||
-                  "No registrado"
-                }
-              </p>
-
-
-              <p>
-                <strong>
-                  Carrera:
-                </strong>{" "}
-                {
-                  perfil.carrera ||
-                  "No registrada"
-                }
-              </p>
-
-
-              <p>
-                <strong>
-                  Fotografía:
-                </strong>{" "}
-                {
-                  perfil
-                    .fotografia_url
-                  ? "Registrada"
-                  : "No registrada"
-                }
-              </p>
-
-
-              <p>
-                <strong>
-                  LinkedIn:
-                </strong>{" "}
-                {
-                  perfil
-                    .linkedin_url ||
-                  "No registrado"
-                }
-              </p>
-
-
-              <p>
-                <strong>
-                  GitHub:
-                </strong>{" "}
-                {
-                  perfil
-                    .github_url ||
-                  "No registrado"
-                }
-              </p>
-
-
-              <Link
-                to="/perfil"
-                className="cv-detail-save"
-              >
-                Editar en Mi perfil
-              </Link>
-
-            </div>
-
-          </section>
-        );
+      if (!perfil.nombres?.trim()) {
+        datosFaltantes.push("nombres");
       }
 
+      if (!perfil.apellidos?.trim()) {
+        datosFaltantes.push("apellidos");
+      }
 
-      /* =====================================================
-         2. DESCRIPCIÓN PROFESIONAL
-      ===================================================== */
+      if (!perfil.telefono?.trim()) {
+        datosFaltantes.push("teléfono");
+      }
 
-      if (
-        seccionActiva ===
-        "descripcion"
-      ) {
-        const palabras =
-          contarPalabras(
-            contenido.descripcion
-          );
+      if (!perfil.ciudad_pais?.trim()) {
+        datosFaltantes.push("ciudad y provincia");
+      }
 
+      if (!perfil.fotografia_url?.trim()) {
+        datosFaltantes.push("fotografía");
+      }
 
-        return (
-          <section className="cv-detail-form-card">
+      return (
+        <section className="cv-detail-form-card">
+          <div className="cv-detail-card-header">
+            <span>DATOS PERSONALES</span>
+            <h2>Información personal</h2>
+            <p>
+              Los datos principales se obtienen de tu perfil.
+              La fotografía debe cargarse desde un archivo de tu
+              computador en Mi perfil.
+            </p>
+          </div>
 
-            <div className="cv-detail-card-header">
+          <div className="cv-detail-form">
+            <div className="cv-project-fields">
+              <div className="cv-detail-field">
+                <label>Nombres *</label>
+                <input
+                  type="text"
+                  value={perfil.nombres || ""}
+                  disabled
+                />
+              </div>
 
-              <span>
-                DESCRIPCIÓN PROFESIONAL
-              </span>
+              <div className="cv-detail-field">
+                <label>Apellidos *</label>
+                <input
+                  type="text"
+                  value={perfil.apellidos || ""}
+                  disabled
+                />
+              </div>
 
-              <h2>
-                Descripción personal o profesional
-              </h2>
+              <div className="cv-detail-field">
+                <label>Teléfono *</label>
+                <input
+                  type="text"
+                  value={perfil.telefono || ""}
+                  disabled
+                />
+              </div>
 
-              <p>
-                Escribe entre 40 y 120 palabras
-                sobre tu perfil profesional.
-              </p>
+              <div className="cv-detail-field">
+                <label>Ciudad y provincia *</label>
+                <input
+                  type="text"
+                  value={perfil.ciudad_pais || ""}
+                  disabled
+                />
+              </div>
 
+              <div className="cv-detail-field">
+                <label>Correo institucional</label>
+                <input
+                  type="text"
+                  value={perfil.email || ""}
+                  disabled
+                />
+              </div>
+
+              <div className="cv-detail-field">
+                <label>Fotografía *</label>
+                <input
+                  type="text"
+                  value={
+                    perfil.fotografia_url
+                      ? "Fotografía registrada"
+                      : "Fotografía pendiente"
+                  }
+                  disabled
+                />
+              </div>
+
+              <div className="cv-detail-field">
+                <label>LinkedIn</label>
+                <input
+                  type="text"
+                  value={perfil.linkedin_url || ""}
+                  disabled
+                />
+              </div>
+
+              <div className="cv-detail-field">
+                <label>GitHub</label>
+                <input
+                  type="text"
+                  value={perfil.github_url || ""}
+                  disabled
+                />
+              </div>
+
+              <div className="cv-detail-field full">
+                <label>Sitio web o portafolio</label>
+                <input
+                  type="text"
+                  value={perfil.sitio_web || ""}
+                  disabled
+                />
+              </div>
             </div>
 
+            {datosFaltantes.length > 0 && (
+              <div className="cv-detail-message error">
+                Completa en Mi perfil:{" "}
+                {datosFaltantes.join(", ")}.
+              </div>
+            )}
 
-            <div className="cv-detail-form">
+            <Link
+              to="/perfil"
+              className="cv-detail-save"
+            >
+              Editar datos en Mi perfil
+            </Link>
+          </div>
+        </section>
+      );
+    }
+
+    /* =====================================================
+       2. DESCRIPCIÓN PERSONAL O PROFESIONAL
+    ===================================================== */
+
+    if (seccionActiva === "descripcion") {
+      const palabras =
+        contarPalabras(contenido.descripcion);
+
+      const guardarDescripcion = () => {
+        if (palabras < 30 || palabras > 120) {
+          setError(
+            "La descripción debe contener entre 30 y 120 palabras"
+          );
+          return;
+        }
+
+        guardar(
+          "descripcion",
+          {
+            texto: contenido.descripcion.trim()
+          }
+        );
+      };
+
+      return (
+        <section className="cv-detail-form-card">
+          <div className="cv-detail-card-header">
+            <span>
+              DESCRIPCIÓN PERSONAL O PROFESIONAL
+            </span>
+
+            <h2>Presenta tu perfil profesional</h2>
+
+            <p>
+              Resume tus conocimientos, fortalezas,
+              experiencia, objetivos y áreas de interés
+              sin inventar información.
+            </p>
+          </div>
+
+          <div className="cv-detail-form">
+            <div className="cv-detail-field full">
+              <label>
+                Descripción personal o profesional *
+              </label>
 
               <textarea
-                rows="9"
-                value={
-                  contenido.descripcion
-                }
-                onChange={
-                  (e) => {
-                    setContenido(
-                      (anterior) => ({
-                        ...anterior,
+                rows="8"
+                maxLength={1500}
+                value={contenido.descripcion}
+                onChange={(e) => {
+                  setContenido((anterior) => ({
+                    ...anterior,
+                    descripcion: e.target.value
+                  }));
 
-                        descripcion:
-                          e.target.value
-                      })
-                    );
-
-                    setError("");
-                    setMensaje("");
-                  }
-                }
-                placeholder="Describe tus conocimientos, fortalezas, objetivos profesionales y áreas de interés."
+                  setError("");
+                  setMensaje("");
+                }}
+                placeholder="Ej. Estudiante de Tecnología Superior en Desarrollo de Software con conocimientos en desarrollo web, aplicaciones móviles y bases de datos..."
               />
 
+              <small>
+                {palabras} / 30–120 palabras
+              </small>
+            </div>
 
-              <p>
-                {palabras}
-                {" / 120 palabras"}
-              </p>
-
-
-              {palabras > 0 &&
-                palabras < 40 && (
-                <p>
-                  Faltan{" "}
-                  {40 - palabras}
-                  {" "}
-                  palabras para llegar
-                  al mínimo.
-                </p>
-              )}
-
-
+            <div className="cv-detail-actions">
               <button
                 type="button"
-                onClick={
-                  mejorarDescripcion
-                }
+                onClick={mejorarDescripcion}
                 disabled={
-                  mejorando
+                  mejorando ||
+                  !contenido.descripcion.trim()
                 }
               >
                 {mejorando
@@ -1512,1312 +1143,174 @@ function StudentCVDetailPage() {
                   : "Mejorar redacción con IA"}
               </button>
 
-
               <button
                 type="button"
                 className="cv-detail-save"
                 disabled={
-                  guardando
+                  guardando ||
+                  palabras < 30 ||
+                  palabras > 120
                 }
-                onClick={() =>
-                  guardar(
-                    "descripcion",
-                    {
-                      texto:
-                        contenido
-                          .descripcion
-                    }
-                  )
-                }
+                onClick={guardarDescripcion}
               >
                 {guardando
                   ? "Guardando..."
                   : "Guardar descripción"}
               </button>
-
             </div>
+          </div>
+        </section>
+      );
+    }
 
-          </section>
-        );
-      }
+    /* =====================================================
+       3. FORMACIÓN ACADÉMICA
+    ===================================================== */
 
+    if (seccionActiva === "formacion") {
+      return (
+        <section className="cv-detail-form-card">
+          <div className="cv-detail-card-header">
+            <span>FORMACIÓN ACADÉMICA</span>
+            <h2>Formación actual y adicional</h2>
+            <p>
+              La carrera y el estado académico actuales
+              se obtienen de tu perfil. Puedes agregar
+              hasta tres estudios adicionales.
+            </p>
+          </div>
 
-      /* =====================================================
-         3. FORMACIÓN ACADÉMICA
-      ===================================================== */
+          <div className="cv-detail-form">
+            <div className="cv-project-card">
+              <div className="cv-project-card-title">
+                <div>
+                  <span>FORMACIÓN ACTUAL</span>
+                  <h3>
+                    Escuela Politécnica Nacional - ESFOT
+                  </h3>
+                </div>
+              </div>
 
-      if (
-        seccionActiva ===
-        "formacion"
-      ) {
-        return (
-          <section className="cv-detail-form-card">
-
-            <div className="cv-detail-card-header">
-
-              <span>
-                FORMACIÓN ACADÉMICA
-              </span>
-
-              <h2>
-                Escuela Politécnica Nacional
-              </h2>
-
-              <p>
-                La institución, carrera y estado
-                académico se obtienen de tu perfil.
-              </p>
-
-            </div>
-
-
-            <div className="cv-detail-form">
-
-              <p>
-                <strong>
-                  Institución:
-                </strong>{" "}
-                Escuela Politécnica Nacional - ESFOT
-              </p>
-
-
-              <p>
-                <strong>
-                  Carrera:
-                </strong>{" "}
-                {perfil.carrera}
-              </p>
-
-
-              <p>
-                <strong>
-                  Estado:
-                </strong>{" "}
-                {perfil
-                  .estado_academico ===
-                "graduado"
-                  ? "Graduado"
-                  : "Actualmente cursando"}
-              </p>
-
-
-              <label>
-                Fecha de inicio *
-              </label>
-
-              <input
-                type="date"
-                value={
-                  contenido
-                    .formacion
-                    .fecha_inicio
-                }
-                onChange={
-                  (e) =>
-                    setContenido(
-                      (anterior) => ({
-                        ...anterior,
-
-                        formacion: {
-                          ...anterior
-                            .formacion,
-
-                          fecha_inicio:
-                            e.target.value
-                        }
-                      })
-                    )
-                }
-              />
-
-
-              {perfil
-                .estado_academico ===
-                "graduado" && (
-                <>
-                  <label>
-                    Fecha de finalización *
-                  </label>
-
+              <div className="cv-project-fields">
+                <div className="cv-detail-field">
+                  <label>Carrera actual *</label>
                   <input
-                    type="date"
-                    value={
-                      contenido
-                        .formacion
-                        .fecha_fin
-                    }
-                    onChange={
-                      (e) =>
-                        setContenido(
-                          (anterior) => ({
-                            ...anterior,
-
-                            formacion: {
-                              ...anterior
-                                .formacion,
-
-                              fecha_fin:
-                                e.target.value
-                            }
-                          })
-                        )
-                    }
+                    type="text"
+                    value={perfil.carrera || ""}
+                    disabled
                   />
-                </>
-              )}
+                </div>
 
-
-              <button
-                type="button"
-                className="cv-detail-save"
-                disabled={
-                  guardando
-                }
-                onClick={() =>
-                  guardar(
-                    "formacion",
-                    contenido.formacion
-                  )
-                }
-              >
-                Guardar formación
-              </button>
-
-            </div>
-
-          </section>
-        );
-      }
-
-
-      /* =====================================================
-         4. IDIOMAS
-      ===================================================== */
-
-      if (
-        seccionActiva ===
-        "idiomas"
-      ) {
-        return (
-          <section className="cv-detail-form-card">
-
-            <div className="cv-detail-card-header">
-
-              <span>
-                IDIOMAS
-              </span>
-
-              <h2>
-                Idiomas
-              </h2>
-
-              <p>
-                Selecciona tu idioma nativo y,
-                si corresponde, máximo dos
-                idiomas adicionales.
-              </p>
-
-            </div>
-
-
-            <div className="cv-detail-form">
-
-              <label>
-                Idioma nativo *
-              </label>
-
-
-              <select
-                value={
-                  idiomaNativo
-                    ?.id_idioma_catalogo ||
-                  ""
-                }
-                onChange={
-                  (e) =>
-                    cambiarIdiomaNativo(
-                      e.target.value
-                    )
-                }
-              >
-
-                <option value="">
-                  Selecciona tu idioma nativo
-                </option>
-
-
-                {datos.catalogos
-                  .idiomas
-                  .map(
-                    (idioma) => (
-
-                      <option
-                        key={
-                          idioma
-                            .id_idioma_catalogo
-                        }
-                        value={
-                          idioma
-                            .id_idioma_catalogo
-                        }
-                      >
-                        {idioma.nombre}
-                      </option>
-
-                    )
-                  )}
-
-              </select>
-
-
-              <h3>
-                Idiomas adicionales
-              </h3>
-
-
-              {contenido
-                .idiomas
-                .map(
-                  (
-                    idioma,
-                    indice
-                  ) => {
-
-                    if (
-                      idioma.es_nativo
-                    ) {
-                      return null;
+                <div className="cv-detail-field">
+                  <label>Estado académico *</label>
+                  <input
+                    type="text"
+                    value={
+                      perfil.estado_academico ||
+                      "No registrado"
                     }
-
-
-                    return (
-                      <div
-                        key={indice}
-                        style={{
-                          border:
-                            "1px solid #ddd",
-
-                          padding:
-                            "15px",
-
-                          marginBottom:
-                            "12px"
-                        }}
-                      >
-
-                        <label>
-                          Idioma
-                        </label>
-
-
-                        <select
-                          value={
-                            idioma
-                              .id_idioma_catalogo ||
-                            ""
-                          }
-                          onChange={
-                            (e) =>
-                              modificarIdioma(
-                                indice,
-                                "id_idioma_catalogo",
-                                e.target.value
-                              )
-                          }
-                        >
-
-                          <option value="">
-                            Selecciona idioma
-                          </option>
-
-
-                          {datos.catalogos
-                            .idiomas
-                            .map(
-                              (catalogo) => (
-
-                                <option
-                                  key={
-                                    catalogo
-                                      .id_idioma_catalogo
-                                  }
-                                  value={
-                                    catalogo
-                                      .id_idioma_catalogo
-                                  }
-                                >
-                                  {
-                                    catalogo
-                                      .nombre
-                                  }
-                                </option>
-
-                              )
-                            )}
-
-                        </select>
-
-
-                        <label>
-                          Nivel
-                        </label>
-
-
-                        <select
-                          value={
-                            idioma.nivel ||
-                            "Básico"
-                          }
-                          onChange={
-                            (e) =>
-                              modificarIdioma(
-                                indice,
-                                "nivel",
-                                e.target.value
-                              )
-                          }
-                        >
-
-                          <option value="Básico">
-                            Básico
-                          </option>
-
-                          <option value="Intermedio">
-                            Intermedio
-                          </option>
-
-                          <option value="Avanzado">
-                            Avanzado
-                          </option>
-
-                        </select>
-
-
-                        <label>
-
-                          <input
-                            type="checkbox"
-                            checked={
-                              Boolean(
-                                idioma
-                                  .tiene_certificado
-                              )
-                            }
-                            onChange={
-                              (e) =>
-                                modificarIdioma(
-                                  indice,
-                                  "tiene_certificado",
-                                  e.target.checked
-                                )
-                            }
-                          />
-
-                          Tengo certificado
-
-                        </label>
-
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            eliminarElemento(
-                              "idiomas",
-                              indice
-                            )
-                          }
-                        >
-                          Eliminar idioma
-                        </button>
-
-                      </div>
-                    );
-                  }
-                )}
-
-
-              <button
-                type="button"
-                onClick={
-                  agregarIdioma
-                }
-              >
-                Agregar idioma
-              </button>
-
-
-              <button
-                type="button"
-                className="cv-detail-save"
-                disabled={
-                  guardando
-                }
-                onClick={() =>
-                  guardar(
-                    "idiomas",
-                    contenido.idiomas
-                  )
-                }
-              >
-                Guardar idiomas
-              </button>
-
+                    disabled
+                  />
+                </div>
+              </div>
             </div>
 
-          </section>
-        );
-      }
-
-
-      /* =====================================================
-         5. HABILIDADES Y DEBILIDADES
-      ===================================================== */
-
-      if (
-        seccionActiva ===
-        "habilidades"
-      ) {
-        const grupos = [
-          {
-            tipo:
-              "blanda",
-
-            titulo:
-              "Habilidades blandas",
-
-            limite:
-              "Selecciona mínimo 1 y máximo 5"
-          },
-
-          {
-            tipo:
-              "tecnica",
-
-            titulo:
-              "Habilidades técnicas",
-
-            limite:
-              "Selecciona mínimo 1 y máximo 5. Estas opciones dependen de tu carrera."
-          },
-
-          {
-            tipo:
-              "metodologica",
-
-            titulo:
-              "Habilidades metodológicas",
-
-            limite:
-              "Selecciona mínimo 1 y máximo 3"
-          }
-        ];
-
-
-        return (
-          <section className="cv-detail-form-card">
-
-            <div className="cv-detail-card-header">
-
-              <span>
-                HABILIDADES Y DEBILIDADES
-              </span>
-
-              <h2>
-                Evalúa tus habilidades
-              </h2>
-
+            <div className="cv-skill-group-header">
+              <h3>Estudios adicionales</h3>
               <p>
-                Mueve el control entre 0 % y
-                100 %. De 0 a 49 % se considera
-                debilidad y desde 50 % se
-                considera habilidad.
+                Esta parte es opcional. Máximo tres.
               </p>
-
             </div>
 
-
-            <div className="cv-detail-form">
-
-              {grupos.map(
-                (grupo) => (
-
-                  <div
-                    key={
-                      grupo.tipo
-                    }
-                    style={{
-                      marginBottom:
-                        "35px"
-                    }}
-                  >
-
-                    <h3>
-                      {grupo.titulo}
-                    </h3>
-
-
-                    <p>
-                      {grupo.limite}
-                    </p>
-
-
-                    {habilidadesPorTipo(
-                      grupo.tipo
-                    ).map(
-                      (habilidad) => {
-
-                        const seleccionada =
-                          habilidadSeleccionada(
-                            habilidad
-                              .id_habilidad_catalogo
-                          );
-
-
-                        return (
-                          <div
-                            key={
-                              habilidad
-                                .id_habilidad_catalogo
-                            }
-                            style={{
-                              padding:
-                                "12px 0",
-
-                              borderBottom:
-                                "1px solid #ddd"
-                            }}
-                          >
-
-                            <label>
-
-                              <input
-                                type="checkbox"
-                                checked={
-                                  Boolean(
-                                    seleccionada
-                                  )
-                                }
-                                onChange={() =>
-                                  alternarHabilidad(
-                                    habilidad
-                                  )
-                                }
-                              />
-
-                              {
-                                habilidad
-                                  .nombre
-                              }
-
-                            </label>
-
-
-                            {seleccionada && (
-
-                              <div
-                                style={{
-                                  marginTop:
-                                    "10px"
-                                }}
-                              >
-
-                                <input
-                                  type="range"
-                                  min="0"
-                                  max="100"
-                                  step="1"
-                                  value={
-                                    seleccionada
-                                      .porcentaje
-                                  }
-                                  onChange={
-                                    (e) =>
-                                      cambiarPorcentaje(
-                                        habilidad
-                                          .id_habilidad_catalogo,
-
-                                        e.target
-                                          .value
-                                      )
-                                  }
-                                />
-
-
-                                <strong>
-                                  {" "}
-                                  {
-                                    seleccionada
-                                      .porcentaje
-                                  }
-                                  %
-                                </strong>
-
-
-                                <span>
-                                  {" — "}
-
-                                  {seleccionada
-                                    .porcentaje <
-                                  50
-                                    ? "Debilidad"
-                                    : "Habilidad"}
-                                </span>
-
-                              </div>
-
-                            )}
-
-                          </div>
-                        );
-                      }
-                    )}
-
-                  </div>
-
-                )
-              )}
-
-
-              <button
-                type="button"
-                className="cv-detail-save"
-                disabled={
-                  guardando
-                }
-                onClick={
-                  guardarHabilidades
-                }
-              >
-                Guardar habilidades
-              </button>
-
-            </div>
-
-          </section>
-        );
-      }
-
-
-      /* =====================================================
-         6. CURSOS Y CERTIFICACIONES
-      ===================================================== */
-
-      if (
-        seccionActiva ===
-        "cursos"
-      ) {
-        return (
-          <section className="cv-detail-form-card">
-
-            <div className="cv-detail-card-header">
-
-              <span>
-                CURSOS Y CERTIFICACIONES
-              </span>
-
-              <h2>
-                Cursos y certificaciones
-              </h2>
-
-              <p>
-                Puedes registrar hasta cinco.
-              </p>
-
-            </div>
-
-
-            <div className="cv-detail-form">
-
-              {contenido
-                .cursos
-                .map(
-                  (
-                    curso,
-                    indice
-                  ) => (
-
-                    <div
-                      key={indice}
-                      style={{
-                        border:
-                          "1px solid #ddd",
-
-                        padding:
-                          "15px",
-
-                        marginBottom:
-                          "15px"
-                      }}
-                    >
-
-                      <label>
-                        Nombre
-                      </label>
-
-                      <input
-                        type="text"
-                        value={
-                          curso.nombre ||
-                          ""
-                        }
-                        onChange={
-                          (e) =>
-                            modificarElemento(
-                              "cursos",
-                              indice,
-                              "nombre",
-                              e.target.value
-                            )
-                        }
-                      />
-
-
-                      <label>
-                        Institución
-                      </label>
-
-                      <input
-                        type="text"
-                        value={
-                          curso.institucion ||
-                          ""
-                        }
-                        onChange={
-                          (e) =>
-                            modificarElemento(
-                              "cursos",
-                              indice,
-                              "institucion",
-                              e.target.value
-                            )
-                        }
-                      />
-
-
-                      <label>
-                        Fecha de obtención
-                      </label>
-
-                      <input
-                        type="date"
-                        value={
-                          fechaInput(
-                            curso
-                              .fecha_obtencion
-                          )
-                        }
-                        onChange={
-                          (e) =>
-                            modificarElemento(
-                              "cursos",
-                              indice,
-                              "fecha_obtencion",
-                              e.target.value
-                            )
-                        }
-                      />
-
-
-                      <label>
-                        Horas de duración
-                      </label>
-
-                      <input
-                        type="number"
-                        min="1"
-                        value={
-                          curso
-                            .horas_duracion ||
-                          ""
-                        }
-                        onChange={
-                          (e) =>
-                            modificarElemento(
-                              "cursos",
-                              indice,
-                              "horas_duracion",
-                              e.target.value
-                            )
-                        }
-                      />
-
-
-                      <label>
-
-                        <input
-                          type="checkbox"
-                          checked={
-                            Boolean(
-                              curso
-                                .tiene_evidencia
-                            )
-                          }
-                          onChange={
-                            (e) =>
-                              modificarElemento(
-                                "cursos",
-                                indice,
-                                "tiene_evidencia",
-                                e.target.checked
-                              )
-                          }
-                        />
-
-                        Tengo evidencia o certificado
-
-                      </label>
-
-
-                      {curso
-                        .tiene_evidencia && (
-
-                        <>
-                          <label>
-                            Enlace de evidencia *
-                          </label>
-
-                          <input
-                            type="url"
-                            value={
-                              curso.enlace ||
-                              ""
-                            }
-                            onChange={
-                              (e) =>
-                                modificarElemento(
-                                  "cursos",
-                                  indice,
-                                  "enlace",
-                                  e.target.value
-                                )
-                            }
-                          />
-                        </>
-
-                      )}
-
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          eliminarElemento(
-                            "cursos",
-                            indice
-                          )
-                        }
-                      >
-                        Eliminar
-                      </button>
-
-                    </div>
-
-                  )
-                )}
-
-
-              <button
-                type="button"
-                onClick={() =>
-                  agregarElemento(
-                    "cursos",
-                    {
-                      nombre: "",
-                      institucion: "",
-                      fecha_obtencion: "",
-                      enlace: "",
-                      tiene_evidencia:
-                        false,
-                      horas_duracion: ""
-                    },
-                    5
-                  )
-                }
-              >
-                Agregar curso
-              </button>
-
-
-              <button
-                type="button"
-                className="cv-detail-save"
-                disabled={
-                  guardando
-                }
-                onClick={() =>
-                  guardar(
-                    "cursos",
-                    contenido.cursos
-                  )
-                }
-              >
-                Guardar cursos
-              </button>
-
-            </div>
-
-          </section>
-        );
-      }
-
-
-      /* =====================================================
-         7. PROYECTOS
-      ===================================================== */
-
-      if (
-        seccionActiva ===
-        "proyectos"
-      ) {
-        return (
-          <section className="cv-detail-form-card">
-
-            <div className="cv-detail-card-header">
-
-              <span>
-                PROYECTOS
-              </span>
-
-              <h2>
-                Proyectos
-              </h2>
-
-              <p>
-                Puedes registrar hasta tres
-                proyectos académicos, personales
-                o profesionales.
-              </p>
-
-            </div>
-
-
-            <div className="cv-detail-form">
-
-              {contenido
-                .proyectos
-                .map(
-                  (
-                    proyecto,
-                    indice
-                  ) => (
-
-                    <div
-                      key={indice}
-                      style={{
-                        border:
-                          "1px solid #ddd",
-
-                        padding:
-                          "15px",
-
-                        marginBottom:
-                          "15px"
-                      }}
-                    >
-
-                      <label>
-                        Nombre del proyecto
-                      </label>
-
-                      <input
-                        type="text"
-                        value={
-                          proyecto.nombre ||
-                          ""
-                        }
-                        onChange={
-                          (e) =>
-                            modificarElemento(
-                              "proyectos",
-                              indice,
-                              "nombre",
-                              e.target.value
-                            )
-                        }
-                      />
-
-
-                      <label>
-                        Tecnologías o herramientas
-                      </label>
-
-                      <input
-                        type="text"
-                        value={
-                          proyecto
-                            .tecnologias ||
-                          ""
-                        }
-                        onChange={
-                          (e) =>
-                            modificarElemento(
-                              "proyectos",
-                              indice,
-                              "tecnologias",
-                              e.target.value
-                            )
-                        }
-                      />
-
-
-                      <label>
-                        Descripción e impacto
-                      </label>
-
-                      <textarea
-                        rows="5"
-                        value={
-                          proyecto
-                            .descripcion ||
-                          ""
-                        }
-                        onChange={
-                          (e) =>
-                            modificarElemento(
-                              "proyectos",
-                              indice,
-                              "descripcion",
-                              e.target.value
-                            )
-                        }
-                      />
-
-
-                      <label>
-                        Enlace o evidencia
-                      </label>
-
-                      <input
-                        type="url"
-                        value={
-                          proyecto.enlace ||
-                          ""
-                        }
-                        onChange={
-                          (e) =>
-                            modificarElemento(
-                              "proyectos",
-                              indice,
-                              "enlace",
-                              e.target.value
-                            )
-                        }
-                      />
-
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          eliminarElemento(
-                            "proyectos",
-                            indice
-                          )
-                        }
-                      >
-                        Eliminar
-                      </button>
-
-                    </div>
-
-                  )
-                )}
-
-
-              <button
-                type="button"
-                onClick={() =>
-                  agregarElemento(
-                    "proyectos",
-                    {
-                      nombre: "",
-                      descripcion: "",
-                      tecnologias: "",
-                      enlace: ""
-                    },
-                    3
-                  )
-                }
-              >
-                Agregar proyecto
-              </button>
-
-
-              <button
-                type="button"
-                className="cv-detail-save"
-                disabled={
-                  guardando
-                }
-                onClick={() =>
-                  guardar(
-                    "proyectos",
-                    contenido.proyectos
-                  )
-                }
-              >
-                Guardar proyectos
-              </button>
-
-            </div>
-
-          </section>
-        );
-      }
-
-
-      /* =====================================================
-         8. PRÁCTICAS
-      ===================================================== */
-
-      if (
-        seccionActiva ===
-        "practicas"
-      ) {
-        const comunitarias =
-          contenido
-            .practicas
-            .filter(
-              (practica) =>
-                practica.tipo ===
-                "comunitaria"
-            )
-            .length;
-
-
-        const laborales =
-          contenido
-            .practicas
-            .filter(
-              (practica) =>
-                practica.tipo ===
-                "laboral"
-            )
-            .length;
-
-
-        return (
-          <section className="cv-detail-form-card">
-
-            <div className="cv-detail-card-header">
-
-              <span>
-                PRÁCTICAS
-              </span>
-
-              <h2>
-                Prácticas
-              </h2>
-
-              <p>
-                Puedes registrar una práctica
-                comunitaria y hasta tres
-                prácticas laborales.
-              </p>
-
-            </div>
-
-
-            <div className="cv-detail-form">
-
-              {contenido
-                .practicas
-                .map(
-                  (
-                    practica,
-                    indice
-                  ) => (
-
-                    <div
-                      key={indice}
-                      style={{
-                        border:
-                          "1px solid #ddd",
-
-                        padding:
-                          "15px",
-
-                        marginBottom:
-                          "15px"
-                      }}
-                    >
+            {contenido.formacion.map(
+              (estudio, indice) => (
+                <article
+                  className="cv-project-card"
+                  key={indice}
+                >
+                  <div className="cv-project-card-title">
+                    <div>
+                      <span>
+                        ESTUDIO ADICIONAL {indice + 1}
+                      </span>
 
                       <h3>
-                        {practica.tipo ===
-                        "comunitaria"
-                          ? "Práctica comunitaria"
-                          : "Práctica laboral"}
+                        {estudio.titulo ||
+                          "Nuevo estudio"}
                       </h3>
+                    </div>
 
+                    <button
+                      type="button"
+                      className="cv-project-delete"
+                      onClick={() =>
+                        eliminarElemento(
+                          "formacion",
+                          indice
+                        )
+                      }
+                    >
+                      Eliminar
+                    </button>
+                  </div>
 
-                      <label>
-                        Institución
-                      </label>
+                  <div className="cv-project-fields">
+                    <div className="cv-detail-field">
+                      <label>Título o grado *</label>
+
+                      <input
+                        type="text"
+                        value={estudio.titulo || ""}
+                        onChange={(e) =>
+                          modificarElemento(
+                            "formacion",
+                            indice,
+                            "titulo",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>Institución *</label>
 
                       <input
                         type="text"
                         value={
-                          practica
-                            .institucion ||
-                          ""
+                          estudio.institucion || ""
                         }
-                        onChange={
-                          (e) =>
-                            modificarElemento(
-                              "practicas",
-                              indice,
-                              "institucion",
-                              e.target.value
-                            )
+                        onChange={(e) =>
+                          modificarElemento(
+                            "formacion",
+                            indice,
+                            "institucion",
+                            e.target.value
+                          )
                         }
                       />
+                    </div>
 
-
-                      <label>
-                        Cargo o área
-                      </label>
-
-                      <input
-                        type="text"
-                        value={
-                          practica
-                            .cargo_area ||
-                          ""
-                        }
-                        onChange={
-                          (e) =>
-                            modificarElemento(
-                              "practicas",
-                              indice,
-                              "cargo_area",
-                              e.target.value
-                            )
-                        }
-                      />
-
-
-                      <label>
-                        Fecha de inicio
-                      </label>
+                    <div className="cv-detail-field">
+                      <label>Fecha de inicio *</label>
 
                       <input
                         type="date"
                         value={
-                          fechaInput(
-                            practica
-                              .fecha_inicio
+                          estudio.fecha_inicio || ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "formacion",
+                            indice,
+                            "fecha_inicio",
+                            e.target.value
                           )
                         }
-                        onChange={
-                          (e) =>
-                            modificarElemento(
-                              "practicas",
-                              indice,
-                              "fecha_inicio",
-                              e.target.value
-                            )
-                        }
                       />
+                    </div>
 
-
+                    <div className="cv-detail-field">
                       <label>
                         Fecha de finalización
                       </label>
@@ -2825,748 +1318,2174 @@ function StudentCVDetailPage() {
                       <input
                         type="date"
                         value={
-                          fechaInput(
-                            practica
-                              .fecha_fin
+                          estudio.fecha_fin || ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "formacion",
+                            indice,
+                            "fecha_fin",
+                            e.target.value
                           )
                         }
-                        onChange={
-                          (e) =>
-                            modificarElemento(
-                              "practicas",
-                              indice,
-                              "fecha_fin",
-                              e.target.value
-                            )
-                        }
                       />
+                    </div>
 
-
-                      <label>
-                        Descripción
-                      </label>
-
-                      <textarea
-                        rows="5"
-                        value={
-                          practica
-                            .descripcion ||
-                          ""
-                        }
-                        onChange={
-                          (e) =>
-                            modificarElemento(
-                              "practicas",
-                              indice,
-                              "descripcion",
-                              e.target.value
-                            )
-                        }
-                      />
-
-
-                      <label>
-                        Herramientas utilizadas
-                      </label>
+                    <div className="cv-detail-field">
+                      <label>Ciudad y país</label>
 
                       <input
                         type="text"
                         value={
-                          practica
-                            .herramientas ||
-                          ""
+                          estudio.ciudad_pais || ""
                         }
-                        onChange={
-                          (e) =>
-                            modificarElemento(
-                              "practicas",
-                              indice,
-                              "herramientas",
-                              e.target.value
-                            )
-                        }
-                      />
-
-
-                      <label>
-                        Logros o aprendizajes
-                      </label>
-
-                      <textarea
-                        rows="4"
-                        value={
-                          practica
-                            .logro_aprendizaje ||
-                          ""
-                        }
-                        onChange={
-                          (e) =>
-                            modificarElemento(
-                              "practicas",
-                              indice,
-                              "logro_aprendizaje",
-                              e.target.value
-                            )
-                        }
-                      />
-
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          eliminarElemento(
-                            "practicas",
-                            indice
+                        onChange={(e) =>
+                          modificarElemento(
+                            "formacion",
+                            indice,
+                            "ciudad_pais",
+                            e.target.value
                           )
                         }
-                      >
-                        Eliminar práctica
-                      </button>
-
+                      />
                     </div>
 
-                  )
-                )}
+                    <div className="cv-detail-field">
+                      <label>Evidencia</label>
 
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) =>
+                          seleccionarEvidencia(
+                            "formacion",
+                            indice,
+                            e.target.files?.[0]
+                          )
+                        }
+                      />
 
-              {comunitarias < 1 && (
+                      <small>
+                        PDF, JPG, JPEG o PNG.
+                        Máximo 5 MB.
+                      </small>
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    agregarElemento(
-                      "practicas",
-                      {
-                        tipo:
-                          "comunitaria",
+                      {estudio.evidencia_archivo && (
+                        <small>
+                          Archivo guardado:{" "}
+                          {estudio.evidencia_archivo}
+                        </small>
+                      )}
 
-                        institucion:
-                          "",
+                      {subiendoArchivo ===
+                        `formacion-${indice}` && (
+                        <small>
+                          Subiendo archivo...
+                        </small>
+                      )}
+                    </div>
+                  </div>
+                </article>
+              )
+            )}
 
-                        cargo_area:
-                          "",
-
-                        fecha_inicio:
-                          "",
-
-                        fecha_fin:
-                          "",
-
-                        descripcion:
-                          "",
-
-                        herramientas:
-                          "",
-
-                        logro_aprendizaje:
-                          ""
-                      },
-                      4
-                    )
-                  }
-                >
-                  Agregar práctica comunitaria
-                </button>
-
-              )}
-
-
-              {laborales < 3 && (
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    agregarElemento(
-                      "practicas",
-                      {
-                        tipo:
-                          "laboral",
-
-                        institucion:
-                          "",
-
-                        cargo_area:
-                          "",
-
-                        fecha_inicio:
-                          "",
-
-                        fecha_fin:
-                          "",
-
-                        descripcion:
-                          "",
-
-                        herramientas:
-                          "",
-
-                        logro_aprendizaje:
-                          ""
-                      },
-                      4
-                    )
-                  }
-                >
-                  Agregar práctica laboral
-                </button>
-
-              )}
-
-
+            {contenido.formacion.length < 3 && (
               <button
                 type="button"
-                className="cv-detail-save"
-                disabled={
-                  guardando
-                }
+                className="cv-project-add"
                 onClick={() =>
-                  guardar(
-                    "practicas",
-                    contenido.practicas
+                  agregarElemento(
+                    "formacion",
+                    {
+                      titulo: "",
+                      institucion: "",
+                      fecha_inicio: "",
+                      fecha_fin: "",
+                      ciudad_pais: "",
+                      evidencia_archivo: ""
+                    },
+                    3
                   )
                 }
               >
-                Guardar prácticas
+                + Agregar estudio adicional
               </button>
+            )}
 
-            </div>
+            <button
+              type="button"
+              className="cv-detail-save"
+              disabled={guardando}
+              onClick={guardarFormacion}
+            >
+              {guardando
+                ? "Guardando..."
+                : "Guardar formación"}
+            </button>
+          </div>
+        </section>
+      );
+    }
 
-          </section>
+    /* =====================================================
+       4. IDIOMAS
+    ===================================================== */
+
+    if (seccionActiva === "idiomas") {
+      const catalogoIdiomas =
+        datos.catalogos?.idiomas || [];
+
+      const inglesCatalogo =
+        catalogoIdiomas.find(
+          (item) =>
+            ["ingles", "english"].includes(
+              normalizarTexto(item.nombre)
+            )
         );
-      }
 
+      const ingles = contenido.idiomas.find(
+        (item) => idiomaEsIngles(item)
+      ) || {
+        id_idioma_catalogo:
+          inglesCatalogo?.id_idioma_catalogo || "",
+        idioma:
+          inglesCatalogo?.nombre || "Inglés",
+        nivel: ""
+      };
 
-      /* =====================================================
-         9. EXPERIENCIA LABORAL
-      ===================================================== */
+      const adicionales = contenido.idiomas
+        .map((idioma, indiceReal) => ({
+          ...idioma,
+          indiceReal
+        }))
+        .filter(
+          (idioma) => !idiomaEsIngles(idioma)
+        );
 
-      if (
-        seccionActiva ===
-        "experiencia"
-      ) {
-        return (
-          <section className="cv-detail-form-card">
+      return (
+        <section className="cv-detail-form-card">
+          <div className="cv-detail-card-header">
+            <span>IDIOMAS</span>
+            <h2>Idiomas</h2>
+            <p>
+              Inglés es obligatorio. Puedes agregar
+              máximo dos idiomas adicionales.
+            </p>
+          </div>
 
-            <div className="cv-detail-card-header">
+          <div className="cv-detail-form">
+            <div className="cv-project-card">
+              <div className="cv-project-card-title">
+                <div>
+                  <span>IDIOMA OBLIGATORIO</span>
+                  <h3>Inglés</h3>
+                </div>
+              </div>
 
-              <span>
-                EXPERIENCIA LABORAL
-              </span>
+              <div className="cv-project-fields">
+                <div className="cv-detail-field">
+                  <label>Nivel de inglés *</label>
 
-              <h2>
-                Experiencia laboral
-              </h2>
+                  <select
+                    value={ingles.nivel || ""}
+                    onChange={(e) =>
+                      actualizarIdiomaIngles(
+                        e.target.value
+                      )
+                    }
+                  >
+                    <option value="">
+                      Selecciona un nivel
+                    </option>
 
-              <p>
-                Puedes registrar hasta tres
-                experiencias laborales.
-              </p>
+                    <option value="Básico">
+                      Básico
+                    </option>
 
+                    <option value="Intermedio">
+                      Intermedio
+                    </option>
+
+                    <option value="Avanzado">
+                      Avanzado
+                    </option>
+                  </select>
+                </div>
+              </div>
             </div>
 
+            <div className="cv-skill-group-header">
+              <h3>Idiomas adicionales</h3>
+              <p>
+                Esta parte es opcional. Máximo dos.
+              </p>
+            </div>
 
-            <div className="cv-detail-form">
+            {adicionales.map(
+              (idioma, indice) => (
+                <article
+                  className="cv-project-card"
+                  key={idioma.indiceReal}
+                >
+                  <div className="cv-project-card-title">
+                    <div>
+                      <span>
+                        IDIOMA ADICIONAL {indice + 1}
+                      </span>
 
-              {contenido
-                .experiencia
-                .map(
-                  (
-                    experiencia,
-                    indice
-                  ) => (
+                      <h3>
+                        {idioma.idioma ||
+                          "Nuevo idioma"}
+                      </h3>
+                    </div>
 
-                    <div
-                      key={indice}
-                      style={{
-                        border:
-                          "1px solid #ddd",
-
-                        padding:
-                          "15px",
-
-                        marginBottom:
-                          "15px"
-                      }}
+                    <button
+                      type="button"
+                      className="cv-project-delete"
+                      onClick={() =>
+                        eliminarElemento(
+                          "idiomas",
+                          idioma.indiceReal
+                        )
+                      }
                     >
+                      Eliminar
+                    </button>
+                  </div>
 
+                  <div className="cv-project-fields">
+                    <div className="cv-detail-field">
+                      <label>Idioma *</label>
+
+                      <select
+                        value={
+                          idioma.id_idioma_catalogo ||
+                          ""
+                        }
+                        onChange={(e) =>
+                          modificarIdioma(
+                            idioma.indiceReal,
+                            "id_idioma_catalogo",
+                            e.target.value
+                          )
+                        }
+                      >
+                        <option value="">
+                          Selecciona un idioma
+                        </option>
+
+                        {catalogoIdiomas
+                          .filter(
+                            (item) =>
+                              ![
+                                "ingles",
+                                "english"
+                              ].includes(
+                                normalizarTexto(
+                                  item.nombre
+                                )
+                              )
+                          )
+                          .map((item) => (
+                            <option
+                              key={
+                                item.id_idioma_catalogo
+                              }
+                              value={
+                                item.id_idioma_catalogo
+                              }
+                            >
+                              {item.nombre}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>Nivel *</label>
+
+                      <select
+                        value={idioma.nivel || ""}
+                        onChange={(e) =>
+                          modificarIdioma(
+                            idioma.indiceReal,
+                            "nivel",
+                            e.target.value
+                          )
+                        }
+                      >
+                        <option value="">
+                          Selecciona un nivel
+                        </option>
+
+                        <option value="Básico">
+                          Básico
+                        </option>
+
+                        <option value="Intermedio">
+                          Intermedio
+                        </option>
+
+                        <option value="Avanzado">
+                          Avanzado
+                        </option>
+                      </select>
+                    </div>
+                  </div>
+                </article>
+              )
+            )}
+
+            {adicionales.length < 2 && (
+              <button
+                type="button"
+                className="cv-project-add"
+                onClick={agregarIdioma}
+              >
+                + Agregar idioma adicional
+              </button>
+            )}
+
+            <button
+              type="button"
+              className="cv-detail-save"
+              disabled={guardando}
+              onClick={guardarIdiomas}
+            >
+              {guardando
+                ? "Guardando..."
+                : "Guardar idiomas"}
+            </button>
+          </div>
+        </section>
+      );
+    }
+
+    /* =====================================================
+       5. HABILIDADES
+    ===================================================== */
+
+    if (seccionActiva === "habilidades") {
+      const catalogo =
+        datos.catalogos?.habilidades || [];
+
+      const tecnicas = catalogo
+        .filter(
+          (item) => item.tipo === "tecnica"
+        )
+        .slice(0, 5);
+
+      const blandas = catalogo
+        .filter(
+          (item) => item.tipo === "blanda"
+        )
+        .slice(0, 5);
+
+      const renderGrupo = (
+        titulo,
+        descripcion,
+        habilidades
+      ) => (
+        <div className="cv-skill-group">
+          <div className="cv-skill-group-header">
+            <h3>{titulo}</h3>
+            <p>{descripcion}</p>
+          </div>
+
+          <div className="cv-skill-grid">
+            {habilidades.map((habilidad) => (
+              <article
+                className="cv-skill-card"
+                key={
+                  habilidad.id_habilidad_catalogo
+                }
+              >
+                <div>
+                  <strong>
+                    {habilidad.nombre}
+                  </strong>
+
+                  {habilidad.descripcion && (
+                    <p>
+                      {habilidad.descripcion}
+                    </p>
+                  )}
+                </div>
+
+                <label>
+                  Nivel de dominio *
+
+                  <select
+                    value={
+                      obtenerNivelHabilidad(
+                        habilidad
+                      )
+                    }
+                    onChange={(e) =>
+                      cambiarNivelHabilidad(
+                        habilidad,
+                        e.target.value
+                      )
+                    }
+                  >
+                    <option value="">
+                      Selecciona
+                    </option>
+
+                    <option value="Básico">
+                      Básico
+                    </option>
+
+                    <option value="Intermedio">
+                      Intermedio
+                    </option>
+
+                    <option value="Avanzado">
+                      Avanzado
+                    </option>
+                  </select>
+                </label>
+              </article>
+            ))}
+          </div>
+        </div>
+      );
+
+      return (
+        <section className="cv-detail-form-card">
+          <div className="cv-detail-card-header">
+            <span>HABILIDADES</span>
+            <h2>Habilidades profesionales</h2>
+            <p>
+              Las habilidades están predeterminadas.
+              Selecciona únicamente tu nivel de dominio.
+              No se utilizan porcentajes.
+            </p>
+          </div>
+
+          <div className="cv-detail-form">
+            {renderGrupo(
+              "Habilidades técnicas",
+              "Cinco competencias técnicas definidas según tu carrera.",
+              tecnicas
+            )}
+
+            {renderGrupo(
+              "Habilidades blandas",
+              "Trabajo en equipo, Comunicación efectiva, Resolución de problemas, Adaptabilidad y Responsabilidad.",
+              blandas
+            )}
+
+            {tecnicas.length !== 5 && (
+              <div className="cv-detail-message error">
+                Aún no existen cinco habilidades
+                técnicas configuradas para esta
+                carrera.
+              </div>
+            )}
+
+            {blandas.length !== 5 && (
+              <div className="cv-detail-message error">
+                Aún no existen cinco habilidades
+                blandas configuradas.
+              </div>
+            )}
+
+            <button
+              type="button"
+              className="cv-detail-save"
+              disabled={
+                guardando ||
+                tecnicas.length !== 5 ||
+                blandas.length !== 5
+              }
+              onClick={guardarHabilidades}
+            >
+              {guardando
+                ? "Guardando..."
+                : "Guardar habilidades"}
+            </button>
+          </div>
+        </section>
+      );
+    }
+
+    /* =====================================================
+       6. CURSOS Y CERTIFICACIONES
+    ===================================================== */
+
+    if (seccionActiva === "cursos") {
+      return (
+        <section className="cv-detail-form-card">
+          <div className="cv-detail-card-header">
+            <span>
+              CURSOS Y CERTIFICACIONES
+            </span>
+
+            <h2>Cursos y certificaciones</h2>
+
+            <p>
+              Sección opcional. Puedes registrar
+              hasta cinco.
+            </p>
+          </div>
+
+          <div className="cv-project-list">
+            {contenido.cursos.map(
+              (curso, indice) => (
+                <article
+                  className="cv-project-card"
+                  key={indice}
+                >
+                  <div className="cv-project-card-title">
+                    <div>
+                      <span>
+                        REGISTRO {indice + 1}
+                      </span>
+
+                      <h3>
+                        {curso.nombre ||
+                          "Nuevo curso o certificación"}
+                      </h3>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="cv-project-delete"
+                      onClick={() =>
+                        eliminarElemento(
+                          "cursos",
+                          indice
+                        )
+                      }
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+
+                  <div className="cv-project-fields">
+                    <div className="cv-detail-field">
+                      <label>Tipo *</label>
+
+                      <select
+                        value={curso.tipo || ""}
+                        onChange={(e) =>
+                          modificarElemento(
+                            "cursos",
+                            indice,
+                            "tipo",
+                            e.target.value
+                          )
+                        }
+                      >
+                        <option value="">
+                          Selecciona
+                        </option>
+
+                        <option value="Curso">
+                          Curso
+                        </option>
+
+                        <option value="Certificación">
+                          Certificación
+                        </option>
+                      </select>
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>Nombre *</label>
+
+                      <input
+                        type="text"
+                        value={curso.nombre || ""}
+                        onChange={(e) =>
+                          modificarElemento(
+                            "cursos",
+                            indice,
+                            "nombre",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cv-detail-field">
                       <label>
-                        Empresa o institución
+                        Institución o plataforma *
                       </label>
 
                       <input
                         type="text"
                         value={
-                          experiencia.empresa ||
-                          ""
+                          curso.institucion || ""
                         }
-                        onChange={
-                          (e) =>
-                            modificarElemento(
-                              "experiencia",
-                              indice,
-                              "empresa",
-                              e.target.value
-                            )
+                        onChange={(e) =>
+                          modificarElemento(
+                            "cursos",
+                            indice,
+                            "institucion",
+                            e.target.value
+                          )
                         }
                       />
+                    </div>
 
-
+                    <div className="cv-detail-field">
                       <label>
-                        Cargo
-                      </label>
-
-                      <input
-                        type="text"
-                        value={
-                          experiencia.cargo ||
-                          ""
-                        }
-                        onChange={
-                          (e) =>
-                            modificarElemento(
-                              "experiencia",
-                              indice,
-                              "cargo",
-                              e.target.value
-                            )
-                        }
-                      />
-
-
-                      <label>
-                        Ciudad y país
-                      </label>
-
-                      <input
-                        type="text"
-                        value={
-                          experiencia
-                            .ciudad_pais ||
-                          ""
-                        }
-                        onChange={
-                          (e) =>
-                            modificarElemento(
-                              "experiencia",
-                              indice,
-                              "ciudad_pais",
-                              e.target.value
-                            )
-                        }
-                      />
-
-
-                      <label>
-                        Fecha de inicio
+                        Fecha de emisión o finalización *
                       </label>
 
                       <input
                         type="date"
                         value={
-                          fechaInput(
-                            experiencia
-                              .fecha_inicio
+                          curso.fecha_obtencion || ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "cursos",
+                            indice,
+                            "fecha_obtencion",
+                            e.target.value
                           )
                         }
-                        onChange={
-                          (e) =>
-                            modificarElemento(
-                              "experiencia",
-                              indice,
-                              "fecha_inicio",
-                              e.target.value
-                            )
+                      />
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>
+                        Fecha de expiración
+                      </label>
+
+                      <input
+                        type="date"
+                        value={
+                          curso.fecha_expiracion || ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "cursos",
+                            indice,
+                            "fecha_expiracion",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>Horas</label>
+
+                      <input
+                        type="number"
+                        min="1"
+                        max="1000"
+                        value={
+                          curso.horas_duracion || ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "cursos",
+                            indice,
+                            "horas_duracion",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cv-detail-field full">
+                      <label>Descripción</label>
+
+                      <textarea
+                        rows="4"
+                        value={
+                          curso.descripcion || ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "cursos",
+                            indice,
+                            "descripcion",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>
+                        Enlace de evidencia
+                      </label>
+
+                      <input
+                        type="url"
+                        placeholder="https://..."
+                        value={
+                          curso.evidencia_url || ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "cursos",
+                            indice,
+                            "evidencia_url",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>
+                        Archivo de evidencia
+                      </label>
+
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) =>
+                          seleccionarEvidencia(
+                            "cursos",
+                            indice,
+                            e.target.files?.[0]
+                          )
                         }
                       />
 
+                      <small>
+                        PDF, JPG, JPEG o PNG.
+                        Máximo 5 MB.
+                      </small>
 
-                      <label>
-
-                        <input
-                          type="checkbox"
-                          checked={
-                            Boolean(
-                              experiencia
-                                .actualmente
-                            )
-                          }
-                          onChange={
-                            (e) =>
-                              modificarElemento(
-                                "experiencia",
-                                indice,
-                                "actualmente",
-                                e.target.checked
-                              )
-                          }
-                        />
-
-                        Actualmente trabajo aquí
-
-                      </label>
-
-
-                      {!experiencia
-                        .actualmente && (
-
-                        <>
-                          <label>
-                            Fecha de finalización
-                          </label>
-
-                          <input
-                            type="date"
-                            value={
-                              fechaInput(
-                                experiencia
-                                  .fecha_fin
-                              )
-                            }
-                            onChange={
-                              (e) =>
-                                modificarElemento(
-                                  "experiencia",
-                                  indice,
-                                  "fecha_fin",
-                                  e.target.value
-                                )
-                            }
-                          />
-                        </>
-
+                      {curso.evidencia_archivo && (
+                        <small>
+                          Archivo guardado:{" "}
+                          {curso.evidencia_archivo}
+                        </small>
                       )}
 
+                      {subiendoArchivo ===
+                        `cursos-${indice}` && (
+                        <small>
+                          Subiendo archivo...
+                        </small>
+                      )}
+                    </div>
+                  </div>
+                </article>
+              )
+            )}
 
+            {contenido.cursos.length < 5 && (
+              <button
+                type="button"
+                className="cv-project-add"
+                onClick={() =>
+                  agregarElemento(
+                    "cursos",
+                    {
+                      tipo: "",
+                      nombre: "",
+                      institucion: "",
+                      fecha_obtencion: "",
+                      fecha_expiracion: "",
+                      horas_duracion: "",
+                      descripcion: "",
+                      evidencia_url: "",
+                      evidencia_archivo: ""
+                    },
+                    5
+                  )
+                }
+              >
+                + Agregar curso o certificación
+              </button>
+            )}
+
+            <div className="cv-project-actions">
+              <button
+                type="button"
+                className="cv-detail-save"
+                disabled={guardando}
+                onClick={guardarCursos}
+              >
+                {guardando
+                  ? "Guardando..."
+                  : "Guardar cursos y certificaciones"}
+              </button>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    /* =====================================================
+       7. PROYECTOS
+    ===================================================== */
+
+    if (seccionActiva === "proyectos") {
+      return (
+        <section className="cv-detail-form-card">
+          <div className="cv-detail-card-header">
+            <span>PROYECTOS</span>
+            <h2>Proyectos destacados</h2>
+            <p>
+              Debes registrar mínimo un proyecto y
+              máximo tres.
+            </p>
+          </div>
+
+          <div className="cv-project-list">
+            {contenido.proyectos.map(
+              (proyecto, indice) => (
+                <article
+                  className="cv-project-card"
+                  key={indice}
+                >
+                  <div className="cv-project-card-title">
+                    <div>
+                      <span>
+                        PROYECTO {indice + 1}
+                      </span>
+
+                      <h3>
+                        {proyecto.nombre ||
+                          "Nuevo proyecto"}
+                      </h3>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="cv-project-delete"
+                      onClick={() =>
+                        eliminarElemento(
+                          "proyectos",
+                          indice
+                        )
+                      }
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+
+                  <div className="cv-project-fields">
+                    <div className="cv-detail-field">
                       <label>
-                        Funciones y logros
+                        Nombre del proyecto *
+                      </label>
+
+                      <input
+                        type="text"
+                        value={
+                          proyecto.nombre || ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "proyectos",
+                            indice,
+                            "nombre",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>
+                        Tipo de proyecto *
+                      </label>
+
+                      <select
+                        value={
+                          proyecto.tipo_proyecto ||
+                          ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "proyectos",
+                            indice,
+                            "tipo_proyecto",
+                            e.target.value
+                          )
+                        }
+                      >
+                        <option value="">
+                          Selecciona
+                        </option>
+
+                        <option value="Académico">
+                          Académico
+                        </option>
+
+                        <option value="Personal">
+                          Personal
+                        </option>
+
+                        <option value="Profesional">
+                          Profesional
+                        </option>
+                      </select>
+                    </div>
+
+                    <div className="cv-detail-field full">
+                      <label>Descripción *</label>
+
+                      <textarea
+                        rows="5"
+                        value={
+                          proyecto.descripcion || ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "proyectos",
+                            indice,
+                            "descripcion",
+                            e.target.value
+                          )
+                        }
+                      />
+
+                      <small>
+                        {contarPalabras(
+                          proyecto.descripcion
+                        )}{" "}
+                        / 40–150 palabras
+                      </small>
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>
+                        Tecnologías o herramientas *
+                      </label>
+
+                      <input
+                        type="text"
+                        placeholder="React, Node.js, MySQL"
+                        value={
+                          proyecto.tecnologias || ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "proyectos",
+                            indice,
+                            "tecnologias",
+                            e.target.value
+                          )
+                        }
+                      />
+
+                      <small>
+                        Máximo ocho, separadas por coma.
+                      </small>
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>Rol *</label>
+
+                      <input
+                        type="text"
+                        value={proyecto.rol || ""}
+                        onChange={(e) =>
+                          modificarElemento(
+                            "proyectos",
+                            indice,
+                            "rol",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>Fecha de inicio *</label>
+
+                      <input
+                        type="date"
+                        value={
+                          proyecto.fecha_inicio || ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "proyectos",
+                            indice,
+                            "fecha_inicio",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>
+                        Fecha de finalización
+                      </label>
+
+                      <input
+                        type="date"
+                        value={
+                          proyecto.fecha_fin || ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "proyectos",
+                            indice,
+                            "fecha_fin",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>Estado *</label>
+
+                      <input
+                        type="text"
+                        placeholder="Ej. Finalizado"
+                        value={
+                          proyecto.estado || ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "proyectos",
+                            indice,
+                            "estado",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>
+                        Enlace de evidencia
+                      </label>
+
+                      <input
+                        type="url"
+                        placeholder="Repositorio o demo"
+                        value={
+                          proyecto.evidencia_url ||
+                          ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "proyectos",
+                            indice,
+                            "evidencia_url",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cv-detail-field full">
+                      <label>
+                        Archivo de evidencia
+                      </label>
+
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png,.apk"
+                        onChange={(e) =>
+                          seleccionarEvidencia(
+                            "proyectos",
+                            indice,
+                            e.target.files?.[0]
+                          )
+                        }
+                      />
+
+                      <small>
+                        PDF, imagen o APK.
+                        Máximo 5 MB.
+                      </small>
+
+                      {proyecto.evidencia_archivo && (
+                        <small>
+                          Archivo guardado:{" "}
+                          {proyecto.evidencia_archivo}
+                        </small>
+                      )}
+
+                      {subiendoArchivo ===
+                        `proyectos-${indice}` && (
+                        <small>
+                          Subiendo archivo...
+                        </small>
+                      )}
+                    </div>
+                  </div>
+                </article>
+              )
+            )}
+
+            {contenido.proyectos.length < 3 && (
+              <button
+                type="button"
+                className="cv-project-add"
+                onClick={() =>
+                  agregarElemento(
+                    "proyectos",
+                    {
+                      nombre: "",
+                      tipo_proyecto: "",
+                      descripcion: "",
+                      tecnologias: "",
+                      rol: "",
+                      fecha_inicio: "",
+                      fecha_fin: "",
+                      estado: "",
+                      evidencia_url: "",
+                      evidencia_archivo: ""
+                    },
+                    3
+                  )
+                }
+              >
+                + Agregar proyecto
+              </button>
+            )}
+
+            <div className="cv-project-actions">
+              <button
+                type="button"
+                className="cv-detail-save"
+                disabled={
+                  guardando ||
+                  contenido.proyectos.length === 0
+                }
+                onClick={guardarProyectos}
+              >
+                {guardando
+                  ? "Guardando..."
+                  : "Guardar proyectos"}
+              </button>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    /* =====================================================
+       8. PRÁCTICAS
+    ===================================================== */
+
+    if (seccionActiva === "practicas") {
+      return (
+        <section className="cv-detail-form-card">
+          <div className="cv-detail-card-header">
+            <span>PRÁCTICAS</span>
+            <h2>Prácticas</h2>
+            <p>
+              Sección opcional. Puedes registrar
+              hasta cuatro prácticas.
+            </p>
+          </div>
+
+          <div className="cv-project-list">
+            {contenido.practicas.map(
+              (practica, indice) => (
+                <article
+                  className="cv-project-card"
+                  key={indice}
+                >
+                  <div className="cv-project-card-title">
+                    <div>
+                      <span>
+                        PRÁCTICA {indice + 1}
+                      </span>
+
+                      <h3>
+                        {practica.institucion ||
+                          "Nueva práctica"}
+                      </h3>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="cv-project-delete"
+                      onClick={() =>
+                        eliminarElemento(
+                          "practicas",
+                          indice
+                        )
+                      }
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+
+                  <div className="cv-project-fields">
+                    <div className="cv-detail-field">
+                      <label>
+                        Tipo de práctica *
+                      </label>
+
+                      <input
+                        type="text"
+                        placeholder="Ej. Preprofesional"
+                        value={practica.tipo || ""}
+                        onChange={(e) =>
+                          modificarElemento(
+                            "practicas",
+                            indice,
+                            "tipo",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>
+                        Institución o empresa *
+                      </label>
+
+                      <input
+                        type="text"
+                        value={
+                          practica.institucion || ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "practicas",
+                            indice,
+                            "institucion",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>Área *</label>
+
+                      <input
+                        type="text"
+                        value={practica.area || ""}
+                        onChange={(e) =>
+                          modificarElemento(
+                            "practicas",
+                            indice,
+                            "area",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>
+                        Rol o función *
+                      </label>
+
+                      <input
+                        type="text"
+                        value={
+                          practica.rol_funcion || ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "practicas",
+                            indice,
+                            "rol_funcion",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cv-detail-field full">
+                      <label>
+                        Actividades realizadas *
                       </label>
 
                       <textarea
                         rows="5"
                         value={
-                          experiencia
-                            .descripcion ||
-                          ""
+                          practica.actividades || ""
                         }
-                        onChange={
-                          (e) =>
-                            modificarElemento(
-                              "experiencia",
-                              indice,
-                              "descripcion",
-                              e.target.value
-                            )
+                        onChange={(e) =>
+                          modificarElemento(
+                            "practicas",
+                            indice,
+                            "actividades",
+                            e.target.value
+                          )
                         }
                       />
 
+                      <small>
+                        {contarPalabras(
+                          practica.actividades
+                        )}{" "}
+                        / 30–120 palabras
+                      </small>
+                    </div>
 
-                      <button
-                        type="button"
-                        onClick={() =>
-                          eliminarElemento(
-                            "experiencia",
-                            indice
+                    <div className="cv-detail-field">
+                      <label>Fecha de inicio *</label>
+
+                      <input
+                        type="date"
+                        value={
+                          practica.fecha_inicio || ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "practicas",
+                            indice,
+                            "fecha_inicio",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>
+                        Fecha de finalización
+                      </label>
+
+                      <input
+                        type="date"
+                        value={
+                          practica.fecha_fin || ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "practicas",
+                            indice,
+                            "fecha_fin",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>Modalidad *</label>
+
+                      <select
+                        value={
+                          practica.modalidad || ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "practicas",
+                            indice,
+                            "modalidad",
+                            e.target.value
                           )
                         }
                       >
-                        Eliminar experiencia
-                      </button>
+                        <option value="">
+                          Selecciona
+                        </option>
 
+                        <option value="Presencial">
+                          Presencial
+                        </option>
+
+                        <option value="Híbrida">
+                          Híbrida
+                        </option>
+
+                        <option value="Remota">
+                          Remota
+                        </option>
+                      </select>
                     </div>
 
-                  )
-                )}
+                    <div className="cv-detail-field">
+                      <label>
+                        Enlace de evidencia
+                      </label>
 
+                      <input
+                        type="url"
+                        placeholder="https://..."
+                        value={
+                          practica.evidencia_url ||
+                          ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "practicas",
+                            indice,
+                            "evidencia_url",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
 
+                    <div className="cv-detail-field full">
+                      <label>
+                        Archivo de evidencia
+                      </label>
+
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) =>
+                          seleccionarEvidencia(
+                            "practicas",
+                            indice,
+                            e.target.files?.[0]
+                          )
+                        }
+                      />
+
+                      <small>
+                        PDF o imagen. Máximo 5 MB.
+                      </small>
+
+                      {practica.evidencia_archivo && (
+                        <small>
+                          Archivo guardado:{" "}
+                          {practica.evidencia_archivo}
+                        </small>
+                      )}
+
+                      {subiendoArchivo ===
+                        `practicas-${indice}` && (
+                        <small>
+                          Subiendo archivo...
+                        </small>
+                      )}
+                    </div>
+                  </div>
+                </article>
+              )
+            )}
+
+            {contenido.practicas.length < 4 && (
               <button
                 type="button"
+                className="cv-project-add"
+                onClick={() =>
+                  agregarElemento(
+                    "practicas",
+                    {
+                      tipo: "",
+                      institucion: "",
+                      area: "",
+                      rol_funcion: "",
+                      actividades: "",
+                      fecha_inicio: "",
+                      fecha_fin: "",
+                      modalidad: "",
+                      evidencia_url: "",
+                      evidencia_archivo: ""
+                    },
+                    4
+                  )
+                }
+              >
+                + Agregar práctica
+              </button>
+            )}
+
+            <div className="cv-project-actions">
+              <button
+                type="button"
+                className="cv-detail-save"
+                disabled={guardando}
+                onClick={guardarPracticas}
+              >
+                {guardando
+                  ? "Guardando..."
+                  : "Guardar prácticas"}
+              </button>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    /* =====================================================
+       9. EXPERIENCIA LABORAL
+    ===================================================== */
+
+    if (seccionActiva === "experiencia") {
+      return (
+        <section className="cv-detail-form-card">
+          <div className="cv-detail-card-header">
+            <span>EXPERIENCIA LABORAL</span>
+            <h2>Experiencia laboral</h2>
+            <p>
+              Sección opcional. Puedes registrar
+              hasta tres experiencias laborales.
+            </p>
+          </div>
+
+          <div className="cv-project-list">
+            {contenido.experiencia.map(
+              (experiencia, indice) => (
+                <article
+                  className="cv-project-card"
+                  key={indice}
+                >
+                  <div className="cv-project-card-title">
+                    <div>
+                      <span>
+                        EXPERIENCIA {indice + 1}
+                      </span>
+
+                      <h3>
+                        {experiencia.empresa ||
+                          "Nueva experiencia"}
+                      </h3>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="cv-project-delete"
+                      onClick={() =>
+                        eliminarElemento(
+                          "experiencia",
+                          indice
+                        )
+                      }
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+
+                  <div className="cv-project-fields">
+                    <div className="cv-detail-field">
+                      <label>
+                        Empresa o institución *
+                      </label>
+
+                      <input
+                        type="text"
+                        value={
+                          experiencia.empresa || ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "experiencia",
+                            indice,
+                            "empresa",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>Cargo</label>
+
+                      <input
+                        type="text"
+                        value={
+                          experiencia.cargo || ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "experiencia",
+                            indice,
+                            "cargo",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>Área</label>
+
+                      <input
+                        type="text"
+                        value={
+                          experiencia.area || ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "experiencia",
+                            indice,
+                            "area",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>
+                        Tipo de empleo *
+                      </label>
+
+                      <select
+                        value={
+                          experiencia.tipo_empleo ||
+                          ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "experiencia",
+                            indice,
+                            "tipo_empleo",
+                            e.target.value
+                          )
+                        }
+                      >
+                        <option value="">
+                          Selecciona
+                        </option>
+
+                        <option value="Tiempo completo">
+                          Tiempo completo
+                        </option>
+
+                        <option value="Medio tiempo">
+                          Medio tiempo
+                        </option>
+
+                        <option value="Temporal">
+                          Temporal
+                        </option>
+
+                        <option value="Por proyecto">
+                          Por proyecto
+                        </option>
+
+                        <option value="Freelance">
+                          Freelance
+                        </option>
+
+                        <option value="Contrato">
+                          Contrato
+                        </option>
+                      </select>
+                    </div>
+
+                    <div className="cv-detail-field full">
+                      <label>
+                        Funciones y logros *
+                      </label>
+
+                      <textarea
+                        rows="5"
+                        value={
+                          experiencia.descripcion ||
+                          ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "experiencia",
+                            indice,
+                            "descripcion",
+                            e.target.value
+                          )
+                        }
+                      />
+
+                      <small>
+                        {contarPalabras(
+                          experiencia.descripcion
+                        )}{" "}
+                        / 30–120 palabras
+                      </small>
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>Fecha de inicio *</label>
+
+                      <input
+                        type="date"
+                        value={
+                          experiencia.fecha_inicio ||
+                          ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "experiencia",
+                            indice,
+                            "fecha_inicio",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={
+                            experiencia.actualmente
+                          }
+                          onChange={(e) =>
+                            modificarElemento(
+                              "experiencia",
+                              indice,
+                              "actualmente",
+                              e.target.checked
+                            )
+                          }
+                        />{" "}
+                        Actualmente trabajo aquí
+                      </label>
+                    </div>
+
+                    {!experiencia.actualmente && (
+                      <div className="cv-detail-field">
+                        <label>
+                          Fecha de finalización
+                        </label>
+
+                        <input
+                          type="date"
+                          value={
+                            experiencia.fecha_fin ||
+                            ""
+                          }
+                          onChange={(e) =>
+                            modificarElemento(
+                              "experiencia",
+                              indice,
+                              "fecha_fin",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </div>
+                    )}
+
+                    <div className="cv-detail-field">
+                      <label>Modalidad *</label>
+
+                      <select
+                        value={
+                          experiencia.modalidad ||
+                          ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "experiencia",
+                            indice,
+                            "modalidad",
+                            e.target.value
+                          )
+                        }
+                      >
+                        <option value="">
+                          Selecciona
+                        </option>
+
+                        <option value="Presencial">
+                          Presencial
+                        </option>
+
+                        <option value="Híbrida">
+                          Híbrida
+                        </option>
+
+                        <option value="Remota">
+                          Remota
+                        </option>
+                      </select>
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>
+                        Ciudad y provincia *
+                      </label>
+
+                      <input
+                        type="text"
+                        value={
+                          experiencia.ciudad_pais ||
+                          ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "experiencia",
+                            indice,
+                            "ciudad_pais",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>
+                        Enlace de evidencia
+                      </label>
+
+                      <input
+                        type="url"
+                        placeholder="https://..."
+                        value={
+                          experiencia.evidencia_url ||
+                          ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "experiencia",
+                            indice,
+                            "evidencia_url",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>
+                        Archivo de evidencia
+                      </label>
+
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) =>
+                          seleccionarEvidencia(
+                            "experiencia",
+                            indice,
+                            e.target.files?.[0]
+                          )
+                        }
+                      />
+
+                      <small>
+                        PDF o imagen. Máximo 5 MB.
+                      </small>
+
+                      {experiencia.evidencia_archivo && (
+                        <small>
+                          Archivo guardado:{" "}
+                          {experiencia.evidencia_archivo}
+                        </small>
+                      )}
+
+                      {subiendoArchivo ===
+                        `experiencia-${indice}` && (
+                        <small>
+                          Subiendo archivo...
+                        </small>
+                      )}
+                    </div>
+                  </div>
+                </article>
+              )
+            )}
+
+            {contenido.experiencia.length < 3 && (
+              <button
+                type="button"
+                className="cv-project-add"
                 onClick={() =>
                   agregarElemento(
                     "experiencia",
                     {
                       empresa: "",
                       cargo: "",
-                      ciudad_pais:
-                        "",
-                      fecha_inicio:
-                        "",
-                      fecha_fin:
-                        "",
-                      actualmente:
-                        false,
-                      descripcion:
-                        ""
+                      area: "",
+                      tipo_empleo: "",
+                      descripcion: "",
+                      fecha_inicio: "",
+                      fecha_fin: "",
+                      actualmente: false,
+                      modalidad: "",
+                      ciudad_pais: "",
+                      evidencia_url: "",
+                      evidencia_archivo: ""
                     },
                     3
                   )
                 }
               >
-                Agregar experiencia
+                + Agregar experiencia
               </button>
+            )}
 
-
+            <div className="cv-project-actions">
               <button
                 type="button"
                 className="cv-detail-save"
-                disabled={
-                  guardando
-                }
-                onClick={() =>
-                  guardar(
-                    "experiencia",
-                    contenido.experiencia
-                  )
-                }
+                disabled={guardando}
+                onClick={guardarExperiencias}
               >
-                Guardar experiencia
+                {guardando
+                  ? "Guardando..."
+                  : "Guardar experiencia"}
               </button>
-
             </div>
+          </div>
+        </section>
+      );
+    }
 
-          </section>
-        );
-      }
+    /* =====================================================
+       10. REFERENCIAS
+    ===================================================== */
 
+    if (seccionActiva === "referencias") {
+      return (
+        <section className="cv-detail-form-card">
+          <div className="cv-detail-card-header">
+            <span>REFERENCIAS</span>
+            <h2>Referencias</h2>
+            <p>
+              Sección opcional. Puedes registrar
+              hasta cinco referencias académicas,
+              laborales o profesionales.
+            </p>
+          </div>
 
-      /* =====================================================
-         10. REFERENCIAS
-      ===================================================== */
+          <div className="cv-project-list">
+            {contenido.referencias.map(
+              (referencia, indice) => (
+                <article
+                  className="cv-project-card"
+                  key={indice}
+                >
+                  <div className="cv-project-card-title">
+                    <div>
+                      <span>
+                        REFERENCIA {indice + 1}
+                      </span>
 
-      if (
-        seccionActiva ===
-        "referencias"
-      ) {
-        return (
-          <section className="cv-detail-form-card">
+                      <h3>
+                        {referencia.nombre_completo ||
+                          "Nueva referencia"}
+                      </h3>
+                    </div>
 
-            <div className="cv-detail-card-header">
-
-              <span>
-                REFERENCIAS
-              </span>
-
-              <h2>
-                Referencias
-              </h2>
-
-              <p>
-                Puedes registrar hasta cinco
-                referencias personales o
-                profesionales.
-              </p>
-
-            </div>
-
-
-            <div className="cv-detail-form">
-
-              {contenido
-                .referencias
-                .map(
-                  (
-                    referencia,
-                    indice
-                  ) => (
-
-                    <div
-                      key={indice}
-                      style={{
-                        border:
-                          "1px solid #ddd",
-
-                        padding:
-                          "15px",
-
-                        marginBottom:
-                          "15px"
-                      }}
+                    <button
+                      type="button"
+                      className="cv-project-delete"
+                      onClick={() =>
+                        eliminarElemento(
+                          "referencias",
+                          indice
+                        )
+                      }
                     >
+                      Eliminar
+                    </button>
+                  </div>
 
+                  <div className="cv-project-fields">
+                    <div className="cv-detail-field">
                       <label>
-                        Nombre y apellido
+                        Tipo de referencia *
+                      </label>
+
+                      <select
+                        value={
+                          referencia.tipo_referencia ||
+                          ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "referencias",
+                            indice,
+                            "tipo_referencia",
+                            e.target.value
+                          )
+                        }
+                      >
+                        <option value="">
+                          Selecciona
+                        </option>
+
+                        <option value="Académica">
+                          Académica
+                        </option>
+
+                        <option value="Laboral">
+                          Laboral
+                        </option>
+
+                        <option value="Profesional">
+                          Profesional
+                        </option>
+                      </select>
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>
+                        Nombre completo *
                       </label>
 
                       <input
                         type="text"
                         value={
-                          referencia
-                            .nombre_completo ||
+                          referencia.nombre_completo ||
                           ""
                         }
-                        onChange={
-                          (e) =>
-                            modificarElemento(
-                              "referencias",
-                              indice,
-                              "nombre_completo",
-                              e.target.value
-                            )
+                        onChange={(e) =>
+                          modificarElemento(
+                            "referencias",
+                            indice,
+                            "nombre_completo",
+                            e.target.value
+                          )
                         }
                       />
+                    </div>
 
-
+                    <div className="cv-detail-field">
                       <label>
-                        Cargo actual
+                        Cargo u ocupación *
                       </label>
 
                       <input
                         type="text"
                         value={
-                          referencia.cargo ||
-                          ""
+                          referencia.cargo || ""
                         }
-                        onChange={
-                          (e) =>
-                            modificarElemento(
-                              "referencias",
-                              indice,
-                              "cargo",
-                              e.target.value
-                            )
+                        onChange={(e) =>
+                          modificarElemento(
+                            "referencias",
+                            indice,
+                            "cargo",
+                            e.target.value
+                          )
                         }
                       />
+                    </div>
 
-
+                    <div className="cv-detail-field">
                       <label>
-                        Empresa o institución
+                        Institución o empresa *
                       </label>
 
                       <input
                         type="text"
                         value={
-                          referencia
-                            .empresa_institucion ||
+                          referencia.empresa_institucion ||
                           ""
                         }
-                        onChange={
-                          (e) =>
-                            modificarElemento(
-                              "referencias",
-                              indice,
-                              "empresa_institucion",
-                              e.target.value
-                            )
+                        onChange={(e) =>
+                          modificarElemento(
+                            "referencias",
+                            indice,
+                            "empresa_institucion",
+                            e.target.value
+                          )
                         }
                       />
+                    </div>
 
-
+                    <div className="cv-detail-field">
                       <label>
-                        Teléfono
-                      </label>
-
-                      <input
-                        type="text"
-                        value={
-                          referencia.telefono ||
-                          ""
-                        }
-                        onChange={
-                          (e) =>
-                            modificarElemento(
-                              "referencias",
-                              indice,
-                              "telefono",
-                              e.target.value
-                            )
-                        }
-                      />
-
-
-                      <label>
-                        Correo electrónico profesional
+                        Correo electrónico *
                       </label>
 
                       <input
                         type="email"
                         value={
-                          referencia.email ||
-                          ""
+                          referencia.email || ""
                         }
-                        onChange={
-                          (e) =>
+                        onChange={(e) =>
+                          modificarElemento(
+                            "referencias",
+                            indice,
+                            "email",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cv-detail-field">
+                      <label>
+                        Número de teléfono
+                      </label>
+
+                      <input
+                        type="tel"
+                        placeholder="09xxxxxxxx"
+                        value={
+                          referencia.telefono || ""
+                        }
+                        onChange={(e) =>
+                          modificarElemento(
+                            "referencias",
+                            indice,
+                            "telefono",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cv-detail-field full">
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={
+                            referencia.autorizacion
+                          }
+                          onChange={(e) =>
                             modificarElemento(
                               "referencias",
                               indice,
-                              "email",
-                              e.target.value
+                              "autorizacion",
+                              e.target.checked
                             )
-                        }
-                      />
-
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          eliminarElemento(
-                            "referencias",
-                            indice
-                          )
-                        }
-                      >
-                        Eliminar referencia
-                      </button>
-
+                          }
+                        />{" "}
+                        Confirmo que tengo autorización
+                        para utilizar los datos de esta
+                        referencia *
+                      </label>
                     </div>
+                  </div>
+                </article>
+              )
+            )}
 
-                  )
-                )}
-
-
+            {contenido.referencias.length < 5 && (
               <button
                 type="button"
+                className="cv-project-add"
                 onClick={() =>
                   agregarElemento(
                     "referencias",
                     {
-                      nombre_completo:
-                        "",
-                      cargo:
-                        "",
-                      empresa_institucion:
-                        "",
-                      telefono:
-                        "",
-                      email:
-                        ""
+                      tipo_referencia: "",
+                      nombre_completo: "",
+                      cargo: "",
+                      empresa_institucion: "",
+                      email: "",
+                      telefono: "",
+                      autorizacion: false
                     },
                     5
                   )
                 }
               >
-                Agregar referencia
+                + Agregar referencia
               </button>
+            )}
 
-
+            <div className="cv-project-actions">
               <button
                 type="button"
                 className="cv-detail-save"
-                disabled={
-                  guardando
-                }
-                onClick={() =>
-                  guardar(
-                    "referencias",
-                    contenido.referencias
-                  )
-                }
+                disabled={guardando}
+                onClick={guardarReferencias}
               >
-                Guardar referencias
+                {guardando
+                  ? "Guardando..."
+                  : "Guardar referencias"}
               </button>
-
             </div>
-
-          </section>
-        );
-      }
-
-
-      return (
-        <p>
-          La sección seleccionada no está disponible.
-        </p>
+          </div>
+        </section>
       );
-    };
+    }
 
+    return null;
+  };
 
   /* =========================================================
      INTERFAZ PRINCIPAL
@@ -3574,207 +3493,101 @@ function StudentCVDetailPage() {
 
   return (
     <div className="student-page">
-
-
-      {/* =====================================================
-          SIDEBAR
-      ===================================================== */}
-
       <aside className="student-sidebar">
-
         <div className="student-brand">
-
           <div className="student-brand-logo">
             P
           </div>
 
           <div>
-
-            <h2>
-              PoliCV
-            </h2>
-
-            <span>
-              Estudiante
-            </span>
-
+            <h2>PoliCV</h2>
+            <span>Estudiante</span>
           </div>
-
         </div>
-
 
         <div className="student-profile-mini">
-
           <div className="student-avatar">
-
             {perfil.nombres
               ?.charAt(0)
-              ?.toUpperCase() ||
-              "E"}
-
+              ?.toUpperCase() || "E"}
           </div>
-
 
           <div>
-
-            <strong>
-              {perfil.nombres}
-            </strong>
-
-            <span>
-              {usuario?.email}
-            </span>
-
+            <strong>{perfil.nombres}</strong>
+            <span>{usuario?.email}</span>
           </div>
-
         </div>
 
-
         <nav className="student-menu">
-
           <Link to="/estudiante">
-
-            <span>
-              01
-            </span>
-
+            <span>01</span>
             Inicio
-
           </Link>
-
 
           <Link to="/perfil">
-
-            <span>
-              02
-            </span>
-
+            <span>02</span>
             Mi perfil
-
           </Link>
-
 
           <Link
             to="/estudiante/curriculums"
             className="active"
           >
-
-            <span>
-              03
-            </span>
-
+            <span>03</span>
             Mis currículums
-
           </Link>
-
 
           <Link to="/estudiante/asistente-ia">
-
-            <span>
-              04
-            </span>
-
+            <span>04</span>
             Asistente IA
-
           </Link>
-
 
           <Link to="/estudiante/propuestas">
-
-            <span>
-              05
-            </span>
-
+            <span>05</span>
             Propuestas de mejora
-
           </Link>
-
         </nav>
-
 
         <button
           type="button"
           className="student-logout"
-          onClick={
-            cerrarSesion
-          }
+          onClick={cerrarSesion}
         >
           Cerrar sesión
         </button>
-
       </aside>
 
-
-      {/* =====================================================
-          CONTENIDO
-      ===================================================== */}
-
       <main className="student-main">
-
-
         <header className="student-header">
-
           <div>
-
             <span className="student-header-label">
               CONTENIDO DEL CURRÍCULUM
             </span>
 
             <h1>
-              {
-                datos
-                  .curriculum
-                  .nombre
-              }
+              {datos.curriculum.nombre}
             </h1>
 
-            <p>
-              {perfil.carrera}
-            </p>
-
+            <p>{perfil.carrera}</p>
           </div>
-
 
           <div className="student-header-account">
-
             <div>
-
-              <span>
-                Sesión iniciada como
-              </span>
-
-              <strong>
-                {usuario?.email}
-              </strong>
-
+              <span>Sesión iniciada como</span>
+              <strong>{usuario?.email}</strong>
             </div>
-
 
             <div className="student-header-avatar">
-
               {perfil.nombres
                 ?.charAt(0)
-                ?.toUpperCase() ||
-                "E"}
-
+                ?.toUpperCase() || "E"}
             </div>
-
           </div>
-
         </header>
 
-
         <div className="student-content">
-
-
-          {/* =================================================
-              CABECERA
-          ================================================= */}
-
           <section className="cv-detail-heading">
-
             <div>
-
               <span>
                 ESTRUCTURA PREDETERMINADA
               </span>
@@ -3785,45 +3598,29 @@ function StudentCVDetailPage() {
 
               <p>
                 Las secciones y opciones están
-                configuradas según tu carrera.
+                configuradas según las reglas de
+                PoliCV.
               </p>
-
             </div>
 
-
-            <div
-              style={{
-                display:
-                  "flex",
-
-                gap:
-                  "10px",
-
-                alignItems:
-                  "center",
-
-                flexWrap:
-                  "wrap"
-              }}
-            >
-
+            <div className="cv-detail-actions">
               <button
                 type="button"
                 className="cv-detail-save"
-                onClick={
-                  generarPDF
-                }
-                disabled={
-                  generandoPDF
-                }
+                onClick={generarPDF}
+                disabled={generandoPDF}
               >
-
                 {generandoPDF
                   ? "Generando PDF..."
                   : "Generar PDF"}
-
               </button>
 
+              <Link
+                to={`/estudiante/curriculums/${id}/landing`}
+                className="cv-detail-back"
+              >
+                Mi Landing Page
+              </Link>
 
               <Link
                 to="/estudiante/curriculums"
@@ -3831,104 +3628,51 @@ function StudentCVDetailPage() {
               >
                 Volver a mis currículums
               </Link>
-
             </div>
-
           </section>
-
-
-          {/* =================================================
-              SECCIONES
-          ================================================= */}
 
           <section className="cv-detail-tabs">
-
-            {datos.secciones.map(
-              (seccion) => (
-
-                <button
-                  key={
-                    seccion.id_seccion
-                  }
-                  type="button"
-                  className={
-                    seccionActiva ===
-                    seccion.clave
-                      ? "active"
-                      : ""
-                  }
-                  onClick={() => {
-
-                    setSeccionActiva(
-                      seccion.clave
-                    );
-
-                    setError("");
-
-                    setMensaje("");
-
-                  }}
-                >
-                  {seccion.nombre}
-                </button>
-
-              )
-            )}
-
+            {datos.secciones.map((seccion) => (
+              <button
+                key={seccion.id_seccion}
+                type="button"
+                className={
+                  seccionActiva === seccion.clave
+                    ? "active"
+                    : ""
+                }
+                onClick={() => {
+                  setSeccionActiva(seccion.clave);
+                  setError("");
+                  setMensaje("");
+                }}
+              >
+                {seccion.clave === "habilidades"
+                  ? "Habilidades"
+                  : seccion.nombre}
+              </button>
+            ))}
           </section>
 
-
-          {/* =================================================
-              MENSAJES
-          ================================================= */}
-
           {error && (
-
             <div className="cv-detail-message error">
-
               {error}
-
             </div>
-
           )}
-
 
           {mensaje && (
-
             <div className="cv-detail-message success">
-
               {mensaje}
-
             </div>
-
           )}
 
-
-          {/* =================================================
-              SECCIÓN ACTIVA
-          ================================================= */}
-
-          <div
-            style={{
-              marginTop:
-                "20px"
-            }}
-          >
+          <div style={{ marginTop: "20px" }}>
             {renderSeccion()}
           </div>
-
-
-
-
         </div>
-
-
       </main>
-
-
     </div>
   );
 }
 
-
-export default StudentCVDetailPage;
+export default PaginaDetalleCurriculum;

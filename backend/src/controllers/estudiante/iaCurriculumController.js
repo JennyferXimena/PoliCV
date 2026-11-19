@@ -1,9 +1,9 @@
 const curriculumModel =
-  require("../models/curriculumModel");
+  require("../../models/curriculumModel");
 
 const {
   enviarMensajeIA
-} = require("../services/aiService");
+} = require("../../services/aiService");
 
 
 /* =========================================================

@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const controladorAutenticacion = require("../controllers/AutenticacionController");
+const controladorAutenticacion = require("../../controllers/estudiante/AutenticacionController");
 
 router.post("/registro", controladorAutenticacion.registrarUsuario);
 router.post("/login", controladorAutenticacion.iniciarSesion);

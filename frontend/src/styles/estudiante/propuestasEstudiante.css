@@ -1,0 +1,770 @@
+/* =========================================================
+   ESTUDIANTE - PROPUESTAS DE MEJORA
+========================================================= */
+
+.proposal-page-heading {
+  margin-bottom: 24px;
+
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+
+  gap: 30px;
+}
+
+
+.proposal-page-heading > div:first-child > span {
+  display: block;
+
+  margin-bottom: 7px;
+
+  color:
+    var(--student-primary-dark);
+
+  font-size: 8px;
+
+  font-weight: 800;
+
+  letter-spacing: 1.3px;
+}
+
+
+.proposal-page-heading h2 {
+  margin:
+    0 0 8px;
+
+  color:
+    var(--student-title);
+
+  font-size: 28px;
+}
+
+
+.proposal-page-heading p {
+  max-width: 650px;
+
+  margin: 0;
+
+  color:
+    var(--student-muted);
+
+  font-size: 12px;
+
+  line-height: 1.7;
+}
+
+
+/* CONTADOR */
+
+.proposal-count {
+  min-width: 170px;
+
+  padding:
+    16px 19px;
+
+  border:
+    1px solid
+    var(--student-border);
+
+  border-radius: 11px;
+
+  background:
+    var(--student-white);
+
+  text-align: right;
+
+  box-shadow:
+    var(--student-shadow);
+}
+
+
+.proposal-count span {
+  display: block;
+
+  margin-bottom: 4px;
+
+  color:
+    var(--student-muted);
+
+  font-size: 9px;
+}
+
+
+.proposal-count strong {
+  color:
+    var(--student-primary-dark);
+
+  font-size: 24px;
+}
+
+
+/* =========================================================
+   FORMULARIO
+========================================================= */
+
+.proposal-form-card {
+  margin-bottom: 22px;
+
+  padding: 25px;
+
+  display: grid;
+
+  grid-template-columns:
+    0.65fr 1.35fr;
+
+  gap: 36px;
+
+  border:
+    1px solid
+    var(--student-border);
+
+  border-radius:
+    var(--student-radius);
+
+  background:
+    var(--student-white);
+
+  box-shadow:
+    var(--student-shadow);
+}
+
+
+.proposal-form-info {
+  padding-right: 22px;
+
+  border-right:
+    1px solid
+    var(--student-border);
+}
+
+
+.proposal-form-info > span {
+  display: block;
+
+  margin-bottom: 7px;
+
+  color:
+    var(--student-primary-dark);
+
+  font-size: 8px;
+
+  font-weight: 800;
+
+  letter-spacing: 1.2px;
+}
+
+
+.proposal-form-info h3 {
+  margin:
+    0 0 9px;
+
+  color:
+    var(--student-title);
+
+  font-size: 20px;
+}
+
+
+.proposal-form-info p {
+  margin: 0;
+
+  color:
+    var(--student-muted);
+
+  font-size: 11px;
+
+  line-height: 1.7;
+}
+
+
+/* FORM */
+
+.proposal-form {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 17px;
+}
+
+
+.proposal-field {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 7px;
+}
+
+
+.proposal-field label {
+  color:
+    var(--student-title);
+
+  font-size: 10px;
+
+  font-weight: 700;
+}
+
+
+.proposal-field input,
+.proposal-field textarea {
+  width: 100%;
+
+  border:
+    1px solid
+    var(--student-border);
+
+  border-radius: 8px;
+
+  background:
+    var(--student-surface);
+
+  color:
+    var(--student-text);
+
+  font-size: 11px;
+
+  outline: none;
+
+  transition:
+    0.2s ease;
+}
+
+
+.proposal-field input {
+  height: 43px;
+
+  padding:
+    0 13px;
+}
+
+
+.proposal-field textarea {
+  min-height: 110px;
+
+  padding:
+    11px 13px;
+
+  resize: vertical;
+}
+
+
+.proposal-field input:focus,
+.proposal-field textarea:focus {
+  border-color:
+    var(--student-primary);
+
+  background: white;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(103, 173, 150, 0.08);
+}
+
+
+/* MENSAJES */
+
+.proposal-message {
+  padding:
+    11px 14px;
+
+  border-radius: 8px;
+
+  font-size: 10px;
+
+  font-weight: 600;
+}
+
+
+.proposal-message.success {
+  border:
+    1px solid #badbcd;
+
+  background:
+    var(--student-success-bg);
+
+  color:
+    var(--student-success);
+}
+
+
+.proposal-message.error {
+  border:
+    1px solid #e5c1c1;
+
+  background:
+    var(--student-danger-bg);
+
+  color:
+    var(--student-danger);
+}
+
+
+/* BOTON */
+
+.proposal-form-actions {
+  display: flex;
+
+  justify-content: flex-end;
+}
+
+
+.proposal-form-actions button {
+  min-width: 135px;
+
+  min-height: 40px;
+
+  padding:
+    0 17px;
+
+  border:
+    1px solid
+    var(--student-primary);
+
+  border-radius: 8px;
+
+  background:
+    var(--student-primary);
+
+  color: white;
+
+  font-size: 10px;
+
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    0.2s ease;
+}
+
+
+.proposal-form-actions button:hover:not(:disabled) {
+  background:
+    var(--student-primary-dark);
+
+  border-color:
+    var(--student-primary-dark);
+}
+
+
+.proposal-form-actions button:disabled {
+  opacity: 0.55;
+
+  cursor: not-allowed;
+}
+
+
+/* =========================================================
+   HISTORIAL
+========================================================= */
+
+.student-proposals-card {
+  overflow: hidden;
+
+  border:
+    1px solid
+    var(--student-border);
+
+  border-radius:
+    var(--student-radius);
+
+  background:
+    var(--student-white);
+
+  box-shadow:
+    var(--student-shadow);
+}
+
+
+.student-proposals-header {
+  padding:
+    21px 24px;
+
+  display: flex;
+
+  align-items: flex-end;
+
+  justify-content: space-between;
+
+  gap: 20px;
+
+  border-bottom:
+    1px solid
+    var(--student-border);
+
+  background:
+    #f6faf8;
+}
+
+
+.student-proposals-header span {
+  display: block;
+
+  margin-bottom: 6px;
+
+  color:
+    var(--student-primary-dark);
+
+  font-size: 8px;
+
+  font-weight: 800;
+
+  letter-spacing: 1.2px;
+}
+
+
+.student-proposals-header h3 {
+  margin: 0;
+
+  color:
+    var(--student-title);
+
+  font-size: 19px;
+}
+
+
+.student-proposals-header p {
+  margin: 0;
+
+  color:
+    var(--student-muted);
+
+  font-size: 9px;
+}
+
+
+/* =========================================================
+   LISTA
+========================================================= */
+
+.student-proposals-list {
+  padding: 20px;
+}
+
+
+.student-proposal-item {
+  margin-bottom: 11px;
+
+  padding: 18px;
+
+  display: grid;
+
+  grid-template-columns:
+    1fr 130px 0.8fr;
+
+  align-items: center;
+
+  gap: 20px;
+
+  border:
+    1px solid
+    var(--student-border);
+
+  border-radius: 9px;
+
+  background:
+    var(--student-white);
+
+  transition:
+    0.2s ease;
+}
+
+
+.student-proposal-item:last-child {
+  margin-bottom: 0;
+}
+
+
+.student-proposal-item:hover {
+  border-color:
+    #b8d8cb;
+
+  background:
+    #fbfdfc;
+}
+
+
+/* PROPUESTA */
+
+.student-proposal-label {
+  display: block;
+
+  margin-bottom: 5px;
+
+  color:
+    var(--student-primary-dark);
+
+  font-size: 7px;
+
+  font-weight: 800;
+
+  letter-spacing: 1px;
+}
+
+
+.student-proposal-main h4 {
+  margin:
+    0 0 6px;
+
+  color:
+    var(--student-title);
+
+  font-size: 12px;
+}
+
+
+.student-proposal-main p {
+  margin: 0;
+
+  color:
+    var(--student-muted);
+
+  font-size: 10px;
+
+  line-height: 1.6;
+}
+
+
+/* =========================================================
+   ESTADOS
+========================================================= */
+
+.student-proposal-status-area {
+  display: flex;
+
+  justify-content: center;
+}
+
+
+.student-proposal-status {
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 6px;
+
+  padding:
+    6px 10px;
+
+  border-radius: 20px;
+
+  font-size: 8px;
+
+  font-weight: 700;
+}
+
+
+.student-proposal-status::before {
+  content: "";
+
+  width: 6px;
+  height: 6px;
+
+  border-radius: 50%;
+}
+
+
+.student-proposal-status.pendiente {
+  background:
+    #fff8e9;
+
+  color:
+    #a98239;
+}
+
+
+.student-proposal-status.pendiente::before {
+  background:
+    #c89e46;
+}
+
+
+.student-proposal-status.en_revision {
+  background:
+    #eef7f4;
+
+  color:
+    var(--student-primary-dark);
+}
+
+
+.student-proposal-status.en_revision::before {
+  background:
+    var(--student-primary);
+}
+
+
+.student-proposal-status.aceptada {
+  background:
+    var(--student-success-bg);
+
+  color:
+    var(--student-success);
+}
+
+
+.student-proposal-status.aceptada::before {
+  background:
+    var(--student-success);
+}
+
+
+.student-proposal-status.rechazada {
+  background:
+    var(--student-danger-bg);
+
+  color:
+    var(--student-danger);
+}
+
+
+.student-proposal-status.rechazada::before {
+  background:
+    var(--student-danger);
+}
+
+
+/* =========================================================
+   RESPUESTA ADMIN
+========================================================= */
+
+.student-proposal-response {
+  padding-left: 20px;
+
+  border-left:
+    1px solid
+    var(--student-border);
+}
+
+
+.student-proposal-response > span {
+  display: block;
+
+  margin-bottom: 5px;
+
+  color:
+    var(--student-muted);
+
+  font-size: 8px;
+
+  font-weight: 700;
+}
+
+
+.student-proposal-response p {
+  margin: 0;
+
+  color:
+    var(--student-text);
+
+  font-size: 10px;
+
+  line-height: 1.5;
+}
+
+
+/* SIN PROPUESTAS */
+
+.student-proposals-empty {
+  padding:
+    50px 25px;
+
+  text-align: center;
+
+  color:
+    var(--student-muted);
+
+  font-size: 11px;
+}
+
+
+.student-proposals-empty strong {
+  display: block;
+
+  margin-bottom: 7px;
+
+  color:
+    var(--student-title);
+
+  font-size: 14px;
+}
+
+
+.student-proposals-empty p {
+  margin: 0;
+
+  font-size: 10px;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1000px) {
+
+  .proposal-form-card {
+    grid-template-columns:
+      1fr;
+  }
+
+
+  .proposal-form-info {
+    padding-right: 0;
+
+    padding-bottom: 18px;
+
+    border-right: none;
+
+    border-bottom:
+      1px solid
+      var(--student-border);
+  }
+
+
+  .student-proposal-item {
+    grid-template-columns:
+      1fr;
+  }
+
+
+  .student-proposal-status-area {
+    justify-content:
+      flex-start;
+  }
+
+
+  .student-proposal-response {
+    padding:
+      15px 0 0;
+
+    border-left: none;
+
+    border-top:
+      1px solid
+      var(--student-border);
+  }
+
+}
+
+
+@media (max-width: 700px) {
+
+  .proposal-page-heading,
+  .student-proposals-header {
+    align-items:
+      flex-start;
+
+    flex-direction:
+      column;
+  }
+
+
+  .proposal-count {
+    width: 100%;
+
+    text-align: left;
+  }
+
+}

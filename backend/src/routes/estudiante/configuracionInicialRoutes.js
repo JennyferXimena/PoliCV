@@ -5,19 +5,19 @@ const {
   listarCarreras,
   completarConfiguracion
 } = require(
-  "../controllers/configuracionInicialController"
+  "../../controllers/estudiante/configuracionInicialController"
 );
 
 const {
   verificarToken
 } = require(
-  "../middlewares/AutenticacionMiddleware"
+  "../../middlewares/AutenticacionMiddleware"
 );
 
 const {
   verificarRol
 } = require(
-  "../middlewares/RolMiddleware"
+  "../../middlewares/RolMiddleware"
 );
 
 const router = express.Router();

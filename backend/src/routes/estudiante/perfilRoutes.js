@@ -1,11 +1,11 @@
 const express = require("express");
 
 const perfilController =
-  require("../controllers/perfilController");
+  require("../../controllers/estudiante/perfilController");
 
 const {
   verificarToken
-} = require("../middlewares/AutenticacionMiddleware");
+} = require("../../middlewares/AutenticacionMiddleware");
 
 const router = express.Router();
 

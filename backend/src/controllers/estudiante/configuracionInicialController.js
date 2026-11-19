@@ -1,6 +1,6 @@
 const configuracionInicialModel =
   require(
-    "../models/configuracionInicialModel"
+    "../../models/configuracionInicialModel"
   );
 
 

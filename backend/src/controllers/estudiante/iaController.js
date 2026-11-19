@@ -1,15 +1,15 @@
 const {
   enviarMensajeIA
-} = require("../services/aiService");
+} = require("../../services/aiService");
 
 const curriculumModel =
-  require("../models/curriculumModel");
+  require("../../models/curriculumModel");
 
 const detalleCurriculumModel =
-  require("../models/detalleCurriculumModel");
+  require("../../models/detalleCurriculumModel");
 
 const aiSuggestionModel =
-  require("../models/sugerenciaIAModel");
+  require("../../models/sugerenciaIAModel");
 
 
 async function obtenerContextoCV(

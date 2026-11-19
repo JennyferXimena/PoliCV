@@ -1,5 +1,5 @@
 const propuestaModel =
-  require("../models/propuestaModel");
+  require("../../models/propuestaModel");
 
 async function crear(req, res) {
   const { titulo, descripcion } = req.body || {};

@@ -1,552 +1,496 @@
-const PDFDocument =
-  require("pdfkit");
+const PDFDocument = require("pdfkit");
 
+const ANCHO_LATERAL = 175;
+const X = 200;
+const ANCHO_CONTENIDO = 350;
 
-function agregarTituloSeccion(
-  doc,
-  titulo
-) {
-  doc
-    .moveDown(0.8)
-    .fontSize(13)
-    .font("Helvetica-Bold")
-    .text(titulo.toUpperCase());
-
-  doc
-    .moveDown(0.3)
-    .strokeColor("#cccccc")
-    .moveTo(
-      doc.x,
-      doc.y
-    )
-    .lineTo(
-      550,
-      doc.y
-    )
-    .stroke();
-
-  doc.moveDown(0.5);
+function valor(texto) {
+  return String(texto || "").trim();
 }
 
+function fecha(valorFecha) {
+  if (!valorFecha) return "";
 
-function generarPDFGeneral(
-  datos,
-  stream
-) {
+  const cadena = String(valorFecha);
 
-  const doc =
-    new PDFDocument({
-      size: "A4",
-      margin: 45
-    });
+  if (/^\d{4}-\d{2}-\d{2}/.test(cadena)) {
+    const [anio,mes] =
+      cadena.substring(0,10).split("-");
 
+    return `${mes}/${anio}`;
+  }
 
-  doc.pipe(stream);
+  return cadena;
+}
 
+function fondo(doc) {
+  doc
+    .save()
+    .rect(0,0,ANCHO_LATERAL,842)
+    .fill("#173F63")
+    .restore();
+}
 
-  const {
-    perfil,
-    curriculum,
-    contenido
-  } = datos;
-
-
-  /* =========================================================
-     ENCABEZADO
-  ========================================================= */
-
+function tituloLateral(doc,titulo,y) {
   doc
     .font("Helvetica-Bold")
-    .fontSize(23)
+    .fontSize(9)
+    .fillColor("#FFFFFF")
     .text(
-      `${perfil.nombres || ""} ${perfil.apellidos || ""}`
+      titulo.toUpperCase(),
+      22,
+      y,
+      { width:130 }
     );
 
+  doc
+    .moveTo(22,y + 15)
+    .lineTo(150,y + 15)
+    .strokeColor("#4DA3E5")
+    .stroke();
+
+  return y + 25;
+}
+
+function datoLateral(doc,texto,y) {
+  if (!valor(texto)) return y;
 
   doc
     .font("Helvetica")
-    .fontSize(12)
-    .fillColor("#555555")
+    .fontSize(7.5)
+    .fillColor("#F5F8FA")
     .text(
-      curriculum.titulo_profesional ||
-      perfil.titulo_profesional ||
-      perfil.carrera ||
-      ""
+      `• ${valor(texto)}`,
+      24,
+      y,
+      {
+        width:126,
+        lineGap:1
+      }
     );
 
+  return doc.y + 5;
+}
+
+function verificarPagina(doc,y) {
+  if (y < 770) return y;
+
+  doc.addPage();
+  fondo(doc);
+
+  return 45;
+}
+
+function tituloSeccion(doc,titulo,y) {
+  y = verificarPagina(doc,y);
 
   doc
-    .moveDown(0.7)
-    .fontSize(9)
-    .fillColor("#222222");
-
-
-  const contacto = [
-    perfil.email,
-    perfil.telefono,
-    perfil.ciudad_pais,
-    perfil.linkedin_url,
-    perfil.github_url,
-    perfil.sitio_web
-  ]
-    .filter(Boolean)
-    .join(" | ");
-
-
-  if (contacto) {
-    doc.text(contacto);
-  }
-
-
-  /* =========================================================
-     DESCRIPCIÓN
-  ========================================================= */
-
-  if (
-    contenido.descripcion &&
-    contenido.descripcion.trim()
-  ) {
-
-    agregarTituloSeccion(
-      doc,
-      "Perfil profesional"
+    .font("Helvetica-Bold")
+    .fontSize(10)
+    .fillColor("#173F63")
+    .text(
+      titulo.toUpperCase(),
+      X,
+      y,
+      {
+        width:ANCHO_CONTENIDO
+      }
     );
 
-    doc
-      .font("Helvetica")
-      .fontSize(10)
-      .fillColor("#222222")
-      .text(
-        contenido.descripcion,
-        {
-          align: "justify"
-        }
-      );
-  }
+  doc
+    .moveTo(X,y + 16)
+    .lineTo(
+      X + ANCHO_CONTENIDO,
+      y + 16
+    )
+    .strokeColor("#4DA3E5")
+    .stroke();
 
+  return y + 27;
+}
 
-  /* =========================================================
-     FORMACIÓN
-  ========================================================= */
+function item(
+  doc,
+  titulo,
+  subtitulo,
+  descripcion,
+  y
+) {
+  y = verificarPagina(doc,y);
 
-  if (contenido.formacion) {
-
-    agregarTituloSeccion(
-      doc,
-      "Formación académica"
-    );
-
-
-    const formacion =
-      contenido.formacion;
-
-
+  if (valor(titulo)) {
     doc
       .font("Helvetica-Bold")
-      .fontSize(10)
+      .fontSize(9)
+      .fillColor("#222222")
       .text(
-        formacion.titulo ||
-        perfil.carrera ||
-        ""
+        valor(titulo),
+        X,
+        y,
+        {
+          width:ANCHO_CONTENIDO
+        }
       );
 
+    y = doc.y + 2;
+  }
 
+  if (valor(subtitulo)) {
     doc
       .font("Helvetica")
+      .fontSize(7.5)
+      .fillColor("#2F80C9")
       .text(
-        formacion.institucion ||
-        ""
-      );
-
-
-    if (
-      formacion.fecha_inicio ||
-      formacion.fecha_fin
-    ) {
-
-      doc.text(
-        `${formacion.fecha_inicio || ""} - ${
-          formacion.en_curso
-            ? "Actualidad"
-            : formacion.fecha_fin || ""
-        }`
-      );
-    }
-
-
-    if (formacion.ciudad_pais) {
-      doc.text(
-        formacion.ciudad_pais
-      );
-    }
-
-
-    if (formacion.descripcion) {
-
-      doc
-        .moveDown(0.3)
-        .text(
-          formacion.descripcion,
-          {
-            align: "justify"
-          }
-        );
-    }
-  }
-
-
-  /* =========================================================
-     IDIOMAS
-  ========================================================= */
-
-  if (
-    contenido.idiomas?.length
-  ) {
-
-    agregarTituloSeccion(
-      doc,
-      "Idiomas"
-    );
-
-
-    contenido.idiomas.forEach(
-      (idioma) => {
-
-        doc
-          .font("Helvetica")
-          .fontSize(10)
-          .text(
-            `• ${idioma.idioma} - ${
-              idioma.es_nativo
-                ? "Nativo"
-                : idioma.nivel
-            }`
-          );
-      }
-    );
-  }
-
-
-  /* =========================================================
-     HABILIDADES
-  ========================================================= */
-
-  if (
-    contenido.habilidades?.length
-  ) {
-
-    agregarTituloSeccion(
-      doc,
-      "Habilidades"
-    );
-
-
-    contenido.habilidades.forEach(
-      (habilidad) => {
-
-        doc
-          .font("Helvetica")
-          .fontSize(10)
-          .text(
-            `• ${habilidad.nombre} - ${habilidad.porcentaje}%`
-          );
-      }
-    );
-  }
-
-
-  /* =========================================================
-     CURSOS
-  ========================================================= */
-
-  if (
-    contenido.cursos?.length
-  ) {
-
-    agregarTituloSeccion(
-      doc,
-      "Cursos y certificaciones"
-    );
-
-
-    contenido.cursos.forEach(
-      (curso) => {
-
-        doc
-          .font("Helvetica-Bold")
-          .fontSize(10)
-          .text(
-            curso.nombre
-          );
-
-
-        doc
-          .font("Helvetica")
-          .text(
-            curso.institucion ||
-            ""
-          );
-
-
-        if (curso.fecha_obtencion) {
-          doc.text(
-            String(
-              curso.fecha_obtencion
-            )
-          );
+        valor(subtitulo),
+        X,
+        y,
+        {
+          width:ANCHO_CONTENIDO
         }
+      );
 
+    y = doc.y + 3;
+  }
 
-        doc.moveDown(0.4);
+  if (valor(descripcion)) {
+    doc
+      .font("Helvetica")
+      .fontSize(8)
+      .fillColor("#444444")
+      .text(
+        valor(descripcion),
+        X,
+        y,
+        {
+          width:ANCHO_CONTENIDO,
+          align:"justify",
+          lineGap:1
+        }
+      );
+
+    y = doc.y + 7;
+  }
+
+  return y + 5;
+}
+
+function generarPDFGeneral(datos,stream) {
+  const doc = new PDFDocument({
+    size:"A4",
+    margin:0
+  });
+
+  doc.pipe(stream);
+
+  const perfil = datos.perfil || {};
+  const curriculum = datos.curriculum || {};
+  const contenido = datos.contenido || {};
+
+  fondo(doc);
+
+  const nombre =
+    `${valor(perfil.nombres)} ${valor(perfil.apellidos)}`.trim() ||
+    "Estudiante ESFOT";
+
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(17)
+    .fillColor("#FFFFFF")
+    .text(
+      nombre,
+      18,
+      55,
+      {
+        width:140,
+        align:"center"
       }
+    );
+
+  doc
+    .font("Helvetica")
+    .fontSize(8)
+    .fillColor("#D8E6F0")
+    .text(
+      valor(curriculum.titulo_profesional) ||
+      valor(perfil.titulo_profesional) ||
+      valor(perfil.carrera),
+      20,
+      105,
+      {
+        width:135,
+        align:"center"
+      }
+    );
+
+  let lateralY = 155;
+
+  lateralY =
+    tituloLateral(
+      doc,
+      "Contacto",
+      lateralY
+    );
+
+  lateralY =
+    datoLateral(
+      doc,
+      perfil.email,
+      lateralY
+    );
+
+  lateralY =
+    datoLateral(
+      doc,
+      perfil.telefono,
+      lateralY
+    );
+
+  lateralY =
+    datoLateral(
+      doc,
+      perfil.ciudad_pais,
+      lateralY
+    );
+
+  lateralY =
+    datoLateral(
+      doc,
+      perfil.linkedin_url,
+      lateralY
+    );
+
+  lateralY =
+    datoLateral(
+      doc,
+      perfil.github_url,
+      lateralY
+    );
+
+  if (contenido.habilidades?.length) {
+    lateralY += 12;
+
+    lateralY =
+      tituloLateral(
+        doc,
+        "Habilidades",
+        lateralY
+      );
+
+    contenido.habilidades
+      .slice(0,10)
+      .forEach((habilidad) => {
+        lateralY =
+          datoLateral(
+            doc,
+            `${valor(habilidad.nombre)}${
+              valor(habilidad.nivel)
+                ? ` · ${habilidad.nivel}`
+                : ""
+            }`,
+            lateralY
+          );
+      });
+  }
+
+  if (
+    contenido.idiomas?.length &&
+    lateralY < 690
+  ) {
+    lateralY += 12;
+
+    lateralY =
+      tituloLateral(
+        doc,
+        "Idiomas",
+        lateralY
+      );
+
+    contenido.idiomas
+      .slice(0,3)
+      .forEach((idioma) => {
+        lateralY =
+          datoLateral(
+            doc,
+            `${valor(idioma.idioma)}${
+              valor(idioma.nivel)
+                ? ` · ${idioma.nivel}`
+                : ""
+            }`,
+            lateralY
+          );
+      });
+  }
+
+  let y = 48;
+
+  if (valor(contenido.descripcion)) {
+    y = tituloSeccion(
+      doc,
+      "Perfil profesional",
+      y
+    );
+
+    y = item(
+      doc,
+      "",
+      "",
+      contenido.descripcion,
+      y
     );
   }
 
-
-  /* =========================================================
-     PROYECTOS
-  ========================================================= */
-
   if (
-    contenido.proyectos?.length
+    contenido.formacion ||
+    perfil.carrera
   ) {
-
-    agregarTituloSeccion(
+    y = tituloSeccion(
       doc,
-      "Proyectos"
+      "Formación académica",
+      y
     );
 
+    const formacion =
+      contenido.formacion || {};
+
+    y = item(
+      doc,
+      valor(formacion.titulo) ||
+      valor(perfil.carrera),
+      valor(formacion.institucion) ||
+      "Escuela Politécnica Nacional - ESFOT",
+      [
+        fecha(formacion.fecha_inicio),
+        formacion.en_curso
+          ? "Actualidad"
+          : fecha(formacion.fecha_fin)
+      ]
+        .filter(Boolean)
+        .join(" - "),
+      y
+    );
+  }
+
+  if (contenido.cursos?.length) {
+    y = tituloSeccion(
+      doc,
+      "Cursos y certificaciones",
+      y
+    );
+
+    contenido.cursos.forEach((curso) => {
+      y = item(
+        doc,
+        curso.nombre,
+        curso.institucion,
+        [
+          fecha(curso.fecha_obtencion),
+          curso.horas_duracion
+            ? `${curso.horas_duracion} horas`
+            : ""
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        y
+      );
+    });
+  }
+
+  if (contenido.proyectos?.length) {
+    y = tituloSeccion(
+      doc,
+      "Proyectos",
+      y
+    );
 
     contenido.proyectos.forEach(
       (proyecto) => {
-
-        doc
-          .font("Helvetica-Bold")
-          .fontSize(10)
-          .text(
-            proyecto.nombre
-          );
-
-
-        if (
-          proyecto.descripcion
-        ) {
-
-          doc
-            .font("Helvetica")
-            .text(
-              proyecto.descripcion,
-              {
-                align: "justify"
-              }
-            );
-        }
-
-
-        if (
+        y = item(
+          doc,
+          proyecto.nombre,
           proyecto.tecnologias
-        ) {
-
-          doc.text(
-            `Tecnologías: ${proyecto.tecnologias}`
-          );
-        }
-
-
-        doc.moveDown(0.5);
+            ? `Tecnologías: ${proyecto.tecnologias}`
+            : "",
+          proyecto.descripcion,
+          y
+        );
       }
     );
   }
 
-
-  /* =========================================================
-     PRÁCTICAS
-  ========================================================= */
-
-  if (
-    contenido.practicas?.length
-  ) {
-
-    agregarTituloSeccion(
+  if (contenido.practicas?.length) {
+    y = tituloSeccion(
       doc,
-      "Prácticas"
+      "Prácticas",
+      y
     );
-
 
     contenido.practicas.forEach(
       (practica) => {
-
-        doc
-          .font("Helvetica-Bold")
-          .fontSize(10)
-          .text(
-            practica.tipo ===
-              "comunitaria"
-              ? "Práctica comunitaria"
-              : "Práctica laboral"
-          );
-
-
-        doc
-          .font("Helvetica")
-          .text(
-            `${practica.institucion || ""} ${
-              practica.cargo_area
-                ? `- ${practica.cargo_area}`
-                : ""
-            }`
-          );
-
-
-        if (
-          practica.descripcion
-        ) {
-          doc.text(
-            practica.descripcion
-          );
-        }
-
-
-        if (
-          practica.herramientas
-        ) {
-          doc.text(
-            `Herramientas: ${practica.herramientas}`
-          );
-        }
-
-
-        if (
-          practica.logro_aprendizaje
-        ) {
-          doc.text(
-            `Logro o aprendizaje: ${practica.logro_aprendizaje}`
-          );
-        }
-
-
-        doc.moveDown(0.5);
+        y = item(
+          doc,
+          practica.institucion ||
+          "Práctica",
+          practica.cargo_area,
+          practica.descripcion,
+          y
+        );
       }
     );
   }
 
-
-  /* =========================================================
-     EXPERIENCIA
-  ========================================================= */
-
-  if (
-    contenido.experiencia?.length
-  ) {
-
-    agregarTituloSeccion(
+  if (contenido.experiencia?.length) {
+    y = tituloSeccion(
       doc,
-      "Experiencia laboral"
+      "Experiencia laboral",
+      y
     );
-
 
     contenido.experiencia.forEach(
       (experiencia) => {
-
-        doc
-          .font("Helvetica-Bold")
-          .fontSize(10)
-          .text(
-            experiencia.cargo ||
-            ""
-          );
-
-
-        doc
-          .font("Helvetica")
-          .text(
-            experiencia.empresa ||
-            ""
-          );
-
-
-        if (
-          experiencia.descripcion
-        ) {
-
-          doc.text(
-            experiencia.descripcion,
-            {
-              align: "justify"
-            }
-          );
-        }
-
-
-        doc.moveDown(0.5);
+        y = item(
+          doc,
+          experiencia.cargo ||
+          experiencia.empresa,
+          experiencia.empresa,
+          experiencia.descripcion,
+          y
+        );
       }
     );
   }
 
-
-  /* =========================================================
-     REFERENCIAS
-  ========================================================= */
-
-  if (
-    contenido.referencias?.length
-  ) {
-
-    agregarTituloSeccion(
+  if (contenido.referencias?.length) {
+    y = tituloSeccion(
       doc,
-      "Referencias"
+      "Referencias",
+      y
     );
-
 
     contenido.referencias.forEach(
       (referencia) => {
-
-        doc
-          .font("Helvetica-Bold")
-          .fontSize(10)
-          .text(
-            referencia.nombre_completo
-          );
-
-
-        doc
-          .font("Helvetica")
-          .text(
-            `${referencia.cargo || ""} ${
-              referencia.empresa_institucion
-                ? `- ${referencia.empresa_institucion}`
-                : ""
-            }`
-          );
-
-
-        if (
-          referencia.telefono
-        ) {
-          doc.text(
+        y = item(
+          doc,
+          referencia.nombre_completo,
+          [
+            referencia.cargo,
+            referencia.empresa_institucion
+          ]
+            .filter(Boolean)
+            .join(" · "),
+          [
+            referencia.email,
             referencia.telefono
-          );
-        }
-
-
-        if (
-          referencia.email
-        ) {
-          doc.text(
-            referencia.email
-          );
-        }
-
-
-        doc.moveDown(0.4);
+          ]
+            .filter(Boolean)
+            .join(" · "),
+          y
+        );
       }
     );
   }
 
-
   doc.end();
 }
-
 
 module.exports = {
   generarPDFGeneral

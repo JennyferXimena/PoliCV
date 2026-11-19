@@ -2,11 +2,19 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import "../../styles/estudiante/estudiante.css";
+import "../../styles/estudiante/curriculums.css";
 
-function StudentCVPage() {
+function PaginaCurriculumsEstudiante() {
   const navigate = useNavigate();
 
   const [curriculums, setCurriculums] = useState([]);
+  const [plantillas, setPlantillas] = useState([]);
+  const [limite, setLimite] = useState(3);
+  const [idEdicion, setIdEdicion] = useState(null);
+  const [cargando, setCargando] = useState(true);
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState("");
+  const [mensaje, setMensaje] = useState("");
 
   const [form, setForm] = useState({
     nombre: "",
@@ -14,12 +22,6 @@ function StudentCVPage() {
     resumen_profesional: "",
     id_plantilla: ""
   });
-
-  const [idEdicion, setIdEdicion] = useState(null);
-
-  const [error, setError] = useState("");
-  const [mensaje, setMensaje] = useState("");
-  const [cargando, setCargando] = useState(true);
 
   const usuarioGuardado =
     localStorage.getItem("usuario") ||
@@ -29,97 +31,115 @@ function StudentCVPage() {
     ? JSON.parse(usuarioGuardado)
     : null;
 
+  const limiteAlcanzado =
+    curriculums.length >= limite && !idEdicion;
+
   const cerrarSesion = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("usuario");
-
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("usuario");
-
     navigate("/iniciar-sesion");
   };
 
-  const cargarCurriculums = async () => {
-    try {
-      setCargando(true);
-      setError("");
+const cargarDatos = async () => {
+  try {
+    const [respuestaCurriculums, respuestaPlantillas] =
+      await Promise.all([
+        api.get("/curriculums"),
+        api.get("/curriculums/plantillas-disponibles")
+      ]);
 
-      const response = await api.get(
-        "/curriculums"
-      );
+    const listaCurriculums =
+      respuestaCurriculums.data.curriculums ||
+      respuestaCurriculums.data.datos ||
+      [];
 
-      const lista =
-        response.data.curriculums ||
-        response.data.datos ||
+    const listaPlantillas =
+      respuestaPlantillas.data.plantillas ||
+      respuestaPlantillas.data.datos ||
+      [];
+
+    setCurriculums(listaCurriculums);
+    setPlantillas(listaPlantillas);
+    setLimite(
+      Number(respuestaCurriculums.data.limite || 3)
+    );
+  } catch (error) {
+    setError(
+      error.response?.data?.mensaje ||
+      "No se pudo cargar la información de tus currículums"
+    );
+  } finally {
+    setCargando(false);
+  }
+}; 
+
+useEffect(() => {
+  let cancelado = false;
+
+  Promise.all([
+    api.get("/curriculums"),
+    api.get("/curriculums/plantillas-disponibles")
+  ])
+    .then(([respuestaCurriculums, respuestaPlantillas]) => {
+      if (cancelado) return;
+
+      const listaCurriculums =
+        respuestaCurriculums.data.curriculums ||
+        respuestaCurriculums.data.datos ||
         [];
 
-      setCurriculums(lista);
+      const listaPlantillas =
+        respuestaPlantillas.data.plantillas ||
+        respuestaPlantillas.data.datos ||
+        [];
 
-    } catch (error) {
+      setCurriculums(listaCurriculums);
+      setPlantillas(listaPlantillas);
+      setLimite(
+        Number(respuestaCurriculums.data.limite || 3)
+      );
+    })
+    .catch((error) => {
+      if (cancelado) return;
+
       setError(
         error.response?.data?.mensaje ||
-        "No se pudieron cargar los currículums"
+        "No se pudo cargar la información de tus currículums"
       );
+    })
+    .finally(() => {
+      if (!cancelado) {
+        setCargando(false);
+      }
+    });
 
-    } finally {
-      setCargando(false);
-    }
+  return () => {
+    cancelado = true;
+  };
+}, []);
+
+  const cambiarCampo = (e) => {
+    const { name, value } = e.target;
+
+    setForm((anterior) => ({
+      ...anterior,
+      [name]: value
+    }));
+
+    setError("");
+    setMensaje("");
   };
 
-  useEffect(() => {
-    let activo = true;
+  const seleccionarPlantilla = (idPlantilla) => {
+    setForm((anterior) => ({
+      ...anterior,
+      id_plantilla: String(idPlantilla)
+    }));
 
-    const cargarInicial = async () => {
-      try {
-        const response = await api.get(
-          "/curriculums"
-        );
-
-        if (!activo) {
-          return;
-        }
-
-        const lista =
-          response.data.curriculums ||
-          response.data.datos ||
-          [];
-
-        setCurriculums(lista);
-
-      } catch (error) {
-        if (!activo) {
-          return;
-        }
-
-        setError(
-          error.response?.data?.mensaje ||
-          "No se pudieron cargar los currículums"
-        );
-
-      } finally {
-        if (activo) {
-          setCargando(false);
-        }
-      }
-    };
-
-    cargarInicial();
-
-    return () => {
-      activo = false;
-    };
-  }, []);
-
-  const handleChange = (e) => {
-    const {
-      name,
-      value
-    } = e.target;
-
-    setForm({
-      ...form,
-      [name]: value
-    });
+    setError("");
+    setMensaje("");
   };
 
   const limpiarFormulario = () => {
@@ -131,6 +151,32 @@ function StudentCVPage() {
     });
 
     setIdEdicion(null);
+    setError("");
+  };
+
+  const validarFormulario = () => {
+    if (!form.nombre.trim()) {
+      setError(
+        "El nombre del currículum es obligatorio"
+      );
+      return false;
+    }
+
+    if (!form.id_plantilla) {
+      setError(
+        "Selecciona una plantilla para el currículum"
+      );
+      return false;
+    }
+
+    if (limiteAlcanzado) {
+      setError(
+        `Solo puedes tener un máximo de ${limite} currículums`
+      );
+      return false;
+    }
+
+    return true;
   };
 
   const guardarCurriculum = async (e) => {
@@ -139,29 +185,21 @@ function StudentCVPage() {
     setError("");
     setMensaje("");
 
-    if (!form.nombre.trim()) {
-      setError(
-        "El nombre del currículum es obligatorio"
-      );
-
+    if (!validarFormulario()) {
       return;
     }
 
     try {
-      const datos = {
-        nombre:
-          form.nombre.trim(),
+      setGuardando(true);
 
+      const datos = {
+        nombre: form.nombre.trim(),
         titulo_profesional:
           form.titulo_profesional.trim(),
-
         resumen_profesional:
           form.resumen_profesional.trim(),
-
         id_plantilla:
-          form.id_plantilla
-            ? Number(form.id_plantilla)
-            : null
+          Number(form.id_plantilla)
       };
 
       let response;
@@ -171,7 +209,6 @@ function StudentCVPage() {
           `/curriculums/${idEdicion}`,
           datos
         );
-
       } else {
         response = await api.post(
           "/curriculums",
@@ -180,23 +217,21 @@ function StudentCVPage() {
       }
 
       setMensaje(
-        response.data.mensaje ||
-        (
-          idEdicion
-            ? "Currículum actualizado correctamente"
-            : "Currículum creado correctamente"
-        )
+        response.data?.mensaje ||
+        (idEdicion
+          ? "Currículum actualizado correctamente"
+          : "Currículum creado correctamente")
       );
 
       limpiarFormulario();
-
-      await cargarCurriculums();
-
+      await cargarDatos();
     } catch (error) {
       setError(
         error.response?.data?.mensaje ||
         "No se pudo guardar el currículum"
       );
+    } finally {
+      setGuardando(false);
     }
   };
 
@@ -206,17 +241,15 @@ function StudentCVPage() {
     );
 
     setForm({
-      nombre:
-        curriculum.nombre || "",
-
+      nombre: curriculum.nombre || "",
       titulo_profesional:
         curriculum.titulo_profesional || "",
-
       resumen_profesional:
         curriculum.resumen_profesional || "",
-
       id_plantilla:
-        curriculum.id_plantilla || ""
+        String(
+          curriculum.id_plantilla || ""
+        )
     });
 
     setError("");
@@ -247,13 +280,19 @@ function StudentCVPage() {
         `/curriculums/${curriculum.id_curriculum}`
       );
 
+      if (
+        Number(idEdicion) ===
+        Number(curriculum.id_curriculum)
+      ) {
+        limpiarFormulario();
+      }
+
       setMensaje(
-        response.data.mensaje ||
+        response.data?.mensaje ||
         "Currículum eliminado correctamente"
       );
 
-      await cargarCurriculums();
-
+      await cargarDatos();
     } catch (error) {
       setError(
         error.response?.data?.mensaje ||
@@ -264,22 +303,44 @@ function StudentCVPage() {
 
   const formatearFecha = (fecha) => {
     if (!fecha) {
-      return "-";
+      return "Sin fecha";
     }
 
-    return new Date(
-      fecha
-    ).toLocaleDateString();
+    return new Date(fecha).toLocaleDateString(
+      "es-EC",
+      {
+        year: "numeric",
+        month: "short",
+        day: "2-digit"
+      }
+    );
+  };
+
+  const obtenerNombrePlantilla = (
+    curriculum
+  ) => {
+    return (
+      curriculum.nombre_plantilla ||
+      curriculum.plantilla_nombre ||
+      curriculum.plantilla ||
+      "Sin plantilla"
+    );
+  };
+
+  const obtenerCodigoPlantilla = (
+    plantilla
+  ) => {
+    return (
+      plantilla.codigo ||
+      plantilla.plantilla_codigo ||
+      "moderna"
+    );
   };
 
   return (
     <div className="student-page">
-
-      {/* SIDEBAR */}
       <aside className="student-sidebar">
-
         <div className="student-brand">
-
           <div className="student-brand-logo">
             P
           </div>
@@ -288,12 +349,9 @@ function StudentCVPage() {
             <h2>PoliCV</h2>
             <span>Estudiante</span>
           </div>
-
         </div>
 
-
         <div className="student-profile-mini">
-
           <div className="student-avatar">
             {usuario?.email
               ? usuario.email
@@ -303,20 +361,12 @@ function StudentCVPage() {
           </div>
 
           <div>
-            <strong>
-              Estudiante
-            </strong>
-
-            <span>
-              {usuario?.email}
-            </span>
+            <strong>Estudiante</strong>
+            <span>{usuario?.email}</span>
           </div>
-
         </div>
 
-
         <nav className="student-menu">
-
           <Link to="/estudiante">
             <span>01</span>
             Inicio
@@ -344,9 +394,7 @@ function StudentCVPage() {
             <span>05</span>
             Propuestas de mejora
           </Link>
-
         </nav>
-
 
         <button
           type="button"
@@ -355,43 +403,28 @@ function StudentCVPage() {
         >
           Cerrar sesión
         </button>
-
       </aside>
 
-
-      {/* CONTENIDO */}
       <main className="student-main">
-
         <header className="student-header">
-
           <div>
-
             <span className="student-header-label">
               GESTIÓN DEL CURRÍCULUM
             </span>
 
-            <h1>
-              Mis currículums
-            </h1>
+            <h1>Mis currículums</h1>
 
             <p>
-              Crea y administra diferentes
-              versiones de tu currículum profesional.
+              Crea hasta tres versiones de tu
+              currículum según el tipo de vacante
+              al que quieras postular.
             </p>
-
           </div>
 
-
           <div className="student-header-account">
-
             <div>
-              <span>
-                Sesión iniciada como
-              </span>
-
-              <strong>
-                {usuario?.email}
-              </strong>
+              <span>Sesión iniciada como</span>
+              <strong>{usuario?.email}</strong>
             </div>
 
             <div className="student-header-avatar">
@@ -401,56 +434,76 @@ function StudentCVPage() {
                     .toUpperCase()
                 : "E"}
             </div>
-
           </div>
-
         </header>
 
-
         <div className="student-content">
-
-          {/* CABECERA */}
-          <section className="cv-heading">
-
+          <section className="curriculums-hero">
             <div>
-
-              <span>
+              <span className="curriculums-etiqueta">
                 CURRÍCULUM PROFESIONAL
               </span>
 
               <h2>
-                Gestiona tus currículums
+                Prepara un CV para cada objetivo
+                profesional
               </h2>
 
               <p>
-                Puedes crear diferentes versiones
-                de tu CV y completar la información
-                necesaria para cada una.
+                Puedes crear distintas versiones,
+                completar sus diez secciones,
+                seleccionar una plantilla, generar
+                el PDF y publicar una Landing Page.
               </p>
-
             </div>
 
-
-            <div className="cv-counter">
-
-              <span>
-                Currículums creados
-              </span>
+            <div className="curriculums-limite">
+              <span>CURRÍCULUMS CREADOS</span>
 
               <strong>
                 {curriculums.length}
+                <small> / {limite}</small>
               </strong>
 
-            </div>
+              <div className="curriculums-progreso">
+                <div
+                  style={{
+                    width:
+                      `${Math.min(
+                        (curriculums.length /
+                          limite) *
+                          100,
+                        100
+                      )}%`
+                  }}
+                />
+              </div>
 
+              <p>
+                {curriculums.length >= limite
+                  ? "Alcanzaste el límite permitido."
+                  : `Puedes crear ${
+                      limite -
+                      curriculums.length
+                    } más.`}
+              </p>
+            </div>
           </section>
 
+          {error && (
+            <div className="curriculums-mensaje error">
+              {error}
+            </div>
+          )}
 
-          {/* FORMULARIO */}
-          <section className="cv-form-card">
+          {mensaje && (
+            <div className="curriculums-mensaje exito">
+              {mensaje}
+            </div>
+          )}
 
-            <div className="cv-form-info">
-
+          <section className="curriculums-formulario-card">
+            <div className="curriculums-formulario-info">
               <span>
                 {idEdicion
                   ? "EDITAR CURRÍCULUM"
@@ -464,179 +517,234 @@ function StudentCVPage() {
               </h3>
 
               <p>
-                Asigna un nombre para identificar
-                tu CV y registra la información
-                profesional principal.
+                Define para qué tipo de postulación
+                utilizarás este CV y selecciona su
+                diseño.
               </p>
 
+              {!idEdicion &&
+                curriculums.length >= limite && (
+                  <div className="curriculums-aviso-limite">
+                    Para crear otro currículum
+                    primero debes eliminar uno de
+                    los existentes.
+                  </div>
+                )}
             </div>
 
-
             <form
-              className="cv-form"
+              className="curriculums-formulario"
               onSubmit={guardarCurriculum}
             >
+              <div className="curriculums-campos-grid">
+                <div className="curriculums-campo">
+                  <label htmlFor="nombre">
+                    Nombre del currículum *
+                  </label>
 
-              <div className="cv-field">
+                  <input
+                    id="nombre"
+                    name="nombre"
+                    type="text"
+                    value={form.nombre}
+                    onChange={cambiarCampo}
+                    disabled={limiteAlcanzado}
+                    placeholder="Ejemplo: CV Desarrollo Software"
+                    maxLength="100"
+                  />
+                </div>
 
-                <label htmlFor="nombre">
-                  Nombre del currículum
-                </label>
+                <div className="curriculums-campo">
+                  <label htmlFor="titulo_profesional">
+                    Título o puesto objetivo
+                  </label>
 
-                <input
-                  id="nombre"
-                  type="text"
-                  name="nombre"
-                  value={form.nombre}
-                  onChange={handleChange}
-                  placeholder="Ejemplo: CV Desarrollo Software"
-                />
+                  <input
+                    id="titulo_profesional"
+                    name="titulo_profesional"
+                    type="text"
+                    value={
+                      form.titulo_profesional
+                    }
+                    onChange={cambiarCampo}
+                    disabled={limiteAlcanzado}
+                    placeholder="Ejemplo: Desarrollador Frontend Junior"
+                    maxLength="150"
+                  />
+                </div>
 
+                <div className="curriculums-campo completo">
+                  <label htmlFor="resumen_profesional">
+                    Descripción breve del
+                    currículum
+                  </label>
+
+                  <textarea
+                    id="resumen_profesional"
+                    name="resumen_profesional"
+                    value={
+                      form.resumen_profesional
+                    }
+                    onChange={cambiarCampo}
+                    disabled={limiteAlcanzado}
+                    rows="4"
+                    maxLength="300"
+                    placeholder="Ejemplo: Currículum orientado a vacantes de desarrollo web y frontend."
+                  />
+
+                  <small>
+                    Esta descripción identifica el
+                    objetivo de este CV. No es la
+                    descripción personal o
+                    profesional de tu contenido.
+                  </small>
+                </div>
               </div>
 
+              <div className="curriculums-plantillas">
+                <div className="curriculums-plantillas-titulo">
+                  <div>
+                    <span>
+                      PLANTILLA DEL CURRÍCULUM
+                    </span>
 
-              <div className="cv-field">
+                    <h4>
+                      Selecciona un diseño *
+                    </h4>
+                  </div>
 
-                <label htmlFor="titulo_profesional">
-                  Título profesional
-                </label>
+                  <p>
+                    Solo se muestran las plantillas
+                    habilitadas por el administrador.
+                  </p>
+                </div>
 
-                <input
-                  id="titulo_profesional"
-                  type="text"
-                  name="titulo_profesional"
-                  value={
-                    form.titulo_profesional
-                  }
-                  onChange={handleChange}
-                  placeholder="Ejemplo: Desarrollador de Software"
-                />
+                {plantillas.length === 0 ? (
+                  <div className="curriculums-sin-plantillas">
+                    No existen plantillas disponibles
+                    en este momento.
+                  </div>
+                ) : (
+                  <div className="curriculums-plantillas-grid">
+                    {plantillas.map(
+                      (plantilla) => {
+                        const seleccionada =
+                          String(
+                            form.id_plantilla
+                          ) ===
+                          String(
+                            plantilla.id_plantilla
+                          );
 
+                        const codigo =
+                          obtenerCodigoPlantilla(
+                            plantilla
+                          );
+
+                        return (
+                          <button
+                            key={
+                              plantilla.id_plantilla
+                            }
+                            type="button"
+                            disabled={
+                              limiteAlcanzado
+                            }
+                            className={
+                              seleccionada
+                                ? "curriculums-plantilla seleccionada"
+                                : "curriculums-plantilla"
+                            }
+                            onClick={() =>
+                              seleccionarPlantilla(
+                                plantilla.id_plantilla
+                              )
+                            }
+                          >
+                            <div
+                              className={`curriculums-miniatura ${codigo}`}
+                            >
+                              <div className="miniatura-columna" />
+                              <div className="miniatura-contenido">
+                                <span />
+                                <span />
+                                <span />
+                              </div>
+                            </div>
+
+                            <strong>
+                              {plantilla.nombre}
+                            </strong>
+
+                            <span>
+                              {plantilla.descripcion ||
+                                "Diseño profesional de PoliCV"}
+                            </span>
+
+                            <small>
+                              {seleccionada
+                                ? "Seleccionada"
+                                : "Seleccionar"}
+                            </small>
+                          </button>
+                        );
+                      }
+                    )}
+                  </div>
+                )}
               </div>
 
-
-              <div className="cv-field full">
-
-                <label htmlFor="resumen_profesional">
-                  Resumen profesional
-                </label>
-
-                <textarea
-                  id="resumen_profesional"
-                  name="resumen_profesional"
-                  value={
-                    form.resumen_profesional
-                  }
-                  onChange={handleChange}
-                  rows="5"
-                  placeholder="Escribe una breve descripción de tu perfil profesional..."
-                />
-
-              </div>
-
-
-              <div className="cv-field">
-
-                <label htmlFor="id_plantilla">
-                  ID de plantilla
-                </label>
-
-                <input
-                  id="id_plantilla"
-                  type="number"
-                  min="1"
-                  name="id_plantilla"
-                  value={form.id_plantilla}
-                  onChange={handleChange}
-                  placeholder="Ejemplo: 1"
-                />
-
-                <small>
-                  Puedes dejarlo vacío y seleccionar
-                  una plantilla posteriormente.
-                </small>
-
-              </div>
-
-
-              <div className="cv-form-actions">
-
+              <div className="curriculums-formulario-acciones">
                 <button
                   type="submit"
-                  className="cv-primary-button"
+                  className="curriculums-boton-principal"
+                  disabled={
+                    guardando ||
+                    limiteAlcanzado ||
+                    plantillas.length === 0
+                  }
                 >
-                  {idEdicion
+                  {guardando
+                    ? "Guardando..."
+                    : idEdicion
                     ? "Guardar cambios"
                     : "Crear currículum"}
                 </button>
 
-
                 {idEdicion && (
                   <button
                     type="button"
-                    className="cv-secondary-button"
+                    className="curriculums-boton-secundario"
                     onClick={limpiarFormulario}
+                    disabled={guardando}
                   >
                     Cancelar edición
                   </button>
                 )}
-
               </div>
-
             </form>
-
           </section>
 
-
-          {/* MENSAJES */}
-          {error && (
-            <div className="cv-message error">
-              {error}
-            </div>
-          )}
-
-          {mensaje && (
-            <div className="cv-message success">
-              {mensaje}
-            </div>
-          )}
-
-
-          {/* LISTADO */}
-          <section className="cv-list-card">
-
-            <div className="cv-list-header">
-
+          <section className="curriculums-listado">
+            <div className="curriculums-listado-header">
               <div>
-
-                <span>
-                  MIS DOCUMENTOS
-                </span>
-
-                <h3>
-                  Currículums creados
-                </h3>
-
+                <span>MIS DOCUMENTOS</span>
+                <h3>Currículums creados</h3>
               </div>
 
               <p>
-                Selecciona Gestionar contenido
-                para completar las secciones.
+                Gestiona el contenido, personaliza
+                la Landing Page o edita la
+                información general de cada CV.
               </p>
-
             </div>
 
-
             {cargando ? (
-
-              <div className="cv-empty">
+              <div className="curriculums-vacio">
                 Cargando currículums...
               </div>
-
             ) : curriculums.length === 0 ? (
-
-              <div className="cv-empty">
-
+              <div className="curriculums-vacio">
                 <strong>
                   Todavía no tienes currículums
                 </strong>
@@ -645,160 +753,111 @@ function StudentCVPage() {
                   Utiliza el formulario superior
                   para crear tu primer currículum.
                 </p>
-
               </div>
-
             ) : (
+              <div className="curriculums-grid">
+                {curriculums.map(
+                  (curriculum, indice) => (
+                    <article
+                      className="curriculum-card"
+                      key={
+                        curriculum.id_curriculum
+                      }
+                    >
+                      <div className="curriculum-card-superior">
+                        <div className="curriculum-card-icono">
+                          CV
+                        </div>
 
-              <div className="cv-table-wrapper">
+                        <div className="curriculum-card-numero">
+                          0{indice + 1}
+                        </div>
+                      </div>
 
-                <table className="cv-table">
+                      <span className="curriculum-card-plantilla">
+                        {obtenerNombrePlantilla(
+                          curriculum
+                        )}
+                      </span>
 
-                  <thead>
+                      <h4>
+                        {curriculum.nombre}
+                      </h4>
 
-                    <tr>
-                      <th>Currículum</th>
-                      <th>Título profesional</th>
-                      <th>Plantilla</th>
-                      <th>Actualización</th>
-                      <th>Acciones</th>
-                    </tr>
+                      <p className="curriculum-card-titulo">
+                        {curriculum.titulo_profesional ||
+                          "Sin puesto objetivo definido"}
+                      </p>
 
-                  </thead>
+                      <p className="curriculum-card-descripcion">
+                        {curriculum.resumen_profesional ||
+                          "Sin descripción breve registrada."}
+                      </p>
 
+                      <div className="curriculum-card-fecha">
+                        <span>
+                          Última actualización
+                        </span>
 
-                  <tbody>
-
-                    {curriculums.map(
-                      (curriculum) => (
-
-                        <tr
-                          key={
-                            curriculum.id_curriculum
-                          }
-                        >
-
-                          <td>
-
-                            <div className="cv-name-cell">
-
-                              <div className="cv-document-icon">
-                                CV
-                              </div>
-
-                              <div>
-
-                                <strong>
-                                  {curriculum.nombre}
-                                </strong>
-
-                                <span>
-                                  Currículum PoliCV
-                                </span>
-
-                              </div>
-
-                            </div>
-
-                          </td>
-
-
-                          <td>
-                            {curriculum.titulo_profesional ||
-                              "Sin título profesional"}
-                          </td>
-
-
-                          <td>
-
-                            {curriculum.nombre_plantilla ? (
-                              <span className="cv-template-badge">
-                                {
-                                  curriculum.nombre_plantilla
-                                }
-                              </span>
-                            ) : (
-                              <span className="cv-no-template">
-                                Sin plantilla
-                              </span>
-                            )}
-
-                          </td>
-
-
-                          <td>
-                            {formatearFecha(
-                              curriculum.actualizado_en ||
+                        <strong>
+                          {formatearFecha(
+                            curriculum.actualizado_en ||
                               curriculum.updated_at ||
                               curriculum.fecha_actualizacion
-                            )}
-                          </td>
+                          )}
+                        </strong>
+                      </div>
 
+                      <div className="curriculum-card-acciones-principales">
+                        <Link
+                          to={`/estudiante/curriculums/${curriculum.id_curriculum}`}
+                          className="curriculum-boton-gestionar"
+                        >
+                          Gestionar contenido
+                        </Link>
 
-                          <td>
+                        <Link
+                          to={`/estudiante/curriculums/${curriculum.id_curriculum}/landing`}
+                          className="curriculum-boton-landing"
+                        >
+                          Mi Landing Page
+                        </Link>
+                      </div>
 
-                            <div className="cv-actions">
+                      <div className="curriculum-card-acciones-secundarias">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            editarCurriculum(
+                              curriculum
+                            )
+                          }
+                        >
+                          Editar
+                        </button>
 
-                              <Link
-                                to={
-                                  `/estudiante/curriculums/${curriculum.id_curriculum}`
-                                }
-                                className="cv-manage-button"
-                              >
-                                Gestionar contenido
-                              </Link>
-
-
-                              <button
-                                type="button"
-                                className="cv-edit-button"
-                                onClick={() =>
-                                  editarCurriculum(
-                                    curriculum
-                                  )
-                                }
-                              >
-                                Editar
-                              </button>
-
-
-                              <button
-                                type="button"
-                                className="cv-delete-button"
-                                onClick={() =>
-                                  eliminarCurriculum(
-                                    curriculum
-                                  )
-                                }
-                              >
-                                Eliminar
-                              </button>
-
-                            </div>
-
-                          </td>
-
-                        </tr>
-
-                      )
-                    )}
-
-                  </tbody>
-
-                </table>
-
+                        <button
+                          type="button"
+                          className="eliminar"
+                          onClick={() =>
+                            eliminarCurriculum(
+                              curriculum
+                            )
+                          }
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </article>
+                  )
+                )}
               </div>
-
             )}
-
           </section>
-
         </div>
-
       </main>
-
     </div>
   );
 }
 
-export default StudentCVPage;
+export default PaginaCurriculumsEstudiante;
