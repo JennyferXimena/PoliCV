@@ -1,43 +1,18 @@
-const express =
-  require("express");
+const express = require("express");
+const { generarPDF } = require("../../controllers/estudiante/pdfController");
+const { verificarToken } = require("../../middlewares/AutenticacionMiddleware");
+const { verificarRol } = require("../../middlewares/RolMiddleware");
 
-const {
-  generarPDF
-} =
-  require(
-    "../../controllers/estudiante/pdfController"
-  );
-
-const {
-  verificarToken
-} =
-  require(
-    "../../middlewares/AutenticacionMiddleware"
-  );
-
-const {
-  verificarRol
-} =
-  require(
-    "../../middlewares/RolMiddleware"
-  );
-
-
-const router =
-  express.Router();
-
+const router = express.Router();
 
 router.use(
   verificarToken,
   verificarRol("Estudiante")
 );
 
-
 router.get(
   "/:id/pdf",
   generarPDF
 );
 
-
-module.exports =
-  router;
+module.exports = router;

@@ -198,6 +198,11 @@ function App() {
         />
 
         <Route
+          path="/cv/:slug"
+          element={<PaginaLandingCurriculum />}
+        />
+
+        <Route
           path="/estudiante/curriculums/:id"
           element={
             <RutaEstudiante>

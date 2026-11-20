@@ -1,17 +1,8 @@
-const pool =
-  require("../config/database");
+const pool = require("../config/database");
 
-
-/* =========================================================
-   OBTENER CONFIGURACIÓN DEL ESTUDIANTE
-========================================================= */
-
-async function obtenerPorUsuario(
-  idUsuario
-) {
-  const [rows] =
-    await pool.query(
-      `
+async function obtenerPorUsuario(idUsuario) {
+  const [rows] = await pool.query(
+    `
       SELECT
         p.id_perfil,
         p.id_usuario,
@@ -28,94 +19,56 @@ async function obtenerPorUsuario(
         p.github_url,
         p.sitio_web,
         p.perfil_completado,
-
         u.email,
-
         c.nombre AS carrera
-
       FROM perfiles p
-
       INNER JOIN usuarios u
         ON u.id_usuario = p.id_usuario
-
       LEFT JOIN carreras c
         ON c.id_carrera = p.id_carrera
-
       WHERE p.id_usuario = ?
-
       LIMIT 1
-      `,
-      [idUsuario]
-    );
-
+    `,
+    [idUsuario]
+  );
 
   return rows[0] || null;
 }
 
-
-/* =========================================================
-   LISTAR CARRERAS ACTIVAS
-========================================================= */
-
 async function listarCarreras() {
-  const [rows] =
-    await pool.query(
-      `
+  const [rows] = await pool.query(
+    `
       SELECT
         id_carrera,
         nombre,
         descripcion
-
       FROM carreras
-
       WHERE estado = TRUE
-
       ORDER BY nombre ASC
-      `
-    );
-
+    `
+  );
 
   return rows;
 }
 
-
-/* =========================================================
-   BUSCAR CARRERA
-========================================================= */
-
-async function buscarCarreraPorId(
-  idCarrera
-) {
-  const [rows] =
-    await pool.query(
-      `
+async function buscarCarreraPorId(idCarrera) {
+  const [rows] = await pool.query(
+    `
       SELECT
         id_carrera,
         nombre
-
       FROM carreras
-
       WHERE id_carrera = ?
-      AND estado = TRUE
-
+        AND estado = TRUE
       LIMIT 1
-      `,
-      [idCarrera]
-    );
-
+    `,
+    [idCarrera]
+  );
 
   return rows[0] || null;
 }
 
-
-/* =========================================================
-   COMPLETAR CONFIGURACIÓN INICIAL
-========================================================= */
-
-async function completarConfiguracion(
-  idUsuario,
-  datos
-) {
+async function completarConfiguracion(idUsuario, datos) {
   const {
     nombres,
     apellidos,
@@ -126,28 +79,27 @@ async function completarConfiguracion(
     titulo_profesional,
     fotografia_url,
     linkedin_url,
-    github_url
+    github_url,
+    sitio_web
   } = datos;
-
 
   await pool.query(
     `
-    UPDATE perfiles
-
-    SET
-      nombres = ?,
-      apellidos = ?,
-      telefono = ?,
-      ciudad_pais = ?,
-      id_carrera = ?,
-      estado_academico = ?,
-      titulo_profesional = ?,
-      fotografia_url = ?,
-      linkedin_url = ?,
-      github_url = ?,
-      perfil_completado = TRUE
-
-    WHERE id_usuario = ?
+      UPDATE perfiles
+      SET
+        nombres = ?,
+        apellidos = ?,
+        telefono = ?,
+        ciudad_pais = ?,
+        id_carrera = ?,
+        estado_academico = ?,
+        titulo_profesional = ?,
+        fotografia_url = ?,
+        linkedin_url = ?,
+        github_url = ?,
+        sitio_web = ?,
+        perfil_completado = TRUE
+      WHERE id_usuario = ?
     `,
     [
       nombres,
@@ -160,20 +112,34 @@ async function completarConfiguracion(
       fotografia_url,
       linkedin_url,
       github_url,
+      sitio_web,
       idUsuario
     ]
   );
 
-
-  return obtenerPorUsuario(
-    idUsuario
-  );
+  return obtenerPorUsuario(idUsuario);
 }
 
+async function actualizarFotografia(
+  idUsuario,
+  fotografiaUrl
+) {
+  await pool.query(
+    `
+      UPDATE perfiles
+      SET fotografia_url = ?
+      WHERE id_usuario = ?
+    `,
+    [fotografiaUrl, idUsuario]
+  );
+
+  return obtenerPorUsuario(idUsuario);
+}
 
 module.exports = {
   obtenerPorUsuario,
   listarCarreras,
   buscarCarreraPorId,
-  completarConfiguracion
+  completarConfiguracion,
+  actualizarFotografia
 };

@@ -11,6 +11,7 @@ const curriculumRoutes = require("./routes/estudiante/curriculumRoutes");
 const iaRoutes = require("./routes/estudiante/iaRoutes");
 const configuracionInicialRoutes = require("./routes/estudiante/configuracionInicialRoutes");
 const detalleCurriculumRoutes = require("./routes/estudiante/detalleCurriculumRoutes");
+const landingCurriculumRoutes = require("./routes/estudiante/landingCurriculumRoutes");
 const pdfRoutes = require("./routes/estudiante/pdfRoutes");
 
 const usuarioAdministradorRoutes = require("./routes/administrador/usuarioAdministradorRoutes");
@@ -35,6 +36,7 @@ app.use("/api/curriculums",curriculumRoutes);
 app.use("/api/curriculums",detalleCurriculumRoutes);
 app.use("/api/curriculums",pdfRoutes);
 app.use("/api/ia",iaRoutes);
+app.use("/api/landing", landingCurriculumRoutes);
 
 app.use("/api/admin/perfil",perfilAdministradorRoutes);
 app.use("/api/admin/usuarios",usuarioAdministradorRoutes);

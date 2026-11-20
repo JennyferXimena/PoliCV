@@ -1,28 +1,13 @@
-const configuracionInicialModel =
-  require(
-    "../../models/configuracionInicialModel"
-  );
+const configuracionInicialModel = require("../../models/configuracionInicialModel");
 
-
-/* =========================================================
-   OBTENER CONFIGURACIÓN
-========================================================= */
-
-async function obtenerConfiguracion(
-  req,
-  res
-) {
+async function obtenerConfiguracion(req, res) {
   try {
-    const idUsuario =
-      req.usuario.id_usuario;
-
+    const idUsuario = req.usuario.id_usuario;
 
     const perfil =
-      await configuracionInicialModel
-        .obtenerPorUsuario(
-          idUsuario
-        );
-
+      await configuracionInicialModel.obtenerPorUsuario(
+        idUsuario
+      );
 
     if (!perfil) {
       return res.status(404).json({
@@ -31,25 +16,18 @@ async function obtenerConfiguracion(
       });
     }
 
-
     return res.status(200).json({
       perfil: {
         ...perfil,
-
         perfil_completado:
-          Boolean(
-            perfil.perfil_completado
-          )
+          Boolean(perfil.perfil_completado)
       }
     });
-
-
   } catch (error) {
     console.error(
       "Error al obtener configuración inicial:",
       error
     );
-
 
     return res.status(500).json({
       mensaje:
@@ -58,32 +36,19 @@ async function obtenerConfiguracion(
   }
 }
 
-
-/* =========================================================
-   LISTAR CARRERAS
-========================================================= */
-
-async function listarCarreras(
-  req,
-  res
-) {
+async function listarCarreras(req, res) {
   try {
     const carreras =
-      await configuracionInicialModel
-        .listarCarreras();
-
+      await configuracionInicialModel.listarCarreras();
 
     return res.status(200).json({
       carreras
     });
-
-
   } catch (error) {
     console.error(
       "Error al listar carreras:",
       error
     );
-
 
     return res.status(500).json({
       mensaje:
@@ -92,19 +57,9 @@ async function listarCarreras(
   }
 }
 
-
-/* =========================================================
-   COMPLETAR CONFIGURACIÓN
-========================================================= */
-
-async function completarConfiguracion(
-  req,
-  res
-) {
+async function completarConfiguracion(req, res) {
   try {
-    const idUsuario =
-      req.usuario.id_usuario;
-
+    const idUsuario = req.usuario.id_usuario;
 
     const {
       nombres,
@@ -116,13 +71,9 @@ async function completarConfiguracion(
       titulo_profesional,
       fotografia_url,
       linkedin_url,
-      github_url
+      github_url,
+      sitio_web
     } = req.body;
-
-
-    /* =====================================================
-       CAMPOS OBLIGATORIOS
-    ===================================================== */
 
     if (
       !nombres?.trim() ||
@@ -139,21 +90,10 @@ async function completarConfiguracion(
       });
     }
 
-
-    /* =====================================================
-       CARRERA
-    ===================================================== */
-
-    const idCarrera =
-      Number(
-        id_carrera
-      );
-
+    const idCarrera = Number(id_carrera);
 
     if (
-      !Number.isInteger(
-        idCarrera
-      ) ||
+      !Number.isInteger(idCarrera) ||
       idCarrera <= 0
     ) {
       return res.status(400).json({
@@ -162,13 +102,9 @@ async function completarConfiguracion(
       });
     }
 
-
     const carrera =
       await configuracionInicialModel
-        .buscarCarreraPorId(
-          idCarrera
-        );
-
+        .buscarCarreraPorId(idCarrera);
 
     if (!carrera) {
       return res.status(400).json({
@@ -177,16 +113,10 @@ async function completarConfiguracion(
       });
     }
 
-
-    /* =====================================================
-       ESTADO ACADÉMICO
-    ===================================================== */
-
     const estadosPermitidos = [
       "cursando",
       "graduado"
     ];
-
 
     if (
       !estadosPermitidos.includes(
@@ -199,14 +129,8 @@ async function completarConfiguracion(
       });
     }
 
-
-    /* =====================================================
-       TELÉFONO
-    ===================================================== */
-
     const telefonoLimpio =
       telefono.trim();
-
 
     if (
       telefonoLimpio.length < 7 ||
@@ -218,14 +142,8 @@ async function completarConfiguracion(
       });
     }
 
-
-    /* =====================================================
-       TÍTULO PROFESIONAL
-    ===================================================== */
-
     const tituloLimpio =
       titulo_profesional.trim();
-
 
     if (
       tituloLimpio.length < 5 ||
@@ -237,83 +155,105 @@ async function completarConfiguracion(
       });
     }
 
-
-    /* =====================================================
-       GUARDAR
-    ===================================================== */
-
     const perfil =
       await configuracionInicialModel
         .completarConfiguracion(
           idUsuario,
           {
-            nombres:
-              nombres.trim(),
-
-            apellidos:
-              apellidos.trim(),
-
-            telefono:
-              telefonoLimpio,
-
-            ciudad_pais:
-              ciudad_pais.trim(),
-
-            id_carrera:
-              idCarrera,
-
+            nombres: nombres.trim(),
+            apellidos: apellidos.trim(),
+            telefono: telefonoLimpio,
+            ciudad_pais: ciudad_pais.trim(),
+            id_carrera: idCarrera,
             estado_academico,
-
             titulo_profesional:
               tituloLimpio,
-
             fotografia_url:
-              fotografia_url?.trim() ||
-              null,
-
+              fotografia_url?.trim() || null,
             linkedin_url:
-              linkedin_url?.trim() ||
-              null,
-
+              linkedin_url?.trim() || null,
             github_url:
-              github_url?.trim() ||
-              null
+              github_url?.trim() || null,
+            sitio_web:
+              sitio_web?.trim() || null
           }
         );
 
-
     return res.status(200).json({
       mensaje:
-        "Configuración inicial completada correctamente",
-
+        "Perfil actualizado correctamente",
       perfil: {
         ...perfil,
-
         perfil_completado:
-          Boolean(
-            perfil.perfil_completado
-          )
+          Boolean(perfil.perfil_completado)
       }
     });
-
-
   } catch (error) {
     console.error(
-      "Error al completar configuración inicial:",
+      "Error al actualizar perfil:",
       error
     );
 
-
     return res.status(500).json({
       mensaje:
-        "No se pudo completar la configuración inicial"
+        "No se pudo actualizar el perfil"
     });
   }
 }
 
+async function subirFotografia(req, res) {
+  try {
+    const idUsuario = req.usuario.id_usuario;
+
+    if (!req.file) {
+      return res.status(400).json({
+        mensaje:
+          "Selecciona una fotografía"
+      });
+    }
+
+    const fotografiaUrl =
+      `/uploads/perfiles/${idUsuario}/${req.file.filename}`;
+
+    await configuracionInicialModel
+      .actualizarFotografia(
+        idUsuario,
+        fotografiaUrl
+      );
+
+    return res.status(200).json({
+      mensaje:
+        "Fotografía cargada correctamente",
+      fotografia_url:
+        fotografiaUrl
+    });
+  } catch (error) {
+    console.error(
+      "Error al subir fotografía:",
+      error
+    );
+
+    if (
+      error.code ===
+      "LIMIT_FILE_SIZE"
+    ) {
+      return res.status(400).json({
+        mensaje:
+          "La fotografía no puede superar 5 MB"
+      });
+    }
+
+    return res.status(500).json({
+      mensaje:
+        error.message ||
+        "No se pudo cargar la fotografía"
+    });
+  }
+}
 
 module.exports = {
   obtenerConfiguracion,
   listarCarreras,
-  completarConfiguracion
+  completarConfiguracion,
+  subirFotografia
 };

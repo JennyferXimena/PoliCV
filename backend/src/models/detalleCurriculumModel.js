@@ -177,7 +177,9 @@ async function obtenerContenidoCompleto(idCurriculum, idUsuario) {
         id_idioma,
         id_idioma_catalogo,
         idioma,
-        nivel
+        nivel,
+        tiene_certificado,
+        evidencia_archivo
 
       FROM idiomas
 
@@ -384,16 +386,18 @@ async function guardarIdiomas(idCurriculum, idiomas) {
             id_idioma_catalogo,
             idioma,
             nivel,
-            es_nativo,
-            tiene_certificado
+            tiene_certificado,
+            evidencia_archivo
           )
-          VALUES (?, ?, ?, ?, 0, 0)
+          VALUES (?, ?, ?, ?, ?, ?)
         `,
         [
           idCurriculum,
           idioma.id_idioma_catalogo,
           idioma.idioma,
-          idioma.nivel
+          idioma.nivel,
+          idioma.tiene_certificado,
+          idioma.evidencia_archivo
         ]
       );
     }

@@ -1,29 +1,16 @@
-import {
-  useEffect,
-  useState
-} from "react";
-
-import {
-  useNavigate
-} from "react-router-dom";
-
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../../services/api";
 import "../../styles/estudiante/estudiante.css";
 import "../../styles/estudiante/perfil.css";
 
-
-function ProfilePage() {
+function PaginaPerfil() {
   const navigate = useNavigate();
+  const [parametros] = useSearchParams();
+  const idCurriculum = parametros.get("volverCurriculum");
 
-  const [
-    carreras,
-    setCarreras
-  ] = useState([]);
-
-  const [
-    form,
-    setForm
-  ] = useState({
+  const [carreras, setCarreras] = useState([]);
+  const [form, setForm] = useState({
     nombres: "",
     apellidos: "",
     email: "",
@@ -34,164 +21,142 @@ function ProfilePage() {
     titulo_profesional: "",
     fotografia_url: "",
     linkedin_url: "",
-    github_url: ""
+    github_url: "",
+    sitio_web: ""
   });
 
-  const [
-    cargando,
-    setCargando
-  ] = useState(true);
-
-  const [
-    guardando,
-    setGuardando
-  ] = useState(false);
-
-  const [
-    error,
-    setError
-  ] = useState("");
-
-  const [
-    mensaje,
-    setMensaje
-  ] = useState("");
-
-
-  /* =========================================================
-     USUARIO GUARDADO
-  ========================================================= */
+  const [cargando, setCargando] = useState(true);
+  const [guardando, setGuardando] = useState(false);
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
+  const [error, setError] = useState("");
+  const [mensaje, setMensaje] = useState("");
 
   const usuarioGuardado =
     localStorage.getItem("usuario") ||
     sessionStorage.getItem("usuario");
 
-  const usuario =
-    usuarioGuardado
-      ? JSON.parse(usuarioGuardado)
-      : null;
+  const usuario = usuarioGuardado
+    ? JSON.parse(usuarioGuardado)
+    : null;
 
+  const urlBackend = String(api.defaults.baseURL || "")
+    .replace(/\/api\/?$/, "");
 
-  /* =========================================================
-     CARGAR PERFIL Y CARRERAS
-  ========================================================= */
+  const urlFotografia = form.fotografia_url
+    ? form.fotografia_url.startsWith("http")
+      ? form.fotografia_url
+      : `${urlBackend}${form.fotografia_url}`
+    : "";
 
   useEffect(() => {
     let activo = true;
 
-    const cargarDatos = async () => {
-      try {
-        const [
-          responsePerfil,
-          responseCarreras
-        ] = await Promise.all([
-          api.get(
-            "/configuracion-inicial"
-          ),
+    Promise.all([
+      api.get("/configuracion-inicial"),
+      api.get("/configuracion-inicial/carreras")
+    ])
+      .then(([responsePerfil, responseCarreras]) => {
+        if (!activo) return;
 
-          api.get(
-            "/configuracion-inicial/carreras"
-          )
-        ]);
+        const perfil = responsePerfil.data?.perfil || {};
 
-        if (!activo) {
-          return;
-        }
-
-        const perfil =
-          responsePerfil.data?.perfil;
-
-        setCarreras(
-          responseCarreras.data?.carreras ||
-          []
-        );
+        setCarreras(responseCarreras.data?.carreras || []);
 
         setForm({
-          nombres:
-            perfil?.nombres || "",
-
-          apellidos:
-            perfil?.apellidos || "",
-
-          email:
-            perfil?.email || "",
-
-          telefono:
-            perfil?.telefono || "",
-
-          ciudad_pais:
-            perfil?.ciudad_pais || "",
-
-          id_carrera:
-            perfil?.id_carrera || "",
-
-          estado_academico:
-            perfil?.estado_academico || "",
-
-          titulo_profesional:
-            perfil?.titulo_profesional || "",
-
-          fotografia_url:
-            perfil?.fotografia_url || "",
-
-          linkedin_url:
-            perfil?.linkedin_url || "",
-
-          github_url:
-            perfil?.github_url || ""
+          nombres: perfil.nombres || "",
+          apellidos: perfil.apellidos || "",
+          email: perfil.email || "",
+          telefono: perfil.telefono || "",
+          ciudad_pais: perfil.ciudad_pais || "",
+          id_carrera: perfil.id_carrera || "",
+          estado_academico: perfil.estado_academico || "",
+          titulo_profesional: perfil.titulo_profesional || "",
+          fotografia_url: perfil.fotografia_url || "",
+          linkedin_url: perfil.linkedin_url || "",
+          github_url: perfil.github_url || "",
+          sitio_web: perfil.sitio_web || ""
         });
-
-      } catch (error) {
-        if (!activo) {
-          return;
-        }
+      })
+      .catch((errorPeticion) => {
+        if (!activo) return;
 
         setError(
-          error.response?.data?.mensaje ||
+          errorPeticion.response?.data?.mensaje ||
           "No se pudo cargar el perfil"
         );
-
-      } finally {
+      })
+      .finally(() => {
         if (activo) {
           setCargando(false);
         }
-      }
-    };
-
-    cargarDatos();
+      });
 
     return () => {
       activo = false;
     };
-
   }, []);
 
+  const cambiarCampo = (e) => {
+    const { name, value } = e.target;
 
-  /* =========================================================
-     CAMBIAR CAMPOS
-  ========================================================= */
-
-  const handleChange = (e) => {
-    const {
-      name,
-      value
-    } = e.target;
-
-    setForm(
-      (anterior) => ({
-        ...anterior,
-        [name]: value
-      })
-    );
+    setForm((anterior) => ({
+      ...anterior,
+      [name]: value
+    }));
 
     setError("");
     setMensaje("");
   };
 
+  const seleccionarFotografia = async (e) => {
+    const archivo = e.target.files?.[0];
 
-  /* =========================================================
-     GUARDAR CAMBIOS
-  ========================================================= */
+    if (!archivo) return;
+
+    const extensiones = [".jpg", ".jpeg", ".png"];
+    const nombre = archivo.name.toLowerCase();
+
+    if (!extensiones.some((extension) => nombre.endsWith(extension))) {
+      setError("La fotografía debe ser JPG, JPEG o PNG");
+      e.target.value = "";
+      return;
+    }
+
+    if (archivo.size > 5 * 1024 * 1024) {
+      setError("La fotografía no puede superar 5 MB");
+      e.target.value = "";
+      return;
+    }
+
+    setSubiendoFoto(true);
+    setError("");
+    setMensaje("");
+
+    try {
+      const datos = new FormData();
+      datos.append("fotografia", archivo);
+
+      const response = await api.post(
+        "/configuracion-inicial/fotografia",
+        datos
+      );
+
+      setForm((anterior) => ({
+        ...anterior,
+        fotografia_url: response.data?.fotografia_url || ""
+      }));
+
+      setMensaje("Fotografía cargada correctamente");
+    } catch (errorPeticion) {
+      setError(
+        errorPeticion.response?.data?.mensaje ||
+        "No se pudo cargar la fotografía"
+      );
+    } finally {
+      setSubiendoFoto(false);
+      e.target.value = "";
+    }
+  };
 
   const guardarPerfil = async (e) => {
     e.preventDefault();
@@ -208,254 +173,156 @@ function ProfilePage() {
       !form.estado_academico ||
       !form.titulo_profesional.trim()
     ) {
-      setError(
-        "Completa todos los campos obligatorios"
-      );
+      setError("Completa todos los campos obligatorios");
+      return;
+    }
 
+    if (!form.fotografia_url) {
+      setError("Selecciona una fotografía para completar tu perfil");
       return;
     }
 
     setGuardando(true);
 
     try {
-      const response =
-        await api.put(
-          "/configuracion-inicial",
-          {
-            nombres:
-              form.nombres,
+      const response = await api.put(
+        "/configuracion-inicial",
+        {
+          nombres: form.nombres.trim(),
+          apellidos: form.apellidos.trim(),
+          telefono: form.telefono.trim(),
+          ciudad_pais: form.ciudad_pais.trim(),
+          id_carrera: Number(form.id_carrera),
+          estado_academico: form.estado_academico,
+          titulo_profesional: form.titulo_profesional.trim(),
+          fotografia_url: form.fotografia_url,
+          linkedin_url: form.linkedin_url.trim(),
+          github_url: form.github_url.trim(),
+          sitio_web: form.sitio_web.trim()
+        }
+      );
 
-            apellidos:
-              form.apellidos,
-
-            telefono:
-              form.telefono,
-
-            ciudad_pais:
-              form.ciudad_pais,
-
-            id_carrera:
-              Number(
-                form.id_carrera
-              ),
-
-            estado_academico:
-              form.estado_academico,
-
-            titulo_profesional:
-              form.titulo_profesional,
-
-            fotografia_url:
-              form.fotografia_url,
-
-            linkedin_url:
-              form.linkedin_url,
-
-            github_url:
-              form.github_url
-          }
-        );
+      const perfilActualizado = response.data?.perfil;
 
       setMensaje(
         response.data?.mensaje ||
         "Perfil actualizado correctamente"
       );
 
-
-      /* =====================================================
-         ACTUALIZAR USUARIO GUARDADO
-      ===================================================== */
-
-      const perfilActualizado =
-        response.data?.perfil;
-
       if (usuarioGuardado) {
         const usuarioActualizado = {
           ...usuario,
-
-          id_carrera:
-            perfilActualizado?.id_carrera,
-
-          carrera:
-            perfilActualizado?.carrera,
-
+          id_carrera: perfilActualizado?.id_carrera,
+          carrera: perfilActualizado?.carrera,
           estado_academico:
             perfilActualizado?.estado_academico,
-
-          perfil_completado:
-            true
+          perfil_completado: true
         };
 
-
-        if (
-          localStorage.getItem(
-            "usuario"
-          )
-        ) {
+        if (localStorage.getItem("usuario")) {
           localStorage.setItem(
             "usuario",
-            JSON.stringify(
-              usuarioActualizado
-            )
+            JSON.stringify(usuarioActualizado)
           );
-
         } else {
           sessionStorage.setItem(
             "usuario",
-            JSON.stringify(
-              usuarioActualizado
-            )
+            JSON.stringify(usuarioActualizado)
           );
         }
       }
-
-    } catch (error) {
+    } catch (errorPeticion) {
       setError(
-        error.response?.data?.mensaje ||
+        errorPeticion.response?.data?.mensaje ||
         "No se pudieron guardar los cambios"
       );
-
     } finally {
       setGuardando(false);
     }
   };
 
-
-  /* =========================================================
-     CERRAR SESIÓN
-  ========================================================= */
-
   const cerrarSesion = () => {
-    localStorage.removeItem(
-      "token"
-    );
-
-    localStorage.removeItem(
-      "usuario"
-    );
-
-    sessionStorage.removeItem(
-      "token"
-    );
-
-    sessionStorage.removeItem(
-      "usuario"
-    );
-
-    navigate(
-      "/iniciar-sesion"
-    );
+    localStorage.removeItem("token");
+    localStorage.removeItem("usuario");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("usuario");
+    navigate("/iniciar-sesion");
   };
-
-
-  /* =========================================================
-     CARGANDO
-  ========================================================= */
 
   if (cargando) {
     return (
-      <main
-        style={{
-          padding: "40px"
-        }}
-      >
+      <main className="profile-loading">
         Cargando perfil...
       </main>
     );
   }
 
-
-  /* =========================================================
-     INTERFAZ
-  ========================================================= */
-
   return (
     <div className="student-page">
-
-      {/* SIDEBAR */}
-
       <aside className="student-sidebar">
-
         <div className="student-brand">
-
-          <div className="student-brand-logo">
-            P
-          </div>
+          <div className="student-brand-logo">P</div>
 
           <div>
-            <h2>
-              PoliCV
-            </h2>
-
-            <span>
-              Estudiante
-            </span>
+            <h2>PoliCV</h2>
+            <span>Estudiante</span>
           </div>
-
         </div>
-
 
         <div className="student-profile-mini">
-
-          <div className="student-avatar">
-
-            {form.nombres
-              ? form.nombres
-                  .charAt(0)
-                  .toUpperCase()
-              : "E"}
-
-          </div>
-
+          {urlFotografia ? (
+            <img
+              src={urlFotografia}
+              alt="Perfil"
+              className="profile-sidebar-photo"
+            />
+          ) : (
+            <div className="student-avatar">
+              {form.nombres
+                ? form.nombres.charAt(0).toUpperCase()
+                : "E"}
+            </div>
+          )}
 
           <div>
-
-            <strong>
-              {form.nombres ||
-                "Estudiante"}
-            </strong>
-
-            <span>
-              {form.email}
-            </span>
-
+            <strong>{form.nombres || "Estudiante"}</strong>
+            <span>{form.email}</span>
           </div>
-
         </div>
 
-
         <nav className="student-menu">
-
-          <a href="/estudiante">
+          <Link to="/estudiante">
             <span>01</span>
             Inicio
-          </a>
+          </Link>
 
-          <a
-            href="/perfil"
+          <Link
+            to={
+              idCurriculum
+                ? `/perfil?volverCurriculum=${idCurriculum}`
+                : "/perfil"
+            }
             className="active"
           >
             <span>02</span>
             Mi perfil
-          </a>
+          </Link>
 
-          <a href="/estudiante/curriculums">
+          <Link to="/estudiante/curriculums">
             <span>03</span>
             Mis currículums
-          </a>
+          </Link>
 
-          <a href="/estudiante/asistente-ia">
+          <Link to="/estudiante/asistente-ia">
             <span>04</span>
             Asistente IA
-          </a>
+          </Link>
 
-          <a href="/estudiante/propuestas">
+          <Link to="/estudiante/propuestas">
             <span>05</span>
             Propuestas de mejora
-          </a>
-
+          </Link>
         </nav>
-
 
         <button
           type="button"
@@ -464,470 +331,322 @@ function ProfilePage() {
         >
           Cerrar sesión
         </button>
-
       </aside>
 
-
-      {/* CONTENIDO */}
-
       <main className="student-main">
-
         <header className="student-header">
-
           <div>
-
             <span className="student-header-label">
               INFORMACIÓN PERSONAL
             </span>
 
-            <h1>
-              Mi perfil
-            </h1>
+            <h1>Mi perfil</h1>
 
             <p>
-              Mantén actualizada tu información
-              personal, académica y profesional.
+              Mantén actualizada tu información personal,
+              académica y profesional.
             </p>
-
           </div>
-
 
           <div className="student-header-account">
-
             <div>
-
-              <span>
-                Sesión iniciada como
-              </span>
-
-              <strong>
-                {form.email}
-              </strong>
-
+              <span>Sesión iniciada como</span>
+              <strong>{form.email}</strong>
             </div>
 
-
-            <div className="student-header-avatar">
-
-              {form.nombres
-                ? form.nombres
-                    .charAt(0)
-                    .toUpperCase()
-                : "E"}
-
-            </div>
-
+            {urlFotografia ? (
+              <img
+                src={urlFotografia}
+                alt="Perfil"
+                className="profile-header-photo"
+              />
+            ) : (
+              <div className="student-header-avatar">
+                {form.nombres
+                  ? form.nombres.charAt(0).toUpperCase()
+                  : "E"}
+              </div>
+            )}
           </div>
-
         </header>
 
-
         <div className="student-content">
+          {idCurriculum && (
+            <div className="profile-return-card">
+              <div>
+                <span>CURRÍCULUM EN EDICIÓN</span>
+                <strong>
+                  Cuando termines puedes regresar directamente
+                  al currículum que estabas completando.
+                </strong>
+              </div>
 
-
-          {/* RESUMEN */}
+              <Link
+                to={`/estudiante/curriculums/${idCurriculum}`}
+                className="profile-return-button"
+              >
+                ← Regresar a gestionar currículum
+              </Link>
+            </div>
+          )}
 
           <section className="profile-hero">
+            <div className="profile-photo-area">
+              {urlFotografia ? (
+                <img
+                  src={urlFotografia}
+                  alt="Fotografía del estudiante"
+                  className="profile-photo-large"
+                />
+              ) : (
+                <div className="profile-avatar-large">
+                  {form.nombres
+                    ? form.nombres.charAt(0).toUpperCase()
+                    : "E"}
+                </div>
+              )}
 
-            <div className="profile-avatar-large">
-
-              {form.nombres
-                ? form.nombres
-                    .charAt(0)
-                    .toUpperCase()
-                : "E"}
-
+              <div className="profile-photo-info">
+                <span>FOTOGRAFÍA PROFESIONAL</span>
+                <p>JPG, JPEG o PNG. Máximo 5 MB.</p>
+              </div>
             </div>
 
-
-            <div>
-
-              <span>
-                PERFIL DEL ESTUDIANTE
-              </span>
+            <div className="profile-hero-info">
+              <span>PERFIL DEL ESTUDIANTE</span>
 
               <h2>
-                {form.nombres}
-                {" "}
-                {form.apellidos}
+                {form.nombres} {form.apellidos}
               </h2>
 
               <p>
                 {form.titulo_profesional ||
                   "Perfil profesional"}
               </p>
-
             </div>
-
           </section>
 
-
-          {/* FORMULARIO */}
-
           <section className="profile-form-card">
-
             <div className="profile-section-heading">
-
-              <span>
-                DATOS DEL PERFIL
-              </span>
-
-              <h2>
-                Información personal y académica
-              </h2>
-
+              <span>DATOS DEL PERFIL</span>
+              <h2>Información personal y académica</h2>
               <p>
-                Modifica únicamente la información
-                que necesites actualizar.
+                Estos datos se reutilizan en tus currículums.
               </p>
-
             </div>
 
-
             <form
-              onSubmit={
-                guardarPerfil
-              }
+              onSubmit={guardarPerfil}
               className="profile-form"
             >
-
-              {/* NOMBRES */}
-
               <div>
-
-                <label>
-                  Nombres *
-                </label>
-
+                <label>Nombres *</label>
                 <input
                   type="text"
                   name="nombres"
-                  value={
-                    form.nombres
-                  }
-                  onChange={
-                    handleChange
-                  }
+                  value={form.nombres}
+                  onChange={cambiarCampo}
                   required
                 />
-
               </div>
 
-
-              {/* APELLIDOS */}
-
               <div>
-
-                <label>
-                  Apellidos *
-                </label>
-
+                <label>Apellidos *</label>
                 <input
                   type="text"
                   name="apellidos"
-                  value={
-                    form.apellidos
-                  }
-                  onChange={
-                    handleChange
-                  }
+                  value={form.apellidos}
+                  onChange={cambiarCampo}
                   required
                 />
-
               </div>
 
-
-              {/* CORREO */}
-
               <div>
-
-                <label>
-                  Correo institucional
-                </label>
-
+                <label>Correo institucional</label>
                 <input
                   type="email"
-                  value={
-                    form.email
-                  }
+                  value={form.email}
                   disabled
                 />
-
               </div>
-
-
-              {/* TELÉFONO */}
 
               <div>
-
-                <label>
-                  Teléfono *
-                </label>
-
+                <label>Teléfono *</label>
                 <input
-                  type="text"
+                  type="tel"
                   name="telefono"
-                  value={
-                    form.telefono
-                  }
-                  onChange={
-                    handleChange
-                  }
+                  value={form.telefono}
+                  onChange={cambiarCampo}
+                  placeholder="09xxxxxxxx"
                   required
                 />
-
               </div>
 
-
-              {/* CIUDAD */}
-
-              <div className="full">
-
-                <label>
-                  Ciudad y país *
-                </label>
-
+              <div>
+                <label>Ciudad y provincia *</label>
                 <input
                   type="text"
                   name="ciudad_pais"
-                  value={
-                    form.ciudad_pais
-                  }
-                  onChange={
-                    handleChange
-                  }
-                  placeholder="Quito, Ecuador"
+                  value={form.ciudad_pais}
+                  onChange={cambiarCampo}
+                  placeholder="Quito, Pichincha"
                   required
                 />
-
               </div>
 
-
-              {/* CARRERA */}
-
-              <div className="full">
-
-                <label>
-                  Carrera *
-                </label>
-
+              <div>
+                <label>Carrera *</label>
                 <select
                   name="id_carrera"
-                  value={
-                    form.id_carrera
-                  }
-                  onChange={
-                    handleChange
-                  }
+                  value={form.id_carrera}
+                  onChange={cambiarCampo}
                   required
                 >
-
                   <option value="">
                     Selecciona una carrera
                   </option>
 
-
-                  {carreras.map(
-                    (carrera) => (
-
-                      <option
-                        key={
-                          carrera.id_carrera
-                        }
-                        value={
-                          carrera.id_carrera
-                        }
-                      >
-                        {carrera.nombre}
-                      </option>
-
-                    )
-                  )}
-
+                  {carreras.map((carrera) => (
+                    <option
+                      key={carrera.id_carrera}
+                      value={carrera.id_carrera}
+                    >
+                      {carrera.nombre}
+                    </option>
+                  ))}
                 </select>
-
               </div>
 
-
-              {/* ESTADO ACADÉMICO */}
-
               <div>
-
-                <label>
-                  Estado académico *
-                </label>
-
+                <label>Estado académico *</label>
                 <select
                   name="estado_academico"
-                  value={
-                    form.estado_academico
-                  }
-                  onChange={
-                    handleChange
-                  }
+                  value={form.estado_academico}
+                  onChange={cambiarCampo}
                   required
                 >
-
                   <option value="">
                     Selecciona una opción
                   </option>
-
                   <option value="cursando">
                     Actualmente cursando
                   </option>
-
                   <option value="graduado">
                     Graduado
                   </option>
-
                 </select>
-
               </div>
 
-
-              {/* TITULO PROFESIONAL */}
-
               <div>
-
-                <label>
-                  Título o perfil profesional *
-                </label>
-
+                <label>Título o perfil profesional *</label>
                 <input
                   type="text"
                   name="titulo_profesional"
-                  value={
-                    form.titulo_profesional
-                  }
-                  onChange={
-                    handleChange
-                  }
+                  value={form.titulo_profesional}
+                  onChange={cambiarCampo}
                   required
                 />
-
               </div>
-
-
-              {/* FOTO */}
 
               <div className="full">
+                <label>Fotografía *</label>
 
-                <label>
-                  URL de fotografía
-                </label>
+                <div className="profile-photo-upload">
+                  <input
+                    type="file"
+                    accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                    onChange={seleccionarFotografia}
+                    disabled={subiendoFoto}
+                  />
 
-                <input
-                  type="url"
-                  name="fotografia_url"
-                  value={
-                    form.fotografia_url
-                  }
-                  onChange={
-                    handleChange
-                  }
-                  placeholder="Opcional"
-                />
+                  <div>
+                    <strong>
+                      {subiendoFoto
+                        ? "Subiendo fotografía..."
+                        : form.fotografia_url
+                          ? "Fotografía registrada"
+                          : "Selecciona una fotografía"}
+                    </strong>
 
+                    <span>
+                      El archivo se guarda en PoliCV.
+                      No necesitas colocar una URL.
+                    </span>
+                  </div>
+                </div>
               </div>
 
-
-              {/* LINKEDIN */}
-
               <div>
-
-                <label>
-                  LinkedIn
-                </label>
-
+                <label>LinkedIn</label>
                 <input
                   type="url"
                   name="linkedin_url"
-                  value={
-                    form.linkedin_url
-                  }
-                  onChange={
-                    handleChange
-                  }
+                  value={form.linkedin_url}
+                  onChange={cambiarCampo}
                   placeholder="https://linkedin.com/in/..."
                 />
-
               </div>
 
-
-              {/* GITHUB */}
-
               <div>
-
-                <label>
-                  GitHub
-                </label>
-
+                <label>GitHub</label>
                 <input
                   type="url"
                   name="github_url"
-                  value={
-                    form.github_url
-                  }
-                  onChange={
-                    handleChange
-                  }
+                  value={form.github_url}
+                  onChange={cambiarCampo}
                   placeholder="https://github.com/..."
                 />
-
               </div>
 
-
-              {/* MENSAJES */}
+              <div className="full">
+                <label>Sitio web o portafolio</label>
+                <input
+                  type="url"
+                  name="sitio_web"
+                  value={form.sitio_web}
+                  onChange={cambiarCampo}
+                  placeholder="https://miportafolio.com"
+                />
+              </div>
 
               {error && (
-
-                <p className="message error full">
+                <div className="profile-message error full">
                   {error}
-                </p>
-
+                </div>
               )}
-
 
               {mensaje && (
-
-                <p className="message success full">
+                <div className="profile-message success full">
                   {mensaje}
-                </p>
-
+                </div>
               )}
 
-
-              {/* BOTÓN */}
-
-              <div className="full">
+              <div className="profile-actions full">
+                {idCurriculum && (
+                  <Link
+                    to={`/estudiante/curriculums/${idCurriculum}`}
+                    className="profile-secondary-button"
+                  >
+                    Regresar al currículum
+                  </Link>
+                )}
 
                 <button
                   type="submit"
-                  disabled={
-                    guardando
-                  }
+                  className="profile-save-button"
+                  disabled={guardando || subiendoFoto}
                 >
-
                   {guardando
                     ? "Guardando..."
                     : "Guardar cambios"}
-
                 </button>
-
               </div>
-
-
             </form>
-
           </section>
-
         </div>
-
       </main>
-
     </div>
   );
 }
 
-
-export default ProfilePage;
+export default PaginaPerfil;

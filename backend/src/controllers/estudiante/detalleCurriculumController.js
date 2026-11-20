@@ -85,8 +85,7 @@ async function obtenerContenido(req, res) {
     console.error("Error obteniendo contenido CV:", error);
 
     return res.status(500).json({
-      mensaje: "No se pudo obtener el contenido del currículum",
-      detalle: error.message
+      mensaje: "No se pudo obtener el contenido del currículum"
     });
   }
 }
@@ -99,6 +98,7 @@ async function subirArchivo(req, res) {
 
     const seccionesPermitidas = [
       "formacion",
+      "idiomas",
       "cursos",
       "proyectos",
       "practicas",
@@ -339,11 +339,15 @@ async function guardarSeccion(req, res) {
         ) {
           tieneIngles = true;
         }
-
         idiomasFinales.push({
           id_idioma_catalogo: idIdioma,
           idioma: idioma.nombre,
-          nivel: item.nivel
+          nivel: item.nivel,
+          tiene_certificado: Boolean(
+            item.evidencia_archivo
+          ),
+          evidencia_archivo:
+            texto(item.evidencia_archivo) || null
         });
       }
 
@@ -543,6 +547,7 @@ async function guardarSeccion(req, res) {
       }
 
       const tipos = ["Académico", "Personal", "Profesional"];
+      const estados = ["En desarrollo", "Finalizado", "Pausado"];
       const proyectos = [];
 
       for (let i = 0; i < datos.length; i += 1) {
@@ -555,7 +560,7 @@ async function guardarSeccion(req, res) {
           !texto(proyecto.tecnologias) ||
           !texto(proyecto.rol) ||
           !fechaValida(proyecto.fecha_inicio) ||
-          !texto(proyecto.estado)
+          !estados.includes(proyecto.estado)
         ) {
           return res.status(400).json({
             mensaje: `Completa los datos obligatorios del proyecto ${i + 1}`
@@ -629,6 +634,7 @@ async function guardarSeccion(req, res) {
         });
       }
 
+      const tiposPractica = ["comunitaria", "laboral"];
       const practicas = [];
 
       for (let i = 0; i < datos.length; i += 1) {
@@ -636,7 +642,7 @@ async function guardarSeccion(req, res) {
         const palabras = contarPalabras(practica.actividades);
 
         if (
-          !texto(practica.tipo) ||
+          !tiposPractica.includes(practica.tipo) ||
           !texto(practica.institucion) ||
           !texto(practica.area) ||
           !texto(practica.rol_funcion) ||

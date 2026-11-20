@@ -1,66 +1,25 @@
 const express = require("express");
-
-const {
-  obtenerConfiguracion,
-  listarCarreras,
-  completarConfiguracion
-} = require(
-  "../../controllers/estudiante/configuracionInicialController"
-);
-
-const {
-  verificarToken
-} = require(
-  "../../middlewares/AutenticacionMiddleware"
-);
-
-const {
-  verificarRol
-} = require(
-  "../../middlewares/RolMiddleware"
-);
+const { obtenerConfiguracion, listarCarreras, completarConfiguracion, subirFotografia } = require("../../controllers/estudiante/configuracionInicialController");
+const { verificarToken } = require("../../middlewares/AutenticacionMiddleware");
+const { verificarRol } = require("../../middlewares/RolMiddleware");
+const subirFotoPerfil = require("../../middlewares/subirFotoPerfil");
 
 const router = express.Router();
-
-
-/* =========================================================
-   SOLO ESTUDIANTES AUTENTICADOS
-========================================================= */
 
 router.use(
   verificarToken,
   verificarRol("Estudiante")
 );
 
+router.get("/", obtenerConfiguracion);
+router.get("/carreras", listarCarreras);
 
-/* =========================================================
-   OBTENER CONFIGURACIÓN DEL ESTUDIANTE
-========================================================= */
-
-router.get(
-  "/",
-  obtenerConfiguracion
+router.post(
+  "/fotografia",
+  subirFotoPerfil.single("fotografia"),
+  subirFotografia
 );
 
-
-/* =========================================================
-   LISTAR CARRERAS
-========================================================= */
-
-router.get(
-  "/carreras",
-  listarCarreras
-);
-
-
-/* =========================================================
-   COMPLETAR CONFIGURACIÓN INICIAL
-========================================================= */
-
-router.put(
-  "/",
-  completarConfiguracion
-);
-
+router.put("/", completarConfiguracion);
 
 module.exports = router;

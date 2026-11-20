@@ -55,7 +55,13 @@ function normalizarContenido(respuesta) {
       ...item,
       nivel: ["Básico", "Intermedio", "Avanzado"].includes(item.nivel)
         ? item.nivel
-        : ""
+        : "",
+      tiene_certificado: Boolean(
+        item.tiene_certificado ||
+        item.evidencia_archivo
+      ),
+      evidencia_archivo:
+        item.evidencia_archivo || ""
     })),
 
     habilidades: (contenido.habilidades || []).map((item) => ({
@@ -88,6 +94,12 @@ function normalizarContenido(respuesta) {
 
     practicas: (contenido.practicas || []).map((item) => ({
       ...item,
+      tipo:
+        ["comunitaria", "laboral"].includes(
+          normalizarTexto(item.tipo)
+        )
+          ? normalizarTexto(item.tipo)
+          : "",
       area: item.area || item.cargo_area || "",
       rol_funcion: item.rol_funcion || "",
       actividades: item.actividades || item.descripcion || "",
@@ -171,11 +183,10 @@ function PaginaDetalleCurriculum() {
       .catch((errorPeticion) => {
         if (!activo) return;
 
-      setError(
-        errorPeticion.response?.data?.detalle ||
-        errorPeticion.response?.data?.mensaje ||
-        "No se pudo cargar el currículum"
-      );
+        setError(
+          errorPeticion.response?.data?.mensaje ||
+          "No se pudo cargar el currículum"
+        );
       })
       .finally(() => {
         if (activo) {
@@ -548,11 +559,24 @@ function PaginaDetalleCurriculum() {
           Number(catalogoIngles.id_idioma_catalogo)
       );
 
+      const inglesAnterior =
+        indice >= 0
+          ? lista[indice]
+          : {};
+
       const ingles = {
+        ...inglesAnterior,
         id_idioma_catalogo:
           catalogoIngles.id_idioma_catalogo,
         idioma: catalogoIngles.nombre,
-        nivel
+        nivel,
+        tiene_certificado:
+          Boolean(
+            inglesAnterior.tiene_certificado ||
+            inglesAnterior.evidencia_archivo
+          ),
+        evidencia_archivo:
+          inglesAnterior.evidencia_archivo || ""
       };
 
       if (indice >= 0) {
@@ -590,7 +614,9 @@ function PaginaDetalleCurriculum() {
         {
           id_idioma_catalogo: "",
           idioma: "",
-          nivel: ""
+          nivel: "",
+          tiene_certificado: false,
+          evidencia_archivo: ""
         }
       ]
     }));
@@ -632,6 +658,72 @@ function PaginaDetalleCurriculum() {
 
     setError("");
     setMensaje("");
+  };
+
+  const subirCertificadoIdioma = async (
+    indiceReal,
+    archivo
+  ) => {
+    if (!archivo) {
+      return;
+    }
+
+    const nombre = archivo.name.toLowerCase();
+
+    const extensionesPermitidas = [
+      ".pdf",
+      ".jpg",
+      ".jpeg",
+      ".png"
+    ];
+
+    if (
+      !extensionesPermitidas.some(
+        (extension) =>
+          nombre.endsWith(extension)
+      )
+    ) {
+      setError(
+        "El certificado debe ser PDF, JPG, JPEG o PNG"
+      );
+      return;
+    }
+
+    if (archivo.size > 5 * 1024 * 1024) {
+      setError(
+        "El certificado no puede superar 5 MB"
+      );
+      return;
+    }
+
+    const identificador =
+      `idiomas-${indiceReal}`;
+
+    const ruta = await subirEvidencia(
+      "idiomas",
+      archivo,
+      identificador
+    );
+
+    if (!ruta) {
+      return;
+    }
+
+    modificarIdioma(
+      indiceReal,
+      "evidencia_archivo",
+      ruta
+    );
+
+    modificarIdioma(
+      indiceReal,
+      "tiene_certificado",
+      true
+    );
+
+    setMensaje(
+      "Certificado cargado correctamente"
+    );
   };
 
   const guardarIdiomas = () => {
@@ -723,13 +815,27 @@ function PaginaDetalleCurriculum() {
           id_idioma_catalogo:
             inglesCatalogo.id_idioma_catalogo,
           idioma: inglesCatalogo.nombre,
-          nivel: inglesGuardado.nivel
+          nivel: inglesGuardado.nivel,
+          tiene_certificado:
+            Boolean(
+              inglesGuardado.evidencia_archivo
+            ),
+          evidencia_archivo:
+            inglesGuardado.evidencia_archivo ||
+            null
         },
         ...adicionales.map((idioma) => ({
           id_idioma_catalogo:
             idioma.id_idioma_catalogo,
           idioma: idioma.idioma,
-          nivel: idioma.nivel
+          nivel: idioma.nivel,
+          tiene_certificado:
+            Boolean(
+              idioma.evidencia_archivo
+            ),
+          evidencia_archivo:
+            idioma.evidencia_archivo ||
+            null
         }))
       ]
     );
@@ -882,36 +988,16 @@ function PaginaDetalleCurriculum() {
      CARGANDO
   ======================================================= */
 
-  if (cargando) {
+  if (cargando || !datos) {
     return (
-      <main className="cv-detail-loading">
+      <main style={{ padding: "40px" }}>
         Cargando currículum...
       </main>
     );
   }
 
-  if (!datos) {
-    return (
-      <main className="cv-detail-loading">
-        <div>
-          <h2>No se pudo cargar el currículum</h2>
-
-          <p>
-            {error || "Ocurrió un error al cargar la información."}
-          </p>
-
-          <Link
-            to="/estudiante/curriculums"
-            className="cv-detail-back"
-          >
-            Volver a mis currículums
-          </Link>
-        </div>
-      </main>
-    );
-  }
-
   const perfil = datos.perfil;
+
   /* =======================================================
      RENDERIZAR SECCIÓN
   ======================================================= */
@@ -1052,7 +1138,7 @@ function PaginaDetalleCurriculum() {
             )}
 
             <Link
-              to="/perfil"
+              to={`/perfil?volverCurriculum=${id}`}
               className="cv-detail-save"
             >
               Editar datos en Mi perfil
@@ -1443,15 +1529,25 @@ function PaginaDetalleCurriculum() {
             )
         );
 
-      const ingles = contenido.idiomas.find(
-        (item) => idiomaEsIngles(item)
-      ) || {
-        id_idioma_catalogo:
-          inglesCatalogo?.id_idioma_catalogo || "",
-        idioma:
-          inglesCatalogo?.nombre || "Inglés",
-        nivel: ""
-      };
+      const indiceIngles =
+        contenido.idiomas.findIndex(
+          (item) => idiomaEsIngles(item)
+        );
+
+      const ingles =
+        indiceIngles >= 0
+          ? contenido.idiomas[indiceIngles]
+          : {
+              id_idioma_catalogo:
+                inglesCatalogo
+                  ?.id_idioma_catalogo || "",
+              idioma:
+                inglesCatalogo?.nombre ||
+                "Inglés",
+              nivel: "",
+              tiene_certificado: false,
+              evidencia_archivo: ""
+            };
 
       const adicionales = contenido.idiomas
         .map((idioma, indiceReal) => ({
@@ -1511,6 +1607,49 @@ function PaginaDetalleCurriculum() {
                     </option>
                   </select>
                 </div>
+
+                {ingles.nivel && indiceIngles >= 0 && (
+                  <div className="cv-detail-field full">
+                    <label>
+                      Certificado o evidencia
+                      <span> (opcional)</span>
+                    </label>
+
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                      disabled={
+                        subiendoArchivo ===
+                        `idiomas-${indiceIngles}`
+                      }
+                      onChange={(e) =>
+                        subirCertificadoIdioma(
+                          indiceIngles,
+                          e.target.files?.[0]
+                        )
+                      }
+                    />
+
+                    <small>
+                      PDF, JPG, JPEG o PNG. Máximo 5 MB.
+                    </small>
+
+                    {subiendoArchivo ===
+                      `idiomas-${indiceIngles}` && (
+                      <p className="cv-detail-file-ok">
+                        Subiendo certificado...
+                      </p>
+                    )}
+
+                    {ingles.evidencia_archivo &&
+                      subiendoArchivo !==
+                        `idiomas-${indiceIngles}` && (
+                      <p className="cv-detail-file-ok">
+                        Certificado cargado correctamente
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1630,6 +1769,47 @@ function PaginaDetalleCurriculum() {
                           Avanzado
                         </option>
                       </select>
+                    </div>
+
+                    <div className="cv-detail-field full">
+                      <label>
+                        Certificado o evidencia
+                        <span> (opcional)</span>
+                      </label>
+
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                        disabled={
+                          subiendoArchivo ===
+                          `idiomas-${idioma.indiceReal}`
+                        }
+                        onChange={(e) =>
+                          subirCertificadoIdioma(
+                            idioma.indiceReal,
+                            e.target.files?.[0]
+                          )
+                        }
+                      />
+
+                      <small>
+                        PDF, JPG, JPEG o PNG. Máximo 5 MB.
+                      </small>
+
+                      {subiendoArchivo ===
+                        `idiomas-${idioma.indiceReal}` && (
+                        <p className="cv-detail-file-ok">
+                          Subiendo certificado...
+                        </p>
+                      )}
+
+                      {idioma.evidencia_archivo &&
+                        subiendoArchivo !==
+                          `idiomas-${idioma.indiceReal}` && (
+                        <p className="cv-detail-file-ok">
+                          Certificado cargado correctamente
+                        </p>
+                      )}
                     </div>
                   </div>
                 </article>
@@ -2338,12 +2518,8 @@ function PaginaDetalleCurriculum() {
                     <div className="cv-detail-field">
                       <label>Estado *</label>
 
-                      <input
-                        type="text"
-                        placeholder="Ej. Finalizado"
-                        value={
-                          proyecto.estado || ""
-                        }
+                      <select
+                        value={proyecto.estado || ""}
                         onChange={(e) =>
                           modificarElemento(
                             "proyectos",
@@ -2352,7 +2528,23 @@ function PaginaDetalleCurriculum() {
                             e.target.value
                           )
                         }
-                      />
+                      >
+                        <option value="">
+                          Selecciona
+                        </option>
+
+                        <option value="En desarrollo">
+                          En desarrollo
+                        </option>
+
+                        <option value="Finalizado">
+                          Finalizado
+                        </option>
+
+                        <option value="Pausado">
+                          Pausado
+                        </option>
+                      </select>
                     </div>
 
                     <div className="cv-detail-field">
@@ -2521,9 +2713,7 @@ function PaginaDetalleCurriculum() {
                         Tipo de práctica *
                       </label>
 
-                      <input
-                        type="text"
-                        placeholder="Ej. Preprofesional"
+                      <select
                         value={practica.tipo || ""}
                         onChange={(e) =>
                           modificarElemento(
@@ -2533,7 +2723,19 @@ function PaginaDetalleCurriculum() {
                             e.target.value
                           )
                         }
-                      />
+                      >
+                        <option value="">
+                          Selecciona
+                        </option>
+
+                        <option value="comunitaria">
+                          Comunitaria
+                        </option>
+
+                        <option value="laboral">
+                          Laboral
+                        </option>
+                      </select>
                     </div>
 
                     <div className="cv-detail-field">
@@ -3299,7 +3501,7 @@ function PaginaDetalleCurriculum() {
                           Académica
                         </option>
 
-                        <option value="Laboral">
+                        <option value="laboral">
                           Laboral
                         </option>
 
